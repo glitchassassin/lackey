@@ -1,5 +1,6 @@
 import platform
 import time
+import os
 
 from PIL import ImageGrab
 import numpy
@@ -47,7 +48,7 @@ class Region(object):
 		self.autoWaitTimeout = 3.0
 		self.defaultScanRate = 0.1
 		self.defaultMouseSpeed = 1
-		self.defaultTypeSpeed = 0
+		self.defaultTypeSpeed = 0.05
 
 	def __enter__(self):
 		return self
@@ -193,11 +194,11 @@ class Region(object):
 			raise FindFailed("Could not find pattern '{}'".format(path))
 		return match
 	def findAll(self, pattern, seconds=None):
-		""" Searches for all instances of an image pattern in the given region
-
+		""" Searches for an image pattern in the given region
+		
+		Returns Match if pattern exists, None otherwise (does not throw exception)
 		Sikuli supports OCR search with a text parameter. This does not.
 		"""
-		raise NotImplementedError()
 		if seconds is None:
 			seconds = self.autoWaitTimeout
 		if isinstance(pattern, int):
@@ -209,19 +210,42 @@ class Region(object):
 			if not isinstance(pattern, basestring):
 				raise TypeError("find expected a string [image path] or Pattern object")
 			pattern = Pattern(pattern)
-
-		tolerance = pattern.getTolerance()
-		needle = autopy.bitmap.Bitmap.open(pattern.path)
+		needle = cv2.imread(pattern.path)
+		if needle is None:
+			print os.getcwd()
+			raise ValueError("Unable to load image '{}'".format(pattern.path))
+		needle_height, needle_width, needle_channels = needle.shape
 		positions = []
 		timeout = time.time() + seconds
-		while not positions and time.time() < timeout:
+		method = cv2.TM_CCOEFF_NORMED
+		while time.time() < timeout:
 			haystack = self.getBitmap()
-			position = haystack.find_bitmap(needle, tolerance)
+			match = cv2.matchTemplate(haystack,needle,method)
+			max_y, max_x = match.shape
+			for x in range(0, max_x):
+				for y in range(0, max_y):
+					confidence = match[y][x]
+					if method == cv2.TM_SQDIFF_NORMED or method == cv2.TM_SQDIFF:
+						if confidence <= 1-pattern.similarity:
+							positions.append((x,y,confidence))
+					else:
+						if confidence >= pattern.similarity:
+							positions.append((x,y,confidence))
 			time.sleep(self.defaultScanRate)
-		if not positions:
-			raise FindFailed("Could not find pattern '{}'".format(pattern.path))
-		self.lastMatches = [Match(similarity, pattern.offset, (pos, needle_width, needle_height)) for pos in positions]
-		return iter(self.lastMatches)
+			if len(positions) > 0:
+				break
+
+		self.lastMatches = []
+		
+		if len(positions) == 0:
+			print "Couldn't find '{}' with enough similarity.".format(pattern.path)
+			return None
+		# Translate local position into global screen position
+		for position in positions:
+			x, y, confidence = position
+			self.lastMatches.append(Match(confidence, pattern.offset, ((x+self.x, y+self.y), (needle_width, needle_height))))
+		print "Found {} match(es) for pattern '{}' at similarity ({})".format(len(self.lastMatches), pattern.path, pattern.similarity)
+		return self.lastMatches
 
 	def wait(self, pattern, seconds=None):
 		""" Searches for an image pattern in the given region, given a specified timeout period
@@ -298,6 +322,9 @@ class Region(object):
 				raise TypeError("find expected a string [image path] or Pattern object")
 			pattern = Pattern(pattern)
 		needle = cv2.imread(pattern.path)
+		if needle is None:
+			print os.getcwd()
+			raise ValueError("Unable to load image '{}'".format(pattern.path))
 		#needle = cv2.cvtColor(needle, cv2.COLOR_BGR2GRAY)
 		needle_height, needle_width, needle_channels = needle.shape
 		position = None
@@ -322,7 +349,7 @@ class Region(object):
 			time.sleep(self.defaultScanRate)
 		if not position:
 			# Debugging #
-			print "Couldn't find with enough similarity. Best match {} at ({},{})".format(confidence, best_loc[0], best_loc[1])
+			print "Couldn't find '{}' with enough similarity. Best match {} at ({},{})".format(pattern.path, confidence, best_loc[0], best_loc[1])
 			#cv2.rectangle(haystack, (best_loc[0], best_loc[1]), (best_loc[0] + needle_width, best_loc[1] + needle_height), 255, 2)
 			#cv2.imshow("Debug", haystack)
 			#cv2.waitKey(0)
@@ -514,8 +541,12 @@ class Region(object):
 			text = args[1]
 		else:
 			raise TypeError("type method expected [PSMRL], text")
+		# Patch some Sikuli special codes
+		text = text.replace("{PGDN}", "{PAGE_DOWN}")
+		text = text.replace("{PGUP}", "{PAGE_UP}")
+
 		print "Typing '{}'".format(text)
-		HardwareManager.TypeKeys(text)
+		PlatformManager.TypeKeys(text, self.defaultTypeSpeed)
 
 	def paste(self, *args):
 		target = None
@@ -528,7 +559,7 @@ class Region(object):
 		else:
 			raise TypeError("paste method expected [PSMRL], text")
 
-		HardwareManager.SetClipboard(text)
+		PlatformManager.SetClipboard(text)
 		# Triggers OS paste
 		self.type('^v')
 
@@ -593,7 +624,7 @@ class Screen(object):
 		# TODO: Implement multi-monitor support
 		coords, screen_size = self.getBounds()
 		screen_width, screen_height = screen_size
-		return (location.x >= 0 and location.x < screen_width and location.y <= 0 and location.y < screen_height)
+		return (location.x >= 0 and location.x < screen_width and location.y >= 0 and location.y < screen_height)
 
 	def capture(self, *args):
 		""" Captures the specified region and saves to a temporary file """
@@ -667,6 +698,9 @@ class Location(object):
 	def getTuple(self):
 		return (self.x, self.y)
 
+	def __repr__(self):
+		return "(Location object at ({},{}))".format(self.x, self.y)
+
 class Mouse(object):
 	""" Mid-level mouse routines """
 	def __init__(self):
@@ -686,12 +720,10 @@ class Mouse(object):
 			return
 		frames = int(seconds*0.1 / self.defaultScanRate)
 		while frames > 0:
-			mousex, mousey = self.get_pos()
-			#print "Moved to ", (mousex, mousey)
-			deltax = int(round(float(location.x - mousex) / frames))
-			deltay = int(round(float(location.y - mousey) / frames))
-			#print "Moving to", (mousex + deltax, mousey + deltay)
-			self.move(Location(mousex + deltax, mousey + deltay))
+			mouse_pos = self.get_pos()
+			deltax = int(round(float(location.x - mouse_pos.x) / frames))
+			deltay = int(round(float(location.y - mouse_pos.y) / frames))
+			self.move(Location(mouse_pos.x + deltax, mouse_pos.y + deltay))
 			frames -= 1
 			time.sleep(self.defaultScanRate)
 
@@ -703,7 +735,11 @@ class Window(object):
 	def __init__(self, identifier=None):
 		self._handle = None
 		if identifier:
-			self._handle = PlatformManager.GetWindowByTitle(wildcard)
+			self.initialize_wildcard(identifier)
+
+	def initialize_wildcard(self, wildcard):
+		self._handle = PlatformManager.GetWindowByTitle(wildcard)
+		return self
 
 	def getRegion(self):
 		if self._handle is None:
@@ -713,7 +749,7 @@ class Window(object):
 
 	def focus(self, wildcard=None):
 		if self._handle is None:
-			return None
+			return self
 		PlatformManager.FocusWindow(self._handle)
 		return self
 
@@ -724,3 +760,24 @@ class Window(object):
 		if self._handle is None:
 			return -1
 		return PlatformManager.GetWindowPID(self._handle)
+
+class App(Window):
+	def __init__(self, identifier=None):
+		super(App, self).__init__(identifier)
+		self.focus = self._focus_instance
+
+	@classmethod
+	def focus(cls, wildcard=None):
+		# Modify wildcard from Sikuli format to regex
+		# TODO - Clean up this cleanup
+		wildcard_regex = wildcard.replace("\\", "\\\\").replace(".", "\.").replace("*", ".*")
+		app = cls(wildcard_regex)
+		return app.focus()
+
+	def _focus_instance(self, wildcard=None):
+		if wildcard is not None:
+			self.initialize_wildcard(wildcard)
+		if self._handle is None:
+			return self
+		PlatformManager.FocusWindow(self._handle)
+		return self

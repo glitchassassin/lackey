@@ -28,3 +28,7 @@ Note that I *have* had to adjust some of my image search similarity settings in 
 ## Structure ##
 
 Each platform (Windows/OSX/Linux) needs its own PlatformManager to abstract OS-level functionality, like simulating mouse clicks or key presses. Ideally, these should be implemented with as few 3rd-party library dependencies as possible. 
+
+## Fair Warning ##
+
+This library is currently under development, and is missing many features needed for full Sikuli compatibility (and plenty of bugs). Fork at your own risk!
