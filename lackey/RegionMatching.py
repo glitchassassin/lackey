@@ -537,27 +537,28 @@ class Region(object):
 		raise NotImplementedError()
 
 	def mouseDown(self, button):
-		""" Low-level mouse actions """
-		autopy.mouse.toggle(True, button)
+		""" Low-level mouse actions. Todo """
+		raise NotImplementedError()
 	def mouseUp(self, button):
 		""" Low-level mouse actions """
-		autopy.mouse.toggle(False, button)
+		raise NotImplementedError()
 	def mouseMove(self, PSRML):
 		""" Low-level mouse actions """
 		Mouse().move_speed(PSRML)
 	def wheel(self, PSRML, direction, steps):
 		""" Not supported by autopy. Todo. """
 		raise NotImplementedError()
-	def keyDown(self, *keys):
-		""" Does not support Sikuli key concatenation. Instead, pass each key as individual parameters. """
-		for key in keys:
-			autopy.key.toggle(key, True)
+	def keyDown(self, keys):
+		""" Concatenate multiple keys to press them all down. Todo. """
+		raise NotImplementedError()
+			
 	def keyUp(self, *keys):
-		""" Does not support Sikuli key concatenation. Instead, pass each key as individual parameters. """
-		for key in keys:
-			autopy.key.toggle(key, False)
+		""" Concatenate multiple keys to up them all. Todo. """
+		raise NotImplementedError()
+
 
 class Match(Region):
+	""" Extended Region object with additional data on click target, match score """
 	def __init__(self, score, target, rect):
 		super(Match, self).__init__(rect[0][0], rect[0][1], rect[1][0], rect[1][1])
 		self.score = float(score)
@@ -572,6 +573,7 @@ class Match(Region):
 		return self.getCenter().offset(self.target.x, self.target.y)
 
 class Screen(object):
+	""" Main screen only supported atm. Multi-monitor support is coming. """
 	def __init__(self, id=0):
 		""" Autopy doesn't support multiple screens at this time, so this will always default to the main screen """
 		self.id = 0
@@ -631,6 +633,7 @@ class Screen(object):
 		return Region(0, 0, *screen_size[1])
 
 class Location(object):
+	""" Basic 2D point object """
 	def __init__(self, x, y):
 		self.setLocation(x, y)
 
@@ -661,12 +664,16 @@ class Location(object):
 		"""Get a new location which is dx pixels horizontally to the right of the current location."""
 		return Location(self.x+dx, self.y)
 
+	def getTuple(self):
+		return (self.x, self.y)
+
 class Mouse(object):
+	""" Mid-level mouse routines """
 	def __init__(self):
 		self.defaultScanRate = 0.01
 
 	def move(self, location):
-		PlatformManager.SetMousePos(location)
+		PlatformManager.SetMousePos(location.getTuple())
 
 	def get_pos(self):
 		x, y = PlatformManager.GetMousePos()
@@ -692,6 +699,7 @@ class Mouse(object):
 		PlatformManager.ClickMouse(button)
 
 class Window(object):
+	""" Object to select (and perform basic manipulations on) a window. Uses platform-specific handler """
 	def __init__(self, identifier=None):
 		self._handle = None
 		if identifier:

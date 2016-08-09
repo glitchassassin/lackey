@@ -1,3 +1,4 @@
+import time
 from lackey import *
 ## Sikuli patching: Functions that map to the global Screen region
 
