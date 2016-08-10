@@ -221,26 +221,27 @@ class Region(object):
 		while time.time() < timeout:
 			haystack = self.getBitmap()
 			match = cv2.matchTemplate(haystack,needle,method)
-			max_y, max_x = match.shape
-			for x in range(0, max_x):
-				for y in range(0, max_y):
-					confidence = match[y][x]
-					if method == cv2.TM_SQDIFF_NORMED or method == cv2.TM_SQDIFF:
-						if confidence <= 1-pattern.similarity:
-							positions.append((x,y,confidence))
-					else:
-						if confidence >= pattern.similarity:
-							positions.append((x,y,confidence))
+			indices = (-match).argpartition(100, axis=None)[:100] # Review the 100 top matches
+			unraveled_indices = numpy.array(numpy.unravel_index(indices, match.shape)).T
+			for location in unraveled_indices:
+				y, x = location
+				confidence = match[y][x]
+				if method == cv2.TM_SQDIFF_NORMED or method == cv2.TM_SQDIFF:
+					if confidence <= 1-pattern.similarity:
+						positions.append((x,y,confidence))
+				else:
+					if confidence >= pattern.similarity:
+						positions.append((x,y,confidence))
 			time.sleep(self.defaultScanRate)
 			if len(positions) > 0:
 				break
-
 		self.lastMatches = []
 		
 		if len(positions) == 0:
 			print "Couldn't find '{}' with enough similarity.".format(pattern.path)
 			return None
 		# Translate local position into global screen position
+		positions.sort(key=lambda x: (x[1], -x[0]))
 		for position in positions:
 			x, y, confidence = position
 			self.lastMatches.append(Match(confidence, pattern.offset, ((x+self.x, y+self.y), (needle_width, needle_height))))
