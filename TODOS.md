@@ -3,7 +3,7 @@
 ## Cleanup ##
 
 * *Standardize formatting*
-	* [ ] Refactor names as `UpperCamelCase` for class names, `CAPITALIZED_WITH_UNDERSCORES` for constants, and `lowerCamelCase` for other names (for consistency with Sikuli). 
+	* [X] Refactor names as `UpperCamelCase` for class names, `CAPITALIZED_WITH_UNDERSCORES` for constants, `lowerCamelCase` for methods/properties, `lowercase_with_underscores` for internal variables (for consistency with Sikuli). 
 	* [ ] Designate "private" properties with underscore ("_").
 
 ## Document ##

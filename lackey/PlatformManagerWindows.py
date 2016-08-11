@@ -21,76 +21,8 @@ class PlatformManagerWindows(object):
 		KEYEVENTF_UNICODE     = 0x0004
 		KEYEVENTF_SCANCODE    = 0x0008
 		MAPVK_VK_TO_VSC = 0
-		
-		# __init__ internal classes
-		
-		class MOUSEINPUT(ctypes.Structure):
-			_fields_ = (("dx",          wintypes.LONG),
-						("dy",          wintypes.LONG),
-						("mouseData",   wintypes.DWORD),
-						("dwFlags",     wintypes.DWORD),
-						("time",        wintypes.DWORD),
-						("dwExtraInfo", wintypes.WPARAM))
-		self._MOUSEINPUT = MOUSEINPUT
 
-		class KEYBDINPUT(ctypes.Structure):
-			_fields_ = (("wVk",         wintypes.WORD),
-						("wScan",       wintypes.WORD),
-						("dwFlags",     wintypes.DWORD),
-						("time",        wintypes.DWORD),
-						("dwExtraInfo", wintypes.WPARAM))
-			def __init__(self, *args, **kwds):
-				super(KEYBDINPUT, self).__init__(*args, **kwds)
-				# some programs use the scan code even if KEYEVENTF_SCANCODE
-				# isn't set in dwFflags, so attempt to map the correct code.
-				if not self.dwFlags & KEYEVENTF_UNICODE:
-					self.wScan = user32.MapVirtualKeyExW(self.wVk, MAPVK_VK_TO_VSC, 0)
-		self._KEYBDINPUT = KEYBDINPUT
-
-		class HARDWAREINPUT(ctypes.Structure):
-			_fields_ = (("uMsg",    wintypes.DWORD),
-						("wParamL", wintypes.WORD),
-						("wParamH", wintypes.WORD))
-		self._HARDWAREINPUT = HARDWAREINPUT
-
-		class INPUT(ctypes.Structure):
-			class _INPUT(ctypes.Union):
-				_fields_ = (("ki", KEYBDINPUT),
-							("mi", MOUSEINPUT),
-							("hi", HARDWAREINPUT))
-			_anonymous_ = ("_input",)
-			_fields_ = (("type",   wintypes.DWORD),
-						("_input", _INPUT))
-		self._INPUT = INPUT
-
-		LPINPUT = ctypes.POINTER(INPUT)
-		user32.SendInput.errcheck = self._check_count
-		user32.SendInput.argtypes = (wintypes.UINT, # nInputs
-										  LPINPUT,       # pInputs
-										  ctypes.c_int)  # cbSize
-
-	def _check_count(self, result, func, args):
-		if result == 0:
-			raise ctypes.WinError(ctypes.get_last_error())
-		return args
-
-	## Keyboard input methods ##
-
-	def pressKey(self, hexKeyCode):
-		""" Set key state to down """
-		x = self._INPUT(type=self._INPUT_KEYBOARD, ki=self._KEYBDINPUT(wVk=hexKeyCode))
-		self._user32.SendInput(1, ctypes.byref(x), ctypes.sizeof(x))
-	def releaseKey(self, hexKeyCode):
-		""" Set key state to up """
-		x = self._INPUT(type=self._INPUT_KEYBOARD, ki=self._KEYBDINPUT(wVk=hexKeyCode, dwFlags=self._KEYEVENTF_KEYUP))
-		self._user32.SendInput(1, ctypes.byref(x), ctypes.sizeof(x))
-	def typeKeys(self, text, delay=0):
-		""" Translates a string (with modifiers) into a series of keystrokes.
-
-		Equivalent to Microsoft's SendKeys, with the addition of "@" as a Win-key modifier.
-		Avoids some issues SendKeys had with applications like Citrix.
-		"""
-		special_keycodes = {
+		self._SPECIAL_KEYCODES = {
 			"BACKSPACE": 	0x08,
 			"TAB": 			0x09,
 			"CLEAR": 		0x0c,
@@ -147,7 +79,7 @@ class PlatformManagerWindows(object):
 			"[":			0xdb,
 			"]":			0xdd
 		}
-		uppercase_special_keycodes = {
+		self._UPPERCASE_SPECIAL_KEYCODES = {
 			"+":			0xbb,
 			"@":			0x32,
 			"^":			0x36,
@@ -158,14 +90,14 @@ class PlatformManagerWindows(object):
 			"{":			0xdb,
 			"}":			0xdd
 		}
-		modifier_keycodes = {
+		self._MODIFIER_KEYCODES = {
 			"+":			0x10,
 			"^":			0x11,
 			"%":			0x12,
 			"~":			0x0d,
 			"@":			0x5b
 		}
-		regular_keycodes = {
+		self._REGULAR_KEYCODES = {
 			"0":			0x30,
 			"1":			0x31,
 			"2":			0x32,
@@ -213,7 +145,7 @@ class PlatformManagerWindows(object):
 			"'":			0xde,
 			" ":			0x20,
 		}
-		uppercase_keycodes = {
+		self._UPPERCASE_KEYCODES = {
 			"!":			0x31,
 			"#":			0x33,
 			"$":			0x34,
@@ -253,6 +185,113 @@ class PlatformManagerWindows(object):
 			"|":			0xdc,
 			"\"":			0xde,
 		}
+		
+		# __init__ internal classes
+		
+		class MOUSEINPUT(ctypes.Structure):
+			_fields_ = (("dx",          wintypes.LONG),
+						("dy",          wintypes.LONG),
+						("mouseData",   wintypes.DWORD),
+						("dwFlags",     wintypes.DWORD),
+						("time",        wintypes.DWORD),
+						("dwExtraInfo", wintypes.WPARAM))
+		self._MOUSEINPUT = MOUSEINPUT
+
+		class KEYBDINPUT(ctypes.Structure):
+			_fields_ = (("wVk",         wintypes.WORD),
+						("wScan",       wintypes.WORD),
+						("dwFlags",     wintypes.DWORD),
+						("time",        wintypes.DWORD),
+						("dwExtraInfo", wintypes.WPARAM))
+			def __init__(self, *args, **kwds):
+				super(KEYBDINPUT, self).__init__(*args, **kwds)
+				# some programs use the scan code even if KEYEVENTF_SCANCODE
+				# isn't set in dwFflags, so attempt to map the correct code.
+				if not self.dwFlags & KEYEVENTF_UNICODE:
+					self.wScan = user32.MapVirtualKeyExW(self.wVk, MAPVK_VK_TO_VSC, 0)
+		self._KEYBDINPUT = KEYBDINPUT
+
+		class HARDWAREINPUT(ctypes.Structure):
+			_fields_ = (("uMsg",    wintypes.DWORD),
+						("wParamL", wintypes.WORD),
+						("wParamH", wintypes.WORD))
+		self._HARDWAREINPUT = HARDWAREINPUT
+
+		class INPUT(ctypes.Structure):
+			class _INPUT(ctypes.Union):
+				_fields_ = (("ki", KEYBDINPUT),
+							("mi", MOUSEINPUT),
+							("hi", HARDWAREINPUT))
+			_anonymous_ = ("_input",)
+			_fields_ = (("type",   wintypes.DWORD),
+						("_input", _INPUT))
+		self._INPUT = INPUT
+
+		LPINPUT = ctypes.POINTER(INPUT)
+		user32.SendInput.errcheck = self._check_count
+		user32.SendInput.argtypes = (wintypes.UINT, # nInputs
+										  LPINPUT,       # pInputs
+										  ctypes.c_int)  # cbSize
+
+	def _check_count(self, result, func, args):
+		if result == 0:
+			raise ctypes.WinError(ctypes.get_last_error())
+		return args
+
+	## Keyboard input methods ##
+
+	def pressKeyCode(self, hexKeyCode):
+		""" Set key state to down """
+		x = self._INPUT(type=self._INPUT_KEYBOARD, ki=self._KEYBDINPUT(wVk=hexKeyCode))
+		self._user32.SendInput(1, ctypes.byref(x), ctypes.sizeof(x))
+	def pressKey(self, text):
+		""" Accepts a string of keys in typeKeys format (see below). Holds down all of them. """
+		for i in range(0, len(text)):
+			if text[i] == "{":
+				in_special_code = True
+			elif text[i] == "}":
+				in_special_code = False
+				if special_code in self._SPECIAL_KEYCODES.keys():
+					self.pressKeyCode(self._SPECIAL_KEYCODES[special_code])
+				else:
+					raise ValueError("Unsupported special code {{{}}}".format(special_code))
+				continue
+			elif in_special_code:
+				special_code += text[i]
+				continue
+			elif text[i] in self._MODIFIER_KEYCODES.keys():
+				self.pressKeyCode(self._MODIFIER_KEYCODES[text[i]])
+			elif text[i] in self._REGULAR_KEYCODES.keys():
+				self.pressKeyCode(self._REGULAR_KEYCODES[text[i]])
+	def releaseKeyCode(self, hexKeyCode):
+		""" Set key state to up """
+		x = self._INPUT(type=self._INPUT_KEYBOARD, ki=self._KEYBDINPUT(wVk=hexKeyCode, dwFlags=self._KEYEVENTF_KEYUP))
+		self._user32.SendInput(1, ctypes.byref(x), ctypes.sizeof(x))
+	def releaseKey(self, text):
+		""" Accepts a string of keys in typeKeys format (see below). Releases all of them. """
+		for i in range(0, len(text)):
+			if text[i] == "{":
+				in_special_code = True
+			elif text[i] == "}":
+				in_special_code = False
+				if special_code in self._SPECIAL_KEYCODES.keys():
+					self.releaseKeyCode(self._SPECIAL_KEYCODES[special_code])
+				else:
+					raise ValueError("Unsupported special code {{{}}}".format(special_code))
+				continue
+			elif in_special_code:
+				special_code += text[i]
+				continue
+			elif text[i] in self._MODIFIER_KEYCODES.keys():
+				self.releaseKeyCode(self._MODIFIER_KEYCODES[text[i]])
+			elif text[i] in self._REGULAR_KEYCODES.keys():
+				self.releaseKeyCode(self._REGULAR_KEYCODES[text[i]])
+	def typeKeys(self, text, delay=0):
+		""" Translates a string (with modifiers) into a series of keystrokes.
+
+		Equivalent to Microsoft's SendKeys, with the addition of "@" as a Win-key modifier.
+		Avoids some issues SendKeys had with applications like Citrix.
+		"""
 		in_special_code = False
 		special_code = ""
 		modifier_held = False
@@ -264,14 +303,14 @@ class PlatformManagerWindows(object):
 				in_special_code = True
 			elif text[i] == "}":
 				in_special_code = False
-				if special_code in special_keycodes.keys():
-					self.pressKey(special_keycodes[special_code])
-					self.releaseKey(special_keycodes[special_code])
-				elif special_code in uppercase_special_keycodes.keys():
-					self.pressKey(special_keycodes["SHIFT"])
-					self.pressKey(special_keycodes[special_code])
-					self.releaseKey(special_keycodes[special_code])
-					self.releaseKey(special_keycodes["SHIFT"])
+				if special_code in self._SPECIAL_KEYCODES.keys():
+					self.pressKeyCode(self._SPECIAL_KEYCODES[special_code])
+					self.releaseKeyCode(self._SPECIAL_KEYCODES[special_code])
+				elif special_code in self.UPPERCASE_SPECIAL_KEYCODES.keys():
+					self.pressKeyCode(self._SPECIAL_KEYCODES["SHIFT"])
+					self.pressKeyCode(self._SPECIAL_KEYCODES[special_code])
+					self.releaseKeyCode(self._SPECIAL_KEYCODES[special_code])
+					self.releaseKeyCode(self._SPECIAL_KEYCODES["SHIFT"])
 				else:
 					raise ValueError("Unrecognized special code {{{}}}".format(special_code))
 				continue
@@ -285,30 +324,33 @@ class PlatformManagerWindows(object):
 			elif text[i] == ")":
 				modifier_stuck = False
 				for x in modifier_codes:
-					self.releaseKey(x)
+					self.releaseKeyCode(x)
 				modifier_codes = []
 				continue
-			elif text[i] in modifier_keycodes.keys():
-				modifier_codes.append(modifier_keycodes[text[i]])
-				self.pressKey(modifier_keycodes[text[i]])
+			elif text[i] in self._MODIFIER_KEYCODES.keys():
+				modifier_codes.append(self._MODIFIER_KEYCODES[text[i]])
+				self.pressKeyCode(self._MODIFIER_KEYCODES[text[i]])
 				modifier_held = True
-			elif text[i] in regular_keycodes.keys():
-				self.pressKey(regular_keycodes[text[i]])
-				self.releaseKey(regular_keycodes[text[i]])
+			elif text[i] in self._REGULAR_KEYCODES.keys():
+				self.pressKeyCode(self._REGULAR_KEYCODES[text[i]])
+				self.releaseKeyCode(self._REGULAR_KEYCODES[text[i]])
 				if modifier_held:
 					for x in modifier_codes:
-						self.releaseKey(x)
-			elif text[i] in uppercase_keycodes.keys():
-				self.pressKey(special_keycodes["SHIFT"])
-				self.pressKey(uppercase_keycodes[text[i]])
-				self.releaseKey(uppercase_keycodes[text[i]])
-				self.releaseKey(special_keycodes["SHIFT"])
+						self.releaseKeyCode(x)
+			elif text[i] in self._UPPERCASE_KEYCODES.keys():
+				self.pressKeyCode(self._SPECIAL_KEYCODES["SHIFT"])
+				self.pressKeyCode(self._UPPERCASE_KEYCODES[text[i]])
+				self.releaseKeyCode(self._UPPERCASE_KEYCODES[text[i]])
+				self.releaseKeyCode(self._SPECIAL_KEYCODES["SHIFT"])
 				if modifier_held:
 					for x in modifier_codes:
-						self.releaseKey(x)
+						self.releaseKeyCode(x)
 			if delay:
 				time.sleep(delay)
-		pass
+
+		if modifier_stuck:
+			for modifier in modifier_codes:
+				self.releaseKeyCode(modifier)
 
 	## Mouse input methods
 
@@ -391,6 +433,10 @@ class PlatformManagerWindows(object):
 		r.clipboard_clear()
 		r.clipboard_append(text)
 		r.destroy()
+	def osCopy(self):
+		self.typeKeys("^c")
+	def osPaste(self):
+		self.typeKeys("^v")
 
 	## Window functions
 

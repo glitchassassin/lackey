@@ -46,9 +46,9 @@ class Region(object):
 		self.lastMatch = None
 		self.lastMatches = []
 		self.autoWaitTimeout = 3.0
-		self.defaultScanRate = 0.1
-		self.defaultMouseSpeed = 1
-		self.defaultTypeSpeed = 0.05
+		self._defaultScanRate = 0.1
+		self._defaultMouseSpeed = 1
+		self._defaultTypeSpeed = 0.05
 
 	def __enter__(self):
 		return self
@@ -232,7 +232,7 @@ class Region(object):
 				else:
 					if confidence >= pattern.similarity:
 						positions.append((x,y,confidence))
-			time.sleep(self.defaultScanRate)
+			time.sleep(self._defaultScanRate)
 			if len(positions) > 0:
 				break
 		self.lastMatches = []
@@ -301,7 +301,7 @@ class Region(object):
 				if max_val >= pattern.similarity:
 					# Confidence checks out
 					position = max_loc
-			time.sleep(self.defaultScanRate)
+			time.sleep(self._defaultScanRate)
 		if position:
 			raise FindFailed("Pattern '{}' did not vanish".format(pattern.path))
 
@@ -347,7 +347,7 @@ class Region(object):
 				if max_val >= pattern.similarity:
 					# Confidence checks out
 					position = max_loc
-			time.sleep(self.defaultScanRate)
+			time.sleep(self._defaultScanRate)
 		if not position:
 			# Debugging #
 			print "Couldn't find '{}' with enough similarity. Best match {} at ({},{})".format(pattern.path, confidence, best_loc[0], best_loc[1])
@@ -365,6 +365,7 @@ class Region(object):
 		return self.lastMatch
 
 	def debugPreview(self, region=None):
+		""" Displays the region in a preview window. If another region is provided, highlights it with a square. If a target area is provided, circles it. """
 		if region is None:
 			region = self
 		haystack = self.getBitmap()
@@ -375,34 +376,30 @@ class Region(object):
 		cv2.waitKey(0)
 		cv2.destroyAllWindows()
 
-	def click(self, target, modifiers=0):
+	def click(self, target, modifiers=""):
 		target_location = None
 		mouse = Mouse()
 		if isinstance(target, Pattern):
 			target_location = self.find(target).getTarget()
-			#self.debug_preview(self.lastMatch)
 		elif isinstance(target, basestring):
 			target_location = self.find(target).getTarget()
-			#self.debug_preview(self.lastMatch)
 		elif isinstance(target, Match):
 			target_location = target.getTarget()
-			#self.debug_preview(target)
 		elif isinstance(target, Region):
 			target_location = target.getCenter()
-			#self.debug_preview(target)
 		elif isinstance(target, Location):
 			target_location = target
 		else:
 			raise TypeError("click expected Pattern, String, Match, Region, or Location object")
-		if modifiers != 0:
-			key.toggle('', True, modifiers)
+		if modifiers != "":
+			PlatformManager.pressKey(modifiers)
 
-		mouse.moveSpeed(target_location, self.defaultMouseSpeed)
+		mouse.moveSpeed(target_location, self._defaultMouseSpeed)
 		mouse.click()
 		time.sleep(0.2)
 
 		if modifiers != 0:
-			key.toggle('', False, modifiers)
+			PlatformManager.releaseKey(modifiers)
 
 	def doubleClick(self, target, modifiers=0):
 		target_location = None
@@ -419,14 +416,14 @@ class Region(object):
 			target_location = target
 		else:
 			raise TypeError("doubleClick expected Pattern, String, Match, Region, or Location object")
+		if modifiers != "":
+			PlatformManager.pressKey(modifiers)
 
-		if modifiers != 0:
-			key.toggle('', True, modifiers)
-
-		mouse.moveSpeed(target_location, self.defaultMouseSpeed)
+		mouse.moveSpeed(target_location, self._defaultMouseSpeed)
 		mouse.click()
 		time.sleep(0.1)
 		mouse.click()
+		time.sleep(0.2)
 
 		if modifiers != 0:
 			key.toggle('', False, modifiers)
@@ -447,22 +444,22 @@ class Region(object):
 		else:
 			raise TypeError("rightClick expected Pattern, String, Match, Region, or Location object")
 
-		if modifiers != 0:
-			key.toggle('', True, modifiers)
+		if modifiers != "":
+			PlatformManager.pressKey(modifiers)
 
-		mouse.moveSpeed(target_location, self.defaultMouseSpeed)
+		mouse.moveSpeed(target_location, self._defaultMouseSpeed)
 		mouse.click(button=autopy.mouse.RIGHT_BUTTON)
 		time.sleep(0.2)
 
-		if modifiers != 0:
-			key.toggle('', False, modifiers)
+		if modifiers != "":
+			PlatformManager.releaseKey(modifiers)
 
 	def highlight(self):
 		""" Not implemented yet
 
 		Probably requires transparent GUI creation/manipulation. TODO
 		"""
-		raise NotImplementedError()
+		raise NotImplementedError("highlight not yet supported.")
 
 	def hover(self, target):
 		target_location = None
@@ -480,7 +477,7 @@ class Region(object):
 		else:
 			raise TypeError("hover expected Pattern, String, Match, Region, or Location object")
 
-		mouse.moveSpeed(target_location, self.defaultMouseSpeed)
+		mouse.moveSpeed(target_location, self._defaultMouseSpeed)
 
 	def drag(self, dragFrom):
 		dragFromLocation = None
@@ -498,7 +495,7 @@ class Region(object):
 			dragFromLocation = dragFrom
 		else:
 			raise TypeError("drag expected dragFrom to be Pattern, String, Match, Region, or Location object")
-		mouse.moveSpeed(dragFromLocation, self.defaultMouseSpeed)
+		mouse.moveSpeed(dragFromLocation, self._defaultMouseSpeed)
 		mouse.toggle(True)
 		return 1
 		
@@ -517,20 +514,20 @@ class Region(object):
 		else:
 			raise TypeError("dragDrop expected dragTo to be Pattern, String, Match, Region, or Location object")
 
-		mouse.moveSpeed(dragToLocation, self.defaultMouseSpeed)
+		mouse.moveSpeed(dragToLocation, self._defaultMouseSpeed)
 		time.sleep(delay)
 		mouse.toggle(False)
 		return 1
 
 	def dragDrop(self, dragFrom, dragTo, modifiers):
-		if modifiers != 0:
-			key.toggle('', True, modifiers)
+		if modifiers != "":
+			PlatformManager.pressKey(modifiers)
 		
 		drag(dragFrom)
 		dropAt(dragTo, 0.1)
 		
-		if modifiers != 0:
-			key.toggle('', False, modifiers)
+		if modifiers != "":
+			PlatformManager.releaseKey(modifiers)
 
 	def type(self, *args):
 		text = None
@@ -547,7 +544,7 @@ class Region(object):
 		text = text.replace("{PGUP}", "{PAGE_UP}")
 
 		print "Typing '{}'".format(text)
-		PlatformManager.typeKeys(text, self.defaultTypeSpeed)
+		PlatformManager.typeKeys(text, self._defaultTypeSpeed)
 
 	def paste(self, *args):
 		target = None
@@ -561,12 +558,12 @@ class Region(object):
 			raise TypeError("paste method expected [PSMRL], text")
 
 		PlatformManager.setClipboard(text)
-		# Triggers OS paste
-		self.type('^v')
+		# Triggers OS paste for foreground window
+		PlatformManager.osPaste()
 
 	def text(self):
 		""" OCR method. Todo. """
-		raise NotImplementedError()
+		raise NotImplementedError("OCR not yet supported")
 
 	def mouseDown(self, button):
 		""" Low-level mouse actions. Todo """
@@ -583,34 +580,34 @@ class Region(object):
 		Mouse().wheel(direction, steps)
 		
 	def keyDown(self, keys):
-		""" Concatenate multiple keys to press them all down. Todo. """
-		raise NotImplementedError()
+		""" Concatenate multiple keys to press them all down. """
+		return PlatformManager.pressKey(keys)
 			
 	def keyUp(self, *keys):
-		""" Concatenate multiple keys to up them all. Todo. """
-		raise NotImplementedError()
+		""" Concatenate multiple keys to up them all. """
+		return PlatformManager.releaseKey(keys)
 
 
 class Match(Region):
 	""" Extended Region object with additional data on click target, match score """
 	def __init__(self, score, target, rect):
 		super(Match, self).__init__(rect[0][0], rect[0][1], rect[1][0], rect[1][1])
-		self.score = float(score)
+		self._score = float(score)
 		if not target or not isinstance(target, Location):
 			raise TypeError("Match expected target to be a Location object")
-		self.target = target
+		self._target = target
 
 	def getScore(self):
-		return self.score
+		return self._score
 
 	def getTarget(self):
-		return self.getCenter().offset(self.target.x, self.target.y)
+		return self.getCenter().offset(self._target.x, self._target.y)
 
 class Screen(object):
 	""" Main screen only supported atm. Multi-monitor support is coming. """
 	def __init__(self, id=0):
 		""" Autopy doesn't support multiple screens at this time, so this will always default to the main screen """
-		self.id = 0
+		self._id = 0
 
 	def getNumberScreens(self):
 		""" Get the number of screens in a multi-monitor environment at the time the script is running
@@ -707,7 +704,7 @@ class Location(object):
 class Mouse(object):
 	""" Mid-level mouse routines """
 	def __init__(self):
-		self.defaultScanRate = 0.01
+		self._defaultScanRate = 0.01
 		self.WHEEL_DOWN = 0
 		self.WHEEL_UP = 1
 		self.LEFT = 0
@@ -726,14 +723,14 @@ class Mouse(object):
 			# If the mouse isn't on the main screen, snap to point automatically instead of trying to track a path back
 			self.move(location)
 			return
-		frames = int(seconds*0.1 / self.defaultScanRate)
+		frames = int(seconds*0.1 / self._defaultScanRate)
 		while frames > 0:
 			mouse_pos = self.getPos()
 			deltax = int(round(float(location.x - mouse_pos.x) / frames))
 			deltay = int(round(float(location.y - mouse_pos.y) / frames))
 			self.move(Location(mouse_pos.x + deltax, mouse_pos.y + deltay))
 			frames -= 1
-			time.sleep(self.defaultScanRate)
+			time.sleep(self._defaultScanRate)
 
 	def click(self, button=0):
 		PlatformManager.clickMouse(button)
