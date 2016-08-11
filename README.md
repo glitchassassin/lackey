@@ -19,11 +19,26 @@ Most of my automation is in Windows, so I've begun this library with only Window
 
 ## Usage ##
 
-Part of my goal with this project is to be able to easily reuse my existing library of Sikuli scripts. To that end, I've included a patch script, `sikuli.py`, to map certain functions (`find()`, `click()`) to the global scope. This means you can use the Sikuli IDE for development, and run the final product with pure Python! Add the following line to your Sikuli python script and you should be able to run it largely without issue:
+### General ###
+
+The Lackey library is divided up into classes for finding and interacting with particular regions of the screen. Patterns are provided as bitmap files (supported formats include `.bmp`, `.pbm`, `.ras`, `.jpg`, `.tiff`, and `.png`). These patterns are compared to a Region of the screen, and, if they exist, can target a mouse move/click action.
+
+Sample code:
+
+    import lackey
+
+    r = Screen().to_region()
+    r.click("Start_Button.png")
+    r.wait("Control_Panel.png", 5) # Maybe the Start menu is slow
+    r.click("Notepad.png")
+
+### Sikuli Patching ###
+
+Part of my goal with this project is to be able to easily reuse my existing library of Sikuli scripts. To that end, I've included a patch script, `sikuli.py`, to map certain functions of the screen region (`find()`, `click()`) to the global scope. This means you can use the Sikuli IDE for development, and run the final product with pure Python! Add the following line to your Sikuli python script and you should be able to run it largely without issue:
 
     from sikuli import *
 
-Note that I *have* had to adjust some of my image search similarity settings in a couple cases. Your mileage may vary.
+Note that I *have* had to adjust some of my image search similarity settings in a couple cases. Your mileage may vary. Please report any issues that you encounter and I'll try to get them patched.
 
 ## Structure ##
 

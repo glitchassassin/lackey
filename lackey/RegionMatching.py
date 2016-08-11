@@ -745,7 +745,7 @@ class Window(object):
 	def getRegion(self):
 		if self._handle is None:
 			return None
-		x1, y1, x2, y2 = PlatformManager.GetWindowBounds(self._handle)
+		x1, y1, x2, y2 = PlatformManager.GetWindowRect(self._handle)
 		return Region(x1, y1, x2-x1, y2-y1)
 
 	def focus(self, wildcard=None):

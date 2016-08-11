@@ -1,6 +1,7 @@
 import re
 import time
 import ctypes
+from Tkinter import Tk
 from ctypes import wintypes
 
 class PlatformManagerWindows(object):
@@ -350,35 +351,35 @@ class PlatformManagerWindows(object):
 
 	def GetClipboard(self):
 		""" Fetches any text on the clipboard. """
-		to_return = ""
-		CF_TEXT = 1
-		self._user32.OpenClipboard(0)
-		if self._user32.IsClipboardFormatAvailable(CF_TEXT):
-			clipboard = self._user32.GetClipboardData(CF_TEXT)
-			data_locked = ctypes.windll.kernel32.GlobalLock(clipboard)
-			text = ctypes.c_char_p(data_locked)
-			to_return = text.value
-			ctypes.windll.kernel32.GlobalUnlock(data_locked)
-		self._user32.CloseClipboard()
+		r = Tk()
+		r.withdraw()
+		to_return = r.clipboard_get()
+		r.destroy()
 		return to_return
 
+	# def SetClipboard(self, text):
+	# 	""" Sets the clipboard to the contents of "text" """
+	# 	if not isinstance(text, basestring):
+	# 		raise TypeError("SetClipboard expected text to be a string")
+	# 	GMEM_DDESHARE = 0x2000
+	# 	CF_TEXT = 1
+	# 	self._user32.OpenClipboard(0)
+	# 	self._user32.EmptyClipboard()
+	# 	# Set up a memory space for the copied data
+	# 	clipdata_handle = ctypes.windll.kernel32.GlobalAlloc(GMEM_DDESHARE, len(text)+1)
+	# 	#clipdata_handle = ctypes.windll.kernel32.GlobalAlloc(GMEM_DDESHARE, len(bytes(text, "ascii"))+1) # May need for Python 3.x
+	# 	clipdata_data = ctypes.windll.kernel32.GlobalLock(clipdata_handle)
+	# 	ctypes.cdll.msvcrt.wcscpy(ctypes.c_wchar_p(clipdata_data), text)
+	# 	ctypes.windll.kernel32.GlobalUnlock(clipdata_handle)
+	# 	# Assign the pointer to the clipboard
+	# 	self._user32.SetClipboardData(CF_TEXT, clipdata_handle)
+	# 	self._user32.CloseClipboard()
 	def SetClipboard(self, text):
-		""" Sets the clipboard to the contents of "text" """
-		if not isinstance(text, basestring):
-			raise TypeError("SetClipboard expected text to be a string")
-		GMEM_DDESHARE = 0x2000
-		CF_TEXT = 1
-		self._user32.OpenClipboard(0)
-		self._user32.EmptyClipboard()
-		# Set up a memory space for the copied data
-		clipdata_handle = ctypes.windll.kernel32.GlobalAlloc(GMEM_DDESHARE, len(text)+1)
-		#clipdata_handle = ctypes.windll.kernel32.GlobalAlloc(GMEM_DDESHARE, len(bytes(text, "ascii"))+1) # May need for Python 3.x
-		clipdata_data = ctypes.windll.kernel32.GlobalLock(clipdata_handle)
-		ctypes.cdll.msvcrt.wcscpy(ctypes.c_wchar_p(clipdata_data), text)
-		ctypes.windll.kernel32.GlobalUnlock(clipdata_handle)
-		# Assign the pointer to the clipboard
-		self._user32.SetClipboardData(CF_TEXT, clipdata_handle)
-		self._user32.CloseClipboard()
+		r = Tk()
+		r.withdraw()
+		r.clipboard_clear()
+		r.clipboard_append(text)
+		r.destroy()
 
 	## Window functions
 
@@ -399,7 +400,14 @@ class PlatformManagerWindows(object):
 
 	def GetWindowRect(self, hwnd):
 		""" Returns a rect (x1,y1,x2,y2) for the specified window's area """
-		return ctypes.windll.user32.GetWindowRect(hwnd)
+		rect = ctypes.wintypes.RECT()
+		if ctypes.windll.user32.GetWindowRect(hwnd, ctypes.byref(rect)):
+			x1 = rect.left
+			y1 = rect.top
+			x2 = rect.right
+			y2 = rect.bottom
+			return (x1, y1, x2, y2)
+		return None
 
 	def FocusWindow(self, hwnd):
 		""" Brings specified window to the front """
