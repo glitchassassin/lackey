@@ -364,7 +364,7 @@ class Region(object):
 		
 		return self.lastMatch
 
-	def debug_preview(self, region=None):
+	def debugPreview(self, region=None):
 		if region is None:
 			region = self
 		haystack = self.getBitmap()
@@ -397,7 +397,7 @@ class Region(object):
 		if modifiers != 0:
 			key.toggle('', True, modifiers)
 
-		mouse.move_speed(target_location, self.defaultMouseSpeed)
+		mouse.moveSpeed(target_location, self.defaultMouseSpeed)
 		mouse.click()
 		time.sleep(0.2)
 
@@ -423,7 +423,7 @@ class Region(object):
 		if modifiers != 0:
 			key.toggle('', True, modifiers)
 
-		mouse.move_speed(target_location, self.defaultMouseSpeed)
+		mouse.moveSpeed(target_location, self.defaultMouseSpeed)
 		mouse.click()
 		time.sleep(0.1)
 		mouse.click()
@@ -450,7 +450,7 @@ class Region(object):
 		if modifiers != 0:
 			key.toggle('', True, modifiers)
 
-		mouse.move_speed(target_location, self.defaultMouseSpeed)
+		mouse.moveSpeed(target_location, self.defaultMouseSpeed)
 		mouse.click(button=autopy.mouse.RIGHT_BUTTON)
 		time.sleep(0.2)
 
@@ -480,7 +480,7 @@ class Region(object):
 		else:
 			raise TypeError("hover expected Pattern, String, Match, Region, or Location object")
 
-		mouse.move_speed(target_location, self.defaultMouseSpeed)
+		mouse.moveSpeed(target_location, self.defaultMouseSpeed)
 
 	def drag(self, dragFrom):
 		dragFromLocation = None
@@ -498,7 +498,7 @@ class Region(object):
 			dragFromLocation = dragFrom
 		else:
 			raise TypeError("drag expected dragFrom to be Pattern, String, Match, Region, or Location object")
-		mouse.move_speed(dragFromLocation, self.defaultMouseSpeed)
+		mouse.moveSpeed(dragFromLocation, self.defaultMouseSpeed)
 		mouse.toggle(True)
 		return 1
 		
@@ -517,7 +517,7 @@ class Region(object):
 		else:
 			raise TypeError("dragDrop expected dragTo to be Pattern, String, Match, Region, or Location object")
 
-		mouse.move_speed(dragToLocation, self.defaultMouseSpeed)
+		mouse.moveSpeed(dragToLocation, self.defaultMouseSpeed)
 		time.sleep(delay)
 		mouse.toggle(False)
 		return 1
@@ -547,7 +547,7 @@ class Region(object):
 		text = text.replace("{PGUP}", "{PAGE_UP}")
 
 		print "Typing '{}'".format(text)
-		PlatformManager.TypeKeys(text, self.defaultTypeSpeed)
+		PlatformManager.typeKeys(text, self.defaultTypeSpeed)
 
 	def paste(self, *args):
 		target = None
@@ -560,7 +560,7 @@ class Region(object):
 		else:
 			raise TypeError("paste method expected [PSMRL], text")
 
-		PlatformManager.SetClipboard(text)
+		PlatformManager.setClipboard(text)
 		# Triggers OS paste
 		self.type('^v')
 
@@ -570,16 +570,18 @@ class Region(object):
 
 	def mouseDown(self, button):
 		""" Low-level mouse actions. Todo """
-		raise NotImplementedError()
+		return PlatformManager.mouseButtonDown(button)
 	def mouseUp(self, button):
 		""" Low-level mouse actions """
-		raise NotImplementedError()
+		return PlatformManager.mouseButtonUp(button)
 	def mouseMove(self, PSRML):
 		""" Low-level mouse actions """
-		Mouse().move_speed(PSRML)
+		Mouse().moveSpeed(PSRML)
 	def wheel(self, PSRML, direction, steps):
-		""" Not supported by autopy. Todo. """
-		raise NotImplementedError()
+		""" Clicks the wheel the specified number of ticks """
+		self.mouseMove(PSRML)
+		Mouse().wheel(direction, steps)
+		
 	def keyDown(self, keys):
 		""" Concatenate multiple keys to press them all down. Todo. """
 		raise NotImplementedError()
@@ -618,7 +620,7 @@ class Screen(object):
 		return 1
 
 	def getBounds(self):
-		screen_size = PlatformManager.GetScreenSize()
+		screen_size = PlatformManager.getScreenSize()
 		return ((0, 0), screen_size)
 
 	def pointVisible(self, location):
@@ -706,22 +708,27 @@ class Mouse(object):
 	""" Mid-level mouse routines """
 	def __init__(self):
 		self.defaultScanRate = 0.01
+		self.WHEEL_DOWN = 0
+		self.WHEEL_UP = 1
+		self.LEFT = 0
+		self.MIDDLE = 1
+		self.RIGHT = 2
 
 	def move(self, location):
-		PlatformManager.SetMousePos(location.getTuple())
+		PlatformManager.setMousePos(location.getTuple())
 
-	def get_pos(self):
-		x, y = PlatformManager.GetMousePos()
+	def getPos(self):
+		x, y = PlatformManager.getMousePos()
 		return Location(x, y)
 
-	def move_speed(self, location, seconds=1):
+	def moveSpeed(self, location, seconds=1):
 		if seconds == 0 or not Screen().pointVisible(self.get_pos()):
 			# If the mouse isn't on the main screen, snap to point automatically instead of trying to track a path back
 			self.move(location)
 			return
 		frames = int(seconds*0.1 / self.defaultScanRate)
 		while frames > 0:
-			mouse_pos = self.get_pos()
+			mouse_pos = self.getPos()
 			deltax = int(round(float(location.x - mouse_pos.x) / frames))
 			deltay = int(round(float(location.y - mouse_pos.y) / frames))
 			self.move(Location(mouse_pos.x + deltax, mouse_pos.y + deltay))
@@ -729,7 +736,9 @@ class Mouse(object):
 			time.sleep(self.defaultScanRate)
 
 	def click(self, button=0):
-		PlatformManager.ClickMouse(button)
+		PlatformManager.clickMouse(button)
+	def wheel(self, direction, steps):
+		return PlatformManager.mouseWheel(direction, steps)
 
 class Window(object):
 	""" Object to select (and perform basic manipulations on) a window. Uses platform-specific handler """
@@ -739,28 +748,28 @@ class Window(object):
 			self.initialize_wildcard(identifier)
 
 	def initialize_wildcard(self, wildcard):
-		self._handle = PlatformManager.GetWindowByTitle(wildcard)
+		self._handle = PlatformManager.getWindowByTitle(wildcard)
 		return self
 
 	def getRegion(self):
 		if self._handle is None:
 			return None
-		x1, y1, x2, y2 = PlatformManager.GetWindowRect(self._handle)
+		x1, y1, x2, y2 = PlatformManager.getWindowRect(self._handle)
 		return Region(x1, y1, x2-x1, y2-y1)
 
 	def focus(self, wildcard=None):
 		if self._handle is None:
 			return self
-		PlatformManager.FocusWindow(self._handle)
+		PlatformManager.focusWindow(self._handle)
 		return self
 
 	def getTitle(self):
-		return PlatformManager.GetWindowTitle(self._handle)
+		return PlatformManager.getWindowTitle(self._handle)
 
 	def getPID(self):
 		if self._handle is None:
 			return -1
-		return PlatformManager.GetWindowPID(self._handle)
+		return PlatformManager.getWindowPID(self._handle)
 
 class App(Window):
 	def __init__(self, identifier=None):
@@ -780,5 +789,5 @@ class App(Window):
 			self.initialize_wildcard(wildcard)
 		if self._handle is None:
 			return self
-		PlatformManager.FocusWindow(self._handle)
+		PlatformManager.focusWindow(self._handle)
 		return self

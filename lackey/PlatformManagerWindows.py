@@ -21,7 +21,8 @@ class PlatformManagerWindows(object):
 		KEYEVENTF_UNICODE     = 0x0004
 		KEYEVENTF_SCANCODE    = 0x0008
 		MAPVK_VK_TO_VSC = 0
-		# C struct definitions
+		
+		# __init__ internal classes
 		
 		class MOUSEINPUT(ctypes.Structure):
 			_fields_ = (("dx",          wintypes.LONG),
@@ -75,15 +76,15 @@ class PlatformManagerWindows(object):
 
 	## Keyboard input methods ##
 
-	def PressKey(self, hexKeyCode):
+	def pressKey(self, hexKeyCode):
 		""" Set key state to down """
 		x = self._INPUT(type=self._INPUT_KEYBOARD, ki=self._KEYBDINPUT(wVk=hexKeyCode))
 		self._user32.SendInput(1, ctypes.byref(x), ctypes.sizeof(x))
-	def ReleaseKey(self, hexKeyCode):
+	def releaseKey(self, hexKeyCode):
 		""" Set key state to up """
 		x = self._INPUT(type=self._INPUT_KEYBOARD, ki=self._KEYBDINPUT(wVk=hexKeyCode, dwFlags=self._KEYEVENTF_KEYUP))
 		self._user32.SendInput(1, ctypes.byref(x), ctypes.sizeof(x))
-	def TypeKeys(self, text, delay=0):
+	def typeKeys(self, text, delay=0):
 		""" Translates a string (with modifiers) into a series of keystrokes.
 
 		Equivalent to Microsoft's SendKeys, with the addition of "@" as a Win-key modifier.
@@ -264,13 +265,13 @@ class PlatformManagerWindows(object):
 			elif text[i] == "}":
 				in_special_code = False
 				if special_code in special_keycodes.keys():
-					self.PressKey(special_keycodes[special_code])
-					self.ReleaseKey(special_keycodes[special_code])
+					self.pressKey(special_keycodes[special_code])
+					self.releaseKey(special_keycodes[special_code])
 				elif special_code in uppercase_special_keycodes.keys():
-					self.PressKey(special_keycodes["SHIFT"])
-					self.PressKey(special_keycodes[special_code])
-					self.ReleaseKey(special_keycodes[special_code])
-					self.ReleaseKey(special_keycodes["SHIFT"])
+					self.pressKey(special_keycodes["SHIFT"])
+					self.pressKey(special_keycodes[special_code])
+					self.releaseKey(special_keycodes[special_code])
+					self.releaseKey(special_keycodes["SHIFT"])
 				else:
 					raise ValueError("Unrecognized special code {{{}}}".format(special_code))
 				continue
@@ -284,72 +285,82 @@ class PlatformManagerWindows(object):
 			elif text[i] == ")":
 				modifier_stuck = False
 				for x in modifier_codes:
-					self.ReleaseKey(x)
+					self.releaseKey(x)
 				modifier_codes = []
 				continue
 			elif text[i] in modifier_keycodes.keys():
 				modifier_codes.append(modifier_keycodes[text[i]])
-				self.PressKey(modifier_keycodes[text[i]])
+				self.pressKey(modifier_keycodes[text[i]])
 				modifier_held = True
 			elif text[i] in regular_keycodes.keys():
-				self.PressKey(regular_keycodes[text[i]])
-				self.ReleaseKey(regular_keycodes[text[i]])
+				self.pressKey(regular_keycodes[text[i]])
+				self.releaseKey(regular_keycodes[text[i]])
 				if modifier_held:
 					for x in modifier_codes:
-						self.ReleaseKey(x)
+						self.releaseKey(x)
 			elif text[i] in uppercase_keycodes.keys():
-				self.PressKey(special_keycodes["SHIFT"])
-				self.PressKey(uppercase_keycodes[text[i]])
-				self.ReleaseKey(uppercase_keycodes[text[i]])
-				self.ReleaseKey(special_keycodes["SHIFT"])
+				self.pressKey(special_keycodes["SHIFT"])
+				self.pressKey(uppercase_keycodes[text[i]])
+				self.releaseKey(uppercase_keycodes[text[i]])
+				self.releaseKey(special_keycodes["SHIFT"])
 				if modifier_held:
 					for x in modifier_codes:
-						self.ReleaseKey(x)
+						self.releaseKey(x)
 			if delay:
 				time.sleep(delay)
 		pass
 
 	## Mouse input methods
 
-	def SetMousePos(self, location):
+	def setMousePos(self, location):
 		""" Accepts a tuple (x,y) and sets the mouse position accordingly """
 		x, y = location
 		self._user32.SetCursorPos(x, y)
-	def GetMousePos(self):
+	def getMousePos(self):
 		""" Returns the current mouse position as a tuple (x,y) """
 		class POINT(ctypes.Structure):
 			_fields_ = [("x", ctypes.c_ulong), ("y", ctypes.c_ulong)]
 		pt = POINT()
 		self._user32.GetCursorPos(ctypes.byref(pt))
 		return (pt.x, pt.y)
-	def MouseButtonDown(self, button=0):
+	def mouseButtonDown(self, button=0):
 		""" Translates the button (0=LEFT, 1=MIDDLE, 2=RIGHT) and sends a mousedown to the OS """
 		click_down_code = [0x0002, 0x0020, 0x0008][button]
 		x = self._INPUT(type=self._INPUT_MOUSE, mi=self._MOUSEINPUT(dwFlags=click_down_code))
 		self._user32.SendInput(1, ctypes.byref(x), ctypes.sizeof(x))
-	def MouseButtonUp(self, button=0):
+	def mouseButtonUp(self, button=0):
 		""" Translates the button (0=LEFT, 1=MIDDLE, 2=RIGHT) and sends a mouseup to the OS """
 		click_up_code = [0x0004, 0x0040, 0x0010][button]
 		x = self._INPUT(type=self._INPUT_MOUSE, mi=self._MOUSEINPUT(dwFlags=click_up_code))
 		self._user32.SendInput(1, ctypes.byref(x), ctypes.sizeof(x))
-	def ClickMouse(self, button=0):
+	def clickMouse(self, button=0):
 		""" Abstracts the clicking function """
 		# LEFT = 0
 		# MIDDLE = 1
 		# RIGHT = 2
-		self.MouseButtonDown(button)
-		self.MouseButtonUp(button)
+		self.mouseButtonDown(button)
+		self.mouseButtonUp(button)
+	def mouseWheel(self, direction, steps):
+		MOUSEEVENTF_WHEEL = 0x0800
+		if direction == 1:
+			wheel_moved = 120*steps
+		elif direction == 0:
+			wheel_moved = -120*steps
+		else:
+			raise ValueError("Expected direction to be 1 or 0")
+		x = self._INPUT(type=self._INPUT_MOUSE, mi=self._MOUSEINPUT(dwFlags=MOUSEEVENTF_WHEEL, mouseData=wheel_moved))
+		self._user32.SendInput(1, ctypes.byref(x), ctypes.sizeof(x))
 
 	## Screen functions
 
-	def GetScreenSize(self):
+	def getScreenSize(self):
 		""" Returns the screen size of the main monitor. To be updated for multiple monitors. """
 		return (self._user32.GetSystemMetrics(0), self._user32.GetSystemMetrics(1))
 
 
 	## Clipboard functions
 
-	def GetClipboard(self):
+	def getClipboard(self):
 		""" Fetches any text on the clipboard. """
 		r = Tk()
 		r.withdraw()
@@ -357,10 +368,10 @@ class PlatformManagerWindows(object):
 		r.destroy()
 		return to_return
 
-	# def SetClipboard(self, text):
+	# def setClipboard(self, text):
 	# 	""" Sets the clipboard to the contents of "text" """
 	# 	if not isinstance(text, basestring):
-	# 		raise TypeError("SetClipboard expected text to be a string")
+	# 		raise TypeError("setClipboard expected text to be a string")
 	# 	GMEM_DDESHARE = 0x2000
 	# 	CF_TEXT = 1
 	# 	self._user32.OpenClipboard(0)
@@ -372,9 +383,9 @@ class PlatformManagerWindows(object):
 	# 	ctypes.cdll.msvcrt.wcscpy(ctypes.c_wchar_p(clipdata_data), text)
 	# 	ctypes.windll.kernel32.GlobalUnlock(clipdata_handle)
 	# 	# Assign the pointer to the clipboard
-	# 	self._user32.SetClipboardData(CF_TEXT, clipdata_handle)
+	# 	self._user32.setClipboardData(CF_TEXT, clipdata_handle)
 	# 	self._user32.CloseClipboard()
-	def SetClipboard(self, text):
+	def setClipboard(self, text):
 		r = Tk()
 		r.withdraw()
 		r.clipboard_clear()
@@ -383,7 +394,7 @@ class PlatformManagerWindows(object):
 
 	## Window functions
 
-	def GetWindowByTitle(self, wildcard):
+	def getWindowByTitle(self, wildcard):
 		""" Returns a platform-specific handle for the first window that matches the provided "wildcard" regex """
 		EnumWindowsProc = ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.POINTER(ctypes.c_int), ctypes.py_object)
 		def callback(hwnd, context):
@@ -398,7 +409,7 @@ class PlatformManagerWindows(object):
 		ctypes.windll.user32.EnumWindows(EnumWindowsProc(callback), ctypes.py_object(data))
 		return data["handle"]
 
-	def GetWindowRect(self, hwnd):
+	def getWindowRect(self, hwnd):
 		""" Returns a rect (x1,y1,x2,y2) for the specified window's area """
 		rect = ctypes.wintypes.RECT()
 		if ctypes.windll.user32.GetWindowRect(hwnd, ctypes.byref(rect)):
@@ -409,18 +420,18 @@ class PlatformManagerWindows(object):
 			return (x1, y1, x2, y2)
 		return None
 
-	def FocusWindow(self, hwnd):
+	def focusWindow(self, hwnd):
 		""" Brings specified window to the front """
 		SW_RESTORE = 9
 		if ctypes.windll.user32.IsIconic(hwnd):
 			ctypes.windll.user32.ShowWindow(hwnd, SW_RESTORE)
 		ctypes.windll.user32.SetForegroundWindow(hwnd)
 
-	def GetWindowTitle(self, hwnd):
+	def getWindowTitle(self, hwnd):
 		""" Self explanatory """
 		return ctypes.windll.user32.GetWindowText(hwnd)
 
-	def GetWindowPID(self, hwnd):
+	def getWindowPID(self, hwnd):
 		""" Gets the process ID that the specified window belongs to """
 		pid = ctypes.c_long()
 		ctypes.windll.user32.GetWindowThreadProcessId(hwnd, pid)

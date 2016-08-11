@@ -1,3 +1,5 @@
-from sikuli import *
+import lackey
+import time
 
-doubleClick("ow.png")
+time.sleep(2)
+lackey.Mouse().wheel(0,2)

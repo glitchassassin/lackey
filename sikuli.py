@@ -20,6 +20,7 @@ paste = global_screen.paste
 mouseDown = global_screen.mouseDown
 mouseUp = global_screen.mouseUp
 mouseMove = global_screen.mouseMove
+wheel = global_screen.wheel
 keyDown = global_screen.keyDown
 keyUp = global_screen.keyUp
 debug_preview = global_screen.debug_preview
