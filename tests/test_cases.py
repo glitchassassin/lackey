@@ -144,21 +144,6 @@ class TestComplexFeatures(unittest.TestCase):
 		self.r.type("^a") # Select all
 		self.r.type("^c") # Copy
 		self.assertEqual(self.r.getClipboard(), "This, on the other hand, is a +broken +record.")
-		
-class TestClipboardMethods(unittest.TestCase):
-	def setUp(self):
-		print "Setting up TestClipboardMethods"
-		self.pm = lackey.PlatformManager
-		self.pm.setClipboard("") # Clear the clipboard
-	def tearDown(self):
-		self.pm.setClipboard("") # Clear the clipboard
-
-	def testClipboard(self):
-		self.assertEqual(self.pm.getClipboard(), "")
-		self.pm.setClipboard("This is a +broken +record") # Clear the clipboard
-		self.assertEqual(self.pm.getClipboard(), "This is a +broken +record")
-		time.sleep(5)
-		self.assertEqual(self.pm.getClipboard(), "testing testing")
 
 
 if __name__ == '__main__':

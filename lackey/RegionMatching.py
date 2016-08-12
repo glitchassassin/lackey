@@ -637,6 +637,7 @@ class Region(object):
 		time.sleep(0.2)
 
 	def getClipboard(self):
+		""" Returns the contents of the clipboard (can be used to pull outside text into the application) """
 		return PlatformManager.getClipboard()
 
 	def text(self):
@@ -683,30 +684,37 @@ class Match(Region):
 		return self.getCenter().offset(self._target.x, self._target.y)
 
 class Screen(object):
-	""" Main screen only supported atm. Multi-monitor support is coming. """
+	""" Main screen only supported in current version. Multi-monitor support is coming. """
 	def __init__(self, id=0):
-		""" Autopy doesn't support multiple screens at this time, so this will always default to the main screen """
+		""" Lackey doesn't support multiple screens at this time, so this will always default to the main screen """
 		self._id = 0
 
 	def getNumberScreens(self):
 		""" Get the number of screens in a multi-monitor environment at the time the script is running
 
-		Autopy doesn't support multiple screens at this time, so this will always default to one.
+		Lackey doesn't support multiple screens at this time, so this will always default to one.
 		"""
 		return 1
 
 	def getBounds(self):
+		""" Returns bounds of screen as ((x, y), (w, h)) """
 		screen_size = PlatformManager.getScreenSize()
 		return ((0, 0), screen_size)
 
 	def pointVisible(self, location):
-		# TODO: Implement multi-monitor support
+		""" Checks if point is visible on screen """
 		coords, screen_size = self.getBounds()
 		screen_width, screen_height = screen_size
 		return (location.x >= 0 and location.x < screen_width and location.y >= 0 and location.y < screen_height)
 
 	def capture(self, *args):
-		""" Captures the specified region and saves to a temporary file """
+		""" Captures the specified region as an image and saves to a temporary file (specified by TMPDIR, TEMP, or TMP environmental variable)
+		
+		Usage:
+		capture(x, y, w, h)
+		capture(region)
+		capture( ((x,y),(w,h)) )
+		"""
 		if len(args) == 4:
 			# List of coords
 			x = int(args[0])
@@ -735,12 +743,13 @@ class Screen(object):
 		cv2.imwrite(tpath, bitmap)
 
 	def selectRegion(self, text=""):
-		""" Included for completeness of API, but not supported """
+		""" Not yet implemented """
 		raise NotImplementedError()
 
 	def toRegion(self):
-		screen_size = self.getBounds()
-		return Region(0, 0, *screen_size[1])
+		""" Returns a region in the shape of the screen """
+		bounds = self.getBounds()
+		return Region(bounds[0][0], bounds[0][1], bounds[1][0], bounds[1][1])
 
 class Location(object):
 	""" Basic 2D point object """
