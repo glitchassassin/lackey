@@ -618,6 +618,7 @@ class Region(object):
 		kb.type(text, self._defaultTypeSpeed)
 		if modifiers:
 			kb.keyUp(modifiers)
+		time.sleep(0.2)
 
 	def paste(self, *args):
 		target = None
@@ -633,6 +634,10 @@ class Region(object):
 		PlatformManager.setClipboard(text)
 		# Triggers OS paste for foreground window
 		PlatformManager.osPaste()
+		time.sleep(0.2)
+
+	def getClipboard(self):
+		return PlatformManager.getClipboard()
 
 	def text(self):
 		""" OCR method. Todo. """
@@ -866,25 +871,30 @@ class Window(object):
 			self.initialize_wildcard(identifier)
 
 	def initialize_wildcard(self, wildcard):
+		""" Gets a window handle based on the wildcard. If there are multiple matches, it only returns one, in no particular order. """
 		self._handle = PlatformManager.getWindowByTitle(wildcard)
 		return self
 
 	def getRegion(self):
+		""" Returns a `Region` object corresponding to the window's shape and location. """
 		if self._handle is None:
 			return None
 		x1, y1, x2, y2 = PlatformManager.getWindowRect(self._handle)
 		return Region(x1, y1, x2-x1, y2-y1)
 
 	def focus(self, wildcard=None):
+		""" Brings the window to the foreground and gives it focus """
 		if self._handle is None:
 			return self
 		PlatformManager.focusWindow(self._handle)
 		return self
 
 	def getTitle(self):
+		""" Returns the window's title """
 		return PlatformManager.getWindowTitle(self._handle)
 
 	def getPID(self):
+		""" Returns the PID of the window's parent process """
 		if self._handle is None:
 			return -1
 		return PlatformManager.getWindowPID(self._handle)

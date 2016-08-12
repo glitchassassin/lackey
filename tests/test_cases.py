@@ -1,10 +1,13 @@
+import subprocess
 import unittest
+import time
 import sys
 import os
 sys.path.insert(0, os.path.abspath('..'))
 import lackey
 
 class TestLocationMethods(unittest.TestCase):
+	print "Setting up TestLocationMethods"
 	def setUp(self):
 		self.test_loc = lackey.Location(10, 11)
 
@@ -35,6 +38,7 @@ class TestLocationMethods(unittest.TestCase):
 		self.assertEqual(offset.getTuple(), (3,11))
 
 class TestPatternMethods(unittest.TestCase):
+	print "Setting up TestPatternMethods"
 	def setUp(self):
 		self.pattern = lackey.Pattern("test_file.png")
 	
@@ -61,6 +65,7 @@ class TestPatternMethods(unittest.TestCase):
 		self.assertEqual(self.pattern.getTargetOffset().getTuple(), (0,0))
 
 class TestMouseMethods(unittest.TestCase):
+	print "Setting up TestMouseMethods"
 	def setUp(self):
 		self.mouse = lackey.Mouse()
 
@@ -77,6 +82,7 @@ class TestMouseMethods(unittest.TestCase):
 		pass
 
 class TestKeyboardMethods(unittest.TestCase):
+	print "Setting up TestKeyboardMethods"
 	def setUp(self):
 		self.kb = lackey.Keyboard()
 
@@ -85,6 +91,74 @@ class TestKeyboardMethods(unittest.TestCase):
 		self.kb.keyUp("{CTRL}")
 		self.kb.keyUp("{SHIFT}")
 		self.kb.type("%{CTRL}")
+		# Really this should check to make sure these keys have all been released, but 
+		# I'm not sure how to make that work without continuously monitoring the keyboard
+		# (which is the usual scenario). Ah well... if your computer is acting weird after
+		# you run this test, the SHIFT, CTRL, or ALT keys might not have been released
+		# properly.
+
+class TestWindowMethods(unittest.TestCase):
+	def setUp(self):
+		print "Setting up TestWindowMethods"
+		if sys.platform.startswith("win"):
+			self.app = subprocess.Popen(["notepad.exe"])
+			time.sleep(1)
+		else:
+			raise NotImplementedError("Platforms supported include: Windows")
+		self.window = lackey.Window("Untitled - Notepad")
+	def tearDown(self):
+		if sys.platform.startswith("win"):
+			self.app.terminate()
+		time.sleep(1)
+
+	def test_getters(self):
+		self.assertEqual(self.window.getTitle(), "Untitled - Notepad")
+		self.assertNotEqual(self.window.getPID(), -1)
+		region = self.window.getRegion()
+		self.assertIsInstance(region, lackey.Region)
+		self.assertGreater(region.getW(), 0)
+		self.assertGreater(region.getH(), 0)
+
+class TestComplexFeatures(unittest.TestCase):
+	def setUp(self):
+		print "Setting up TestComplexFeatures"
+		if sys.platform.startswith("win"):
+			self.app = subprocess.Popen(["notepad.exe"])
+			time.sleep(1)
+		else:
+			raise NotImplementedError("Platforms supported include: Windows")
+		self.window = lackey.Window("Untitled - Notepad")
+		self.r = self.window.getRegion()
+	def tearDown(self):
+		if sys.platform.startswith("win"):
+			self.app.terminate()
+
+	def testTypeCopyPaste(self):
+		lackey.PlatformManager.setClipboard("") # Clear the clipboard
+		self.r.type("This is a +test") # Type should translate "+" into shift modifier for capital first letters
+		self.r.type("^a") # Select all
+		self.r.type("^c") # Copy
+		self.assertEqual(self.r.getClipboard(), "This is a Test")
+		self.r.type("{DELETE}") # Clear the selected text
+		self.r.paste("This, on the other hand, is a +broken +record.") # Paste should ignore special characters and insert the string as is
+		self.r.type("^a") # Select all
+		self.r.type("^c") # Copy
+		self.assertEqual(self.r.getClipboard(), "This, on the other hand, is a +broken +record.")
+		
+class TestClipboardMethods(unittest.TestCase):
+	def setUp(self):
+		print "Setting up TestClipboardMethods"
+		self.pm = lackey.PlatformManager
+		self.pm.setClipboard("") # Clear the clipboard
+	def tearDown(self):
+		self.pm.setClipboard("") # Clear the clipboard
+
+	def testClipboard(self):
+		self.assertEqual(self.pm.getClipboard(), "")
+		self.pm.setClipboard("This is a +broken +record") # Clear the clipboard
+		self.assertEqual(self.pm.getClipboard(), "This is a +broken +record")
+		time.sleep(5)
+		self.assertEqual(self.pm.getClipboard(), "testing testing")
 
 
 if __name__ == '__main__':

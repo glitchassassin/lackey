@@ -247,7 +247,7 @@ class PlatformManagerWindows(object):
 		self._user32.SendInput(1, ctypes.byref(x), ctypes.sizeof(x))
 	def pressKey(self, text):
 		""" Accepts a string of keys in typeKeys format (see below). Holds down all of them. """
-		
+
 		in_special_code = False
 		special_code = ""
 		for i in range(0, len(text)):
@@ -342,20 +342,24 @@ class PlatformManagerWindows(object):
 				self.pressKeyCode(self._REGULAR_KEYCODES[text[i]])
 				self.releaseKeyCode(self._REGULAR_KEYCODES[text[i]])
 				if modifier_held:
+					modifier_held = False
 					for x in modifier_codes:
 						self.releaseKeyCode(x)
+					modifier_codes = []
 			elif text[i] in self._UPPERCASE_KEYCODES.keys():
 				self.pressKeyCode(self._SPECIAL_KEYCODES["SHIFT"])
 				self.pressKeyCode(self._UPPERCASE_KEYCODES[text[i]])
 				self.releaseKeyCode(self._UPPERCASE_KEYCODES[text[i]])
 				self.releaseKeyCode(self._SPECIAL_KEYCODES["SHIFT"])
 				if modifier_held:
+					modifier_held = False
 					for x in modifier_codes:
 						self.releaseKeyCode(x)
+					modifier_codes = []
 			if delay:
 				time.sleep(delay)
 
-		if modifier_stuck:
+		if modifier_stuck or modifier_held:
 			for modifier in modifier_codes:
 				self.releaseKeyCode(modifier)
 
@@ -422,7 +426,8 @@ class PlatformManagerWindows(object):
 		""" Uses Tkinter to fetch any text on the clipboard. """
 		r = Tk()
 		r.withdraw()
-		to_return = r.clipboard_get()
+		r.update()
+		to_return = str(r.clipboard_get())
 		r.destroy()
 		return to_return
 
@@ -432,6 +437,7 @@ class PlatformManagerWindows(object):
 		r.withdraw()
 		r.clipboard_clear()
 		r.clipboard_append(text)
+		r.update()
 		r.destroy()
 	def osCopy(self):
 		""" Triggers the OS "copy" keyboard shortcut """
@@ -477,7 +483,10 @@ class PlatformManagerWindows(object):
 
 	def getWindowTitle(self, hwnd):
 		""" Gets the title for the specified window """
-		return ctypes.windll.user32.GetWindowText(hwnd)
+		length = ctypes.windll.user32.GetWindowTextLengthW(hwnd)
+		buff = ctypes.create_unicode_buffer(length + 1)
+		ctypes.windll.user32.GetWindowTextW(hwnd, buff, length + 1)
+		return buff.value
 
 	def getWindowPID(self, hwnd):
 		""" Gets the process ID that the specified window belongs to """
