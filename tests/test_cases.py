@@ -134,7 +134,7 @@ class TestComplexFeatures(unittest.TestCase):
 			self.app.terminate()
 
 	def testTypeCopyPaste(self):
-		lackey.PlatformManager.setClipboard("") # Clear the clipboard
+		self.r.paste("") # Clear the clipboard
 		self.r.type("This is a +test") # Type should translate "+" into shift modifier for capital first letters
 		self.r.type("^a") # Select all
 		self.r.type("^c") # Copy
@@ -144,6 +144,8 @@ class TestComplexFeatures(unittest.TestCase):
 		self.r.type("^a") # Select all
 		self.r.type("^c") # Copy
 		self.assertEqual(self.r.getClipboard(), "This, on the other hand, is a +broken +record.")
+
+
 
 
 if __name__ == '__main__':

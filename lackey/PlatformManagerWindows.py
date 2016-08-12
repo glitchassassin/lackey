@@ -241,7 +241,7 @@ class PlatformManagerWindows(object):
 
 	## Keyboard input methods ##
 
-	def pressKeyCode(self, hexKeyCode):
+	def _pressKeyCode(self, hexKeyCode):
 		""" Set key state to down for the specified hex key code """
 		x = self._INPUT(type=self._INPUT_KEYBOARD, ki=self._KEYBDINPUT(wVk=hexKeyCode))
 		self._user32.SendInput(1, ctypes.byref(x), ctypes.sizeof(x))
@@ -256,7 +256,7 @@ class PlatformManagerWindows(object):
 			elif text[i] == "}":
 				in_special_code = False
 				if special_code in self._SPECIAL_KEYCODES.keys():
-					self.pressKeyCode(self._SPECIAL_KEYCODES[special_code])
+					self._pressKeyCode(self._SPECIAL_KEYCODES[special_code])
 				else:
 					raise ValueError("Unsupported special code {{{}}}".format(special_code))
 				continue
@@ -264,10 +264,10 @@ class PlatformManagerWindows(object):
 				special_code += text[i]
 				continue
 			elif text[i] in self._MODIFIER_KEYCODES.keys():
-				self.pressKeyCode(self._MODIFIER_KEYCODES[text[i]])
+				self._pressKeyCode(self._MODIFIER_KEYCODES[text[i]])
 			elif text[i] in self._REGULAR_KEYCODES.keys():
-				self.pressKeyCode(self._REGULAR_KEYCODES[text[i]])
-	def releaseKeyCode(self, hexKeyCode):
+				self._pressKeyCode(self._REGULAR_KEYCODES[text[i]])
+	def _releaseKeyCode(self, hexKeyCode):
 		""" Set key state to up for the specified hex key code  """
 		x = self._INPUT(type=self._INPUT_KEYBOARD, ki=self._KEYBDINPUT(wVk=hexKeyCode, dwFlags=self._KEYEVENTF_KEYUP))
 		self._user32.SendInput(1, ctypes.byref(x), ctypes.sizeof(x))
@@ -282,7 +282,7 @@ class PlatformManagerWindows(object):
 			elif text[i] == "}":
 				in_special_code = False
 				if special_code in self._SPECIAL_KEYCODES.keys():
-					self.releaseKeyCode(self._SPECIAL_KEYCODES[special_code])
+					self._releaseKeyCode(self._SPECIAL_KEYCODES[special_code])
 				else:
 					raise ValueError("Unsupported special code {{{}}}".format(special_code))
 				continue
@@ -290,9 +290,9 @@ class PlatformManagerWindows(object):
 				special_code += text[i]
 				continue
 			elif text[i] in self._MODIFIER_KEYCODES.keys():
-				self.releaseKeyCode(self._MODIFIER_KEYCODES[text[i]])
+				self._releaseKeyCode(self._MODIFIER_KEYCODES[text[i]])
 			elif text[i] in self._REGULAR_KEYCODES.keys():
-				self.releaseKeyCode(self._REGULAR_KEYCODES[text[i]])
+				self._releaseKeyCode(self._REGULAR_KEYCODES[text[i]])
 	def typeKeys(self, text, delay=0.1):
 		""" Translates a string (with modifiers) into a series of keystrokes.
 
@@ -311,13 +311,13 @@ class PlatformManagerWindows(object):
 			elif text[i] == "}":
 				in_special_code = False
 				if special_code in self._SPECIAL_KEYCODES.keys():
-					self.pressKeyCode(self._SPECIAL_KEYCODES[special_code])
-					self.releaseKeyCode(self._SPECIAL_KEYCODES[special_code])
+					self._pressKeyCode(self._SPECIAL_KEYCODES[special_code])
+					self._releaseKeyCode(self._SPECIAL_KEYCODES[special_code])
 				elif special_code in self.UPPERCASE_SPECIAL_KEYCODES.keys():
-					self.pressKeyCode(self._SPECIAL_KEYCODES["SHIFT"])
-					self.pressKeyCode(self._SPECIAL_KEYCODES[special_code])
-					self.releaseKeyCode(self._SPECIAL_KEYCODES[special_code])
-					self.releaseKeyCode(self._SPECIAL_KEYCODES["SHIFT"])
+					self._pressKeyCode(self._SPECIAL_KEYCODES["SHIFT"])
+					self._pressKeyCode(self._SPECIAL_KEYCODES[special_code])
+					self._releaseKeyCode(self._SPECIAL_KEYCODES[special_code])
+					self._releaseKeyCode(self._SPECIAL_KEYCODES["SHIFT"])
 				else:
 					raise ValueError("Unrecognized special code {{{}}}".format(special_code))
 				continue
@@ -331,37 +331,37 @@ class PlatformManagerWindows(object):
 			elif text[i] == ")":
 				modifier_stuck = False
 				for x in modifier_codes:
-					self.releaseKeyCode(x)
+					self._releaseKeyCode(x)
 				modifier_codes = []
 				continue
 			elif text[i] in self._MODIFIER_KEYCODES.keys():
 				modifier_codes.append(self._MODIFIER_KEYCODES[text[i]])
-				self.pressKeyCode(self._MODIFIER_KEYCODES[text[i]])
+				self._pressKeyCode(self._MODIFIER_KEYCODES[text[i]])
 				modifier_held = True
 			elif text[i] in self._REGULAR_KEYCODES.keys():
-				self.pressKeyCode(self._REGULAR_KEYCODES[text[i]])
-				self.releaseKeyCode(self._REGULAR_KEYCODES[text[i]])
+				self._pressKeyCode(self._REGULAR_KEYCODES[text[i]])
+				self._releaseKeyCode(self._REGULAR_KEYCODES[text[i]])
 				if modifier_held:
 					modifier_held = False
 					for x in modifier_codes:
-						self.releaseKeyCode(x)
+						self._releaseKeyCode(x)
 					modifier_codes = []
 			elif text[i] in self._UPPERCASE_KEYCODES.keys():
-				self.pressKeyCode(self._SPECIAL_KEYCODES["SHIFT"])
-				self.pressKeyCode(self._UPPERCASE_KEYCODES[text[i]])
-				self.releaseKeyCode(self._UPPERCASE_KEYCODES[text[i]])
-				self.releaseKeyCode(self._SPECIAL_KEYCODES["SHIFT"])
+				self._pressKeyCode(self._SPECIAL_KEYCODES["SHIFT"])
+				self._pressKeyCode(self._UPPERCASE_KEYCODES[text[i]])
+				self._releaseKeyCode(self._UPPERCASE_KEYCODES[text[i]])
+				self._releaseKeyCode(self._SPECIAL_KEYCODES["SHIFT"])
 				if modifier_held:
 					modifier_held = False
 					for x in modifier_codes:
-						self.releaseKeyCode(x)
+						self._releaseKeyCode(x)
 					modifier_codes = []
 			if delay:
 				time.sleep(delay)
 
 		if modifier_stuck or modifier_held:
 			for modifier in modifier_codes:
-				self.releaseKeyCode(modifier)
+				self._releaseKeyCode(modifier)
 
 	## Mouse input methods
 
