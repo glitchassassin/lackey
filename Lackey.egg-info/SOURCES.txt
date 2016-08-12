@@ -1,0 +1,13 @@
+README.txt
+setup.py
+Lackey.egg-info/PKG-INFO
+Lackey.egg-info/SOURCES.txt
+Lackey.egg-info/dependency_links.txt
+Lackey.egg-info/requires.txt
+Lackey.egg-info/top_level.txt
+lackey/Exceptions.py
+lackey/KeyCodes.py
+lackey/PlatformManagerWindows.py
+lackey/RegionMatching.py
+lackey/__init__.py
+lackey/cv2.pyd

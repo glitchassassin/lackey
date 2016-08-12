@@ -7,7 +7,6 @@ sys.path.insert(0, os.path.abspath('..'))
 import lackey
 
 class TestLocationMethods(unittest.TestCase):
-	print "Setting up TestLocationMethods"
 	def setUp(self):
 		self.test_loc = lackey.Location(10, 11)
 
@@ -38,7 +37,6 @@ class TestLocationMethods(unittest.TestCase):
 		self.assertEqual(offset.getTuple(), (3,11))
 
 class TestPatternMethods(unittest.TestCase):
-	print "Setting up TestPatternMethods"
 	def setUp(self):
 		self.pattern = lackey.Pattern("test_file.png")
 	
@@ -65,7 +63,6 @@ class TestPatternMethods(unittest.TestCase):
 		self.assertEqual(self.pattern.getTargetOffset().getTuple(), (0,0))
 
 class TestMouseMethods(unittest.TestCase):
-	print "Setting up TestMouseMethods"
 	def setUp(self):
 		self.mouse = lackey.Mouse()
 
@@ -82,7 +79,6 @@ class TestMouseMethods(unittest.TestCase):
 		pass
 
 class TestKeyboardMethods(unittest.TestCase):
-	print "Setting up TestKeyboardMethods"
 	def setUp(self):
 		self.kb = lackey.Keyboard()
 
@@ -99,7 +95,6 @@ class TestKeyboardMethods(unittest.TestCase):
 
 class TestWindowMethods(unittest.TestCase):
 	def setUp(self):
-		print "Setting up TestWindowMethods"
 		if sys.platform.startswith("win"):
 			self.app = subprocess.Popen(["notepad.exe"])
 			time.sleep(1)
@@ -121,7 +116,6 @@ class TestWindowMethods(unittest.TestCase):
 
 class TestComplexFeatures(unittest.TestCase):
 	def setUp(self):
-		print "Setting up TestComplexFeatures"
 		if sys.platform.startswith("win"):
 			self.app = subprocess.Popen(["notepad.exe"])
 			time.sleep(1)
@@ -134,7 +128,6 @@ class TestComplexFeatures(unittest.TestCase):
 			self.app.terminate()
 
 	def testTypeCopyPaste(self):
-		self.r.paste("") # Clear the clipboard
 		self.r.type("This is a +test") # Type should translate "+" into shift modifier for capital first letters
 		self.r.type("^a") # Select all
 		self.r.type("^c") # Copy

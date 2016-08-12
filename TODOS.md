@@ -16,6 +16,8 @@
 
 ## Implement ##
 
+* Overall
+	* [ ] Verbosity levels for console logging
 * Region
 	* [ ] highlight()
 	* [ ] text() (OCR functionality)

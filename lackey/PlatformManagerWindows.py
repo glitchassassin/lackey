@@ -1,7 +1,10 @@
 import re
 import time
 import ctypes
-from Tkinter import Tk
+try:
+	from Tkinter import Tk
+except ImportError:
+	from tkinter import Tk
 from ctypes import wintypes
 
 class PlatformManagerWindows(object):

@@ -257,7 +257,6 @@ class Region(object):
 			pattern = Pattern(pattern)
 		needle = cv2.imread(pattern.path)
 		if needle is None:
-			print os.getcwd()
 			raise ValueError("Unable to load image '{}'".format(pattern.path))
 		needle_height, needle_width, needle_channels = needle.shape
 		positions = []
@@ -283,14 +282,14 @@ class Region(object):
 		self.lastMatches = []
 		
 		if len(positions) == 0:
-			print "Couldn't find '{}' with enough similarity.".format(pattern.path)
+			print("Couldn't find '{}' with enough similarity.".format(pattern.path))
 			return None
 		# Translate local position into global screen position
 		positions.sort(key=lambda x: (x[1], -x[0]))
 		for position in positions:
 			x, y, confidence = position
 			self.lastMatches.append(Match(confidence, pattern.offset, ((x+self.x, y+self.y), (needle_width, needle_height))))
-		print "Found {} match(es) for pattern '{}' at similarity ({})".format(len(self.lastMatches), pattern.path, pattern.similarity)
+		print("Found {} match(es) for pattern '{}' at similarity ({})".format(len(self.lastMatches), pattern.path, pattern.similarity))
 		return self.lastMatches
 
 	def wait(self, pattern, seconds=None):
@@ -364,7 +363,6 @@ class Region(object):
 			pattern = Pattern(pattern)
 		needle = cv2.imread(pattern.path)
 		if needle is None:
-			print os.getcwd()
 			raise ValueError("Unable to load image '{}'".format(pattern.path))
 		#needle = cv2.cvtColor(needle, cv2.COLOR_BGR2GRAY)
 		needle_height, needle_width, needle_channels = needle.shape
@@ -390,7 +388,7 @@ class Region(object):
 			time.sleep(self._defaultScanRate)
 		if not position:
 			# Debugging #
-			print "Couldn't find '{}' with enough similarity. Best match {} at ({},{})".format(pattern.path, confidence, best_loc[0], best_loc[1])
+			print("Couldn't find '{}' with enough similarity. Best match {} at ({},{})".format(pattern.path, confidence, best_loc[0], best_loc[1]))
 			#cv2.rectangle(haystack, (best_loc[0], best_loc[1]), (best_loc[0] + needle_width, best_loc[1] + needle_height), 255, 2)
 			#cv2.imshow("Debug", haystack)
 			#cv2.waitKey(0)
@@ -400,7 +398,7 @@ class Region(object):
 		position = (position[0] + self.x, position[1] + self.y)
 		self.lastMatch = Match(confidence, pattern.offset, (position, (needle_width, needle_height)))
 		#self.lastMatch.debug_preview()
-		print "Found match for pattern '{}' at ({},{}) with confidence ({}). Target at ({},{})".format(pattern.path, self.lastMatch.getX(), self.lastMatch.getY(), self.lastMatch.getScore(), self.lastMatch.getTarget().x, self.lastMatch.getTarget().y)
+		print("Found match for pattern '{}' at ({},{}) with confidence ({}). Target at ({},{})".format(pattern.path, self.lastMatch.getX(), self.lastMatch.getY(), self.lastMatch.getScore(), self.lastMatch.getTarget().x, self.lastMatch.getTarget().y))
 		
 		return self.lastMatch
 
@@ -611,7 +609,7 @@ class Region(object):
 		text = text.replace("{PGDN}", "{PAGE_DOWN}")
 		text = text.replace("{PGUP}", "{PAGE_UP}")
 
-		print "Typing '{}'".format(text)
+		print("Typing '{}'".format(text))
 		kb = Keyboard()
 		if modifiers:
 			kb.keyDown(modifiers)
