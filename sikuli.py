@@ -23,5 +23,5 @@ mouseMove = global_screen.mouseMove
 wheel = global_screen.wheel
 keyDown = global_screen.keyDown
 keyUp = global_screen.keyUp
-debug_preview = global_screen.debug_preview
+debug_preview = global_screen.debugPreview
 sleep = time.sleep
