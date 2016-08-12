@@ -15,29 +15,31 @@ else:
 	raise NotImplementedError("Pykuli v0.01 is currently only compatible with Windows.")
 	
 class Pattern(object):
+	""" Defines a pattern based on a bitmap, similarity, and target offset """
 	def __init__(self, path, similarity=0.7, offset=None):
 		self.path = path
 		self.similarity = similarity
 		self.offset = offset or Location(0,0)
 
 	def similar(self, similarity):
+		""" Returns a new Pattern with the specified similarity threshold """
 		return Pattern(self.path, similarity)
 
-	def exact(self, ):
+	def exact(self):
+		""" Returns a new Pattern with a similarity threshold of 1.0 """
 		return Pattern(self.path, 1.0)
 
 	def targetOffset(self, dx, dy):
+		""" Returns a new Pattern with the given target offset """
 		return Pattern(self.path, self.similarity, Location(dx, dy))
 
 	def getFilename(self):
+		""" Returns the path to this Pattern's bitmap """
 		return self.path
 
 	def getTargetOffset(self):
+		""" Returns the target offset as a Location(dx, dy) """
 		return self.offset
-
-	def getTolerance(self):
-		# Convert Similarity to Tolerance for autopy
-		return 1-self.similarity
 
 class Region(object):
 	def __init__(self, x, y, w, h):
@@ -50,31 +52,34 @@ class Region(object):
 		self._defaultMouseSpeed = 1
 		self._defaultTypeSpeed = 0.05
 
-	def __enter__(self):
-		return self
-
-	def __exit__(self, exc_type, exc_val, exc_tb):
-		return
-
 	def setX(self, x):
+		""" Set the x-coordinate of the upper left-hand corner """
 		self.x = int(x)
 	def setY(self, y):
+		""" Set the y-coordinate of the upper left-hand corner """
 		self.y = int(y)
 	def setW(self, w):
+		""" Set the width of the region """
 		self.w = int(w)
 	def setH(self, h):
+		""" Set the height of the region """
 		self.h = int(h)
 
 	def getX(self):
+		""" Get the x-coordinate of the upper left-hand corner """
 		return self.x
 	def getY(self):
+		""" Get the y-coordinate of the upper left-hand corner """
 		return self.y
 	def getW(self):
+		""" Get the width of the region """
 		return self.w
 	def getH(self):
+		""" Get the height of the region """
 		return self.h
 
 	def moveTo(self, location):
+		""" Change the upper left-hand corner to a new `Location` (without changing width or height) """
 		if not location or not isinstance(location, Location):
 			raise ValueError("moveTo expected a Location object")
 		self.x = location.x
@@ -90,42 +95,66 @@ class Region(object):
 	setRect = setROI
 
 	def morphTo(self, region):
+		""" Change shape of this region to match the given `Region` object """
 		if not region or not isinstance(region, Region):
 			raise TypeError("morphTo expected a Region object")
 		self.setROI(region.x, region.y, region.w, region.h)
 		return self
 
 	def getCenter(self):
+		""" Return the `Location` of the center of this region """
 		return Location(self.x+(self.w/2), self.y+(self.h/2))
 	def getTopLeft(self):
+		""" Return the `Location` of the top left corner of this region """
 		return Location(self.x, self.y)
 	def getTopRight(self):
+		""" Return the `Location` of the top right corner of this region """
 		return Location(self.x+self.w, self.y)
 	def getBottomLeft(self):
+		""" Return the `Location` of the bottom left corner of this region """
 		return Location(self.x, self.y+self.h)
 	def getBottomRight(self):
+		""" Return the `Location` of the bottom right corner of this region """
 		return Location(self.x+self.w, self.y+self.h)
 
 	def getScreen(self):
+		""" Return the `Screen` instance this region is associated with """
 		return self.screen
 
 	def getLastMatch(self):
+		""" Returns the last successful `Match` returned by `find()`, `exists()`, etc. """
 		return self.lastMatch
 	def getLastMatches(self):
+		""" Returns the last successful set of `Match` objects returned by `findAll()` """
 		return self.lastMatches
 
 	def setAutoWaitTimeout(self, seconds):
+		""" Specify the time to wait for an image to appear on the screen """
 		self.autoWaitTimeout = float(seconds)
 	def getAutoWaitTimeout(self):
+		""" Returns the time to wait for an image to appear on the screen """
 		return self.autoWaitTimeout
 
 	def offset(self, location):
+		""" Returns a new `Region` of the same width and height, but offset from this one by `location` """
 		return Region(self.x+location.x, self.y+location.y, self.w, self.h)
 	def inside(self):
+		""" Returns the same object. Included for Sikuli compatibility. """
 		return self
 	def nearby(self, expand):
+		""" Returns a new Region that includes the nearby neighbourhood of the the current region. 
+
+		The new region is defined by extending the current region's dimensions in 
+		all directions by range number of pixels. The center of the new region remains the 
+		same. 
+		"""
 		return Region(self.x-expand, self.y-expand, self.w+(2*expand), self.h+(2*expand))
 	def above(self, expand):
+		""" Returns a new Region that is defined above the current region's top border with a height of range number of pixels. 
+
+		So it does not include the current region. If range is omitted, it reaches to the top of the screen. 
+		The new region has the same width and x-position as the current region. 
+		"""
 		if expand == None:
 			x = self.x
 			y = 0
@@ -138,6 +167,11 @@ class Region(object):
 			h = expand
 		return Region(x, y, w, h)
 	def below(self, expand):
+		""" Returns a new Region that is defined below the current region's bottom border with a height of range number of pixels. 
+
+		So it does not include the current region. If range is omitted, it reaches to the bottom of the screen. 
+		The new region has the same width and x-position as the current region. 
+		"""
 		if expand == None:
 			x = self.x
 			y = self.y+self.h
@@ -150,6 +184,11 @@ class Region(object):
 			h = expand
 		return Region(x, y, w, h)
 	def left(self, expand):
+		""" Returns a new Region that is defined left of the current region's left border with a width of range number of pixels. 
+
+		So it does not include the current region. If range is omitted, it reaches to the left border of the screen. 
+		The new region has the same height and y-position as the current region. 
+		"""
 		if expand == None:
 			x = 0
 			y = self.y
@@ -162,6 +201,11 @@ class Region(object):
 			h = self.h
 		return Region(x, y, w, h)
 	def right(self, expand):
+		""" Returns a new Region that is defined right of the current region's right border with a width of range number of pixels. 
+
+		So it does not include the current region. If range is omitted, it reaches to the right border of the screen. 
+		The new region has the same height and y-position as the current region. 
+		"""
 		if expand == None:
 			x = self.x+self.w
 			y = self.y
@@ -186,7 +230,8 @@ class Region(object):
 	def find(self, pattern, seconds=None):
 		""" Searches for an image pattern in the given region
 
-		Sikuli supports OCR search with a text parameter. This does not.
+		Throws FindFailed exception if the image could not be found.
+		Sikuli supports OCR search with a text parameter. This does not (yet).
 		"""
 		match = self.exists(pattern, seconds)
 		if match is None:
@@ -196,8 +241,8 @@ class Region(object):
 	def findAll(self, pattern, seconds=None):
 		""" Searches for an image pattern in the given region
 		
-		Returns Match if pattern exists, None otherwise (does not throw exception)
-		Sikuli supports OCR search with a text parameter. This does not.
+		Returns `Match` object if `pattern` exists, empty array otherwise (does not throw exception)
+		Sikuli supports OCR search with a text parameter. This does not (yet).
 		"""
 		if seconds is None:
 			seconds = self.autoWaitTimeout
@@ -252,20 +297,15 @@ class Region(object):
 		""" Searches for an image pattern in the given region, given a specified timeout period
 
 		Functionally identical to find()
-		Sikuli supports OCR search with a text parameter. This does not.
+		Sikuli supports OCR search with a text parameter. This does not (yet).
 		"""
 		return self.find(pattern, seconds)
 
 	def waitVanish(self, pattern, seconds=None):
-		""" Searches for an image pattern in the given region, given a specified timeout period
+		""" Waits until the specified pattern is not visible on screen. 
 
-		Functionally identical to find()
-		Sikuli supports OCR search with a text parameter. This does not.
-		"""
-
-		""" Searches for an image pattern in the given region
-
-		Sikuli supports OCR search with a text parameter. This does not.
+		If `seconds` pass and the pattern is still visible, raises FindFailed exception.
+		Sikuli supports OCR search with a text parameter. This does not (yet).
 		"""
 		if seconds is None:
 			seconds = self.autoWaitTimeout
@@ -309,7 +349,7 @@ class Region(object):
 		""" Searches for an image pattern in the given region
 		
 		Returns Match if pattern exists, None otherwise (does not throw exception)
-		Sikuli supports OCR search with a text parameter. This does not.
+		Sikuli supports OCR search with a text parameter. This does not (yet).
 		"""
 		if seconds is None:
 			seconds = self.autoWaitTimeout
@@ -377,6 +417,7 @@ class Region(object):
 		cv2.destroyAllWindows()
 
 	def click(self, target, modifiers=""):
+		""" Moves the cursor to the target location and clicks the default mouse button. """
 		target_location = None
 		mouse = Mouse()
 		if isinstance(target, Pattern):
@@ -402,6 +443,7 @@ class Region(object):
 			PlatformManager.releaseKey(modifiers)
 
 	def doubleClick(self, target, modifiers=0):
+		""" Moves the cursor to the target location and double-clicks the default mouse button. """
 		target_location = None
 		mouse = Mouse()
 		if isinstance(target, Pattern):
@@ -429,6 +471,7 @@ class Region(object):
 			key.toggle('', False, modifiers)
 
 	def rightClick(self, target, modifiers=0):
+		""" Moves the cursor to the target location and clicks the right mouse button. """
 		target_location = None
 		mouse = Mouse()
 		if isinstance(target, Pattern):
@@ -462,6 +505,7 @@ class Region(object):
 		raise NotImplementedError("highlight not yet supported.")
 
 	def hover(self, target):
+		""" Moves the cursor to the target location """
 		target_location = None
 		mouse = Mouse()
 		if isinstance(target, Pattern):
@@ -480,8 +524,8 @@ class Region(object):
 		mouse.moveSpeed(target_location, self._defaultMouseSpeed)
 
 	def drag(self, dragFrom):
+		""" Moves the cursor to the target location and clicks the mouse in preparation to drag a screen element """
 		dragFromLocation = None
-		dragToLocation = None
 		mouse = Mouse()
 		if isinstance(dragFrom, Pattern):
 			dragFromLocation = self.find(dragFrom).getTarget()
@@ -496,11 +540,12 @@ class Region(object):
 		else:
 			raise TypeError("drag expected dragFrom to be Pattern, String, Match, Region, or Location object")
 		mouse.moveSpeed(dragFromLocation, self._defaultMouseSpeed)
-		mouse.toggle(True)
+		mouse.buttonDown()
 		return 1
 		
 
 	def dropAt(self, dragTo, delay=0.2):
+		""" Moves the cursor to the target location, waits `delay` seconds, and releases the mouse button """
 		if isinstance(dragTo, Pattern):
 			dragToLocation = self.find(dragTo).getTarget()
 		elif isinstance(dragTo, basestring):
@@ -516,10 +561,14 @@ class Region(object):
 
 		mouse.moveSpeed(dragToLocation, self._defaultMouseSpeed)
 		time.sleep(delay)
-		mouse.toggle(False)
+		mouse.buttonUp()
 		return 1
 
-	def dragDrop(self, dragFrom, dragTo, modifiers):
+	def dragDrop(self, dragFrom, dragTo, modifiers=""):
+		""" Holds down the mouse button on `dragFrom`, moves the mouse to `dragTo`, and releases the mouse button 
+		
+		`modifiers` may be a typeKeys() compatible string. The specified keys will be held during the drag-drop operation.
+		"""
 		if modifiers != "":
 			PlatformManager.pressKey(modifiers)
 		
@@ -530,21 +579,45 @@ class Region(object):
 			PlatformManager.releaseKey(modifiers)
 
 	def type(self, *args):
+		""" Usage: type([PSMRL], text, [modifiers])
+		
+		If a pattern is specified, the pattern is clicked first. Doesn't support text paths.
+		`modifiers` may be a typeKeys() compatible string. The specified keys will be held during the drag-drop operation.
+		"""
+		pattern = None
 		text = None
+		modifiers = None
 		if len(args) == 1 and isinstance(args[0], basestring):
 			# Is a string (or Key) to type
 			text = args[0]
-		elif len(args) == 2 and not isinstance(args[0], basestring):
-			self.click(args[0])
+		elif len(args) == 2:
+			if not isinstance(args[0], basestring) and isinstance(args[1], basestring):
+				pattern = args[0]
+				text = args[1]
+			else:
+				text = args[0]
+				modifiers = args[1]
+		elif len(args) == 3 and not isinstance(args[0], basestring):
+			pattern = args[0]
 			text = args[1]
+			modifiers = args[2]
 		else:
-			raise TypeError("type method expected [PSMRL], text")
+			raise TypeError("type method expected ([PSMRL], text, [modifiers])")
+
+		if pattern:
+			self.click(pattern)
+
 		# Patch some Sikuli special codes
 		text = text.replace("{PGDN}", "{PAGE_DOWN}")
 		text = text.replace("{PGUP}", "{PAGE_UP}")
 
 		print "Typing '{}'".format(text)
-		PlatformManager.typeKeys(text, self._defaultTypeSpeed)
+		kb = Keyboard()
+		if modifiers:
+			kb.keyDown(modifiers)
+		kb.type(text, self._defaultTypeSpeed)
+		if modifiers:
+			kb.keyUp(modifiers)
 
 	def paste(self, *args):
 		target = None
@@ -581,12 +654,11 @@ class Region(object):
 		
 	def keyDown(self, keys):
 		""" Concatenate multiple keys to press them all down. """
-		return PlatformManager.pressKey(keys)
+		return Keyboard().keyDown(keys)
 			
 	def keyUp(self, *keys):
 		""" Concatenate multiple keys to up them all. """
-		return PlatformManager.releaseKey(keys)
-
+		return Keyboard().keyUp(keys)
 
 class Match(Region):
 	""" Extended Region object with additional data on click target, match score """
@@ -598,9 +670,11 @@ class Match(Region):
 		self._target = target
 
 	def getScore(self):
+		""" Returns confidence score of the match """
 		return self._score
 
 	def getTarget(self):
+		""" Returns the location of the match click target (center by default, but may be offset) """
 		return self.getCenter().offset(self._target.x, self._target.y)
 
 class Screen(object):
@@ -669,8 +743,10 @@ class Location(object):
 		self.setLocation(x, y)
 
 	def getX(self):
+		""" Returns the X-component of the location """
 		return self.x
 	def getY(self):
+		""" Returns the Y-component of the location """
 		return self.y
 
 	def setLocation(self, x, y):
@@ -696,30 +772,40 @@ class Location(object):
 		return Location(self.x+dx, self.y)
 
 	def getTuple(self):
+		""" Returns coordinates as a tuple (for some PlatformManager methods) """
 		return (self.x, self.y)
 
 	def __repr__(self):
 		return "(Location object at ({},{}))".format(self.x, self.y)
 
 class Mouse(object):
-	""" Mid-level mouse routines """
+	""" Mid-level mouse routines. Interfaces with `PlatformManager` """
 	def __init__(self):
 		self._defaultScanRate = 0.01
-		self.WHEEL_DOWN = 0
-		self.WHEEL_UP = 1
-		self.LEFT = 0
-		self.MIDDLE = 1
-		self.RIGHT = 2
+	
+	# Class constants
+	WHEEL_DOWN = 0
+	WHEEL_UP = 1
+	LEFT = 0
+	MIDDLE = 1
+	RIGHT = 2
 
 	def move(self, location):
+		""" Moves cursor to specified `Location` """
 		PlatformManager.setMousePos(location.getTuple())
 
 	def getPos(self):
+		""" Gets `Location` of cursor """
 		x, y = PlatformManager.getMousePos()
 		return Location(x, y)
 
 	def moveSpeed(self, location, seconds=1):
-		if seconds == 0 or not Screen().pointVisible(self.get_pos()):
+		""" Moves cursor to specified `Location` over `seconds`. 
+
+		If `seconds` is 0, moves the cursor immediately. Used for smooth
+		somewhat-human-like motion.
+		"""
+		if seconds == 0 or not Screen().pointVisible(self.getPos()):
 			# If the mouse isn't on the main screen, snap to point automatically instead of trying to track a path back
 			self.move(location)
 			return
@@ -733,12 +819,47 @@ class Mouse(object):
 			time.sleep(self._defaultScanRate)
 
 	def click(self, button=0):
+		""" Clicks the specified mouse button.
+
+		Use Mouse.LEFT, Mouse.MIDDLE, Mouse.RIGHT
+		"""
 		PlatformManager.clickMouse(button)
+	def buttonDown(self, button=0):
+		""" Holds down the specified mouse button.
+
+		Use Mouse.LEFT, Mouse.MIDDLE, Mouse.RIGHT
+		"""
+		PlatformManager.mouseButtonDown(button)
+	def buttonUp(self, button=0):
+		""" Releases the specified mouse button.
+
+		Use Mouse.LEFT, Mouse.MIDDLE, Mouse.RIGHT
+		"""
+		PlatformManager.mouseButtonUp(button)
 	def wheel(self, direction, steps):
+		""" Clicks the wheel the specified number of steps in the given direction.
+
+		Use Mouse.WHEEL_DOWN, Mouse.WHEEL_UP
+		"""
 		return PlatformManager.mouseWheel(direction, steps)
 
+class Keyboard(object):
+	""" Mid-level keyboard routines. Interfaces with `PlatformManager` """
+	def __init__(self):
+		pass
+
+	def keyDown(self, keys):
+		""" Holds down the specified keys """
+		return PlatformManager.pressKey(keys)
+	def keyUp(self, keys):
+		""" Releases the specified keys """
+		return PlatformManager.releaseKey(keys)
+	def type(self, text, delay=0.1):
+		""" Types `text` with `delay` seconds between keypresses """
+		return PlatformManager.typeKeys(text, delay)
+
 class Window(object):
-	""" Object to select (and perform basic manipulations on) a window. Uses platform-specific handler """
+	""" Object to select (and perform basic manipulations on) a window. Stores platform-specific window handler """
 	def __init__(self, identifier=None):
 		self._handle = None
 		if identifier:
@@ -769,22 +890,37 @@ class Window(object):
 		return PlatformManager.getWindowPID(self._handle)
 
 class App(Window):
+	""" Sikuli compatibility class
+
+	Eventually will allow windows to be selected by title, PID, or by starting an
+	application directly.
+	"""
 	def __init__(self, identifier=None):
 		super(App, self).__init__(identifier)
 		self.focus = self._focus_instance
 
 	@classmethod
-	def focus(cls, wildcard=None):
-		# Modify wildcard from Sikuli format to regex
-		# TODO - Clean up this cleanup
-		wildcard_regex = wildcard.replace("\\", "\\\\").replace(".", "\.").replace("*", ".*")
+	def focus(cls, wildcard):
+		""" Sikuli-compatible "bring window to front" function
+		 
+		Accessible as App.focus(). Also converts Sikuli wildcard search to Python regex.
+		"""
+		wildcard_regex = self._convert_sikuli_wildcards(wildcard)
 		app = cls(wildcard_regex)
 		return app.focus()
 
 	def _focus_instance(self, wildcard=None):
+		""" For instances of App, the focus() classmethod is replaced with this instance method. """
 		if wildcard is not None:
 			self.initialize_wildcard(wildcard)
 		if self._handle is None:
 			return self
 		PlatformManager.focusWindow(self._handle)
 		return self
+
+	def _convert_sikuli_wildcards(self, wildcard):
+		""" Converts Sikuli wildcards to Python-compatible regex.
+
+		TODO: Clean up this conversion routine. 
+		"""
+		return wildcard.replace("\\", "\\\\").replace(".", "\.").replace("*", ".*")

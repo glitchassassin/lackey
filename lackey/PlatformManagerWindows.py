@@ -234,6 +234,7 @@ class PlatformManagerWindows(object):
 										  ctypes.c_int)  # cbSize
 
 	def _check_count(self, result, func, args):
+		""" Private function to return ctypes errors cleanly """
 		if result == 0:
 			raise ctypes.WinError(ctypes.get_last_error())
 		return args
@@ -241,11 +242,14 @@ class PlatformManagerWindows(object):
 	## Keyboard input methods ##
 
 	def pressKeyCode(self, hexKeyCode):
-		""" Set key state to down """
+		""" Set key state to down for the specified hex key code """
 		x = self._INPUT(type=self._INPUT_KEYBOARD, ki=self._KEYBDINPUT(wVk=hexKeyCode))
 		self._user32.SendInput(1, ctypes.byref(x), ctypes.sizeof(x))
 	def pressKey(self, text):
 		""" Accepts a string of keys in typeKeys format (see below). Holds down all of them. """
+		
+		in_special_code = False
+		special_code = ""
 		for i in range(0, len(text)):
 			if text[i] == "{":
 				in_special_code = True
@@ -264,11 +268,14 @@ class PlatformManagerWindows(object):
 			elif text[i] in self._REGULAR_KEYCODES.keys():
 				self.pressKeyCode(self._REGULAR_KEYCODES[text[i]])
 	def releaseKeyCode(self, hexKeyCode):
-		""" Set key state to up """
+		""" Set key state to up for the specified hex key code  """
 		x = self._INPUT(type=self._INPUT_KEYBOARD, ki=self._KEYBDINPUT(wVk=hexKeyCode, dwFlags=self._KEYEVENTF_KEYUP))
 		self._user32.SendInput(1, ctypes.byref(x), ctypes.sizeof(x))
 	def releaseKey(self, text):
 		""" Accepts a string of keys in typeKeys format (see below). Releases all of them. """
+		
+		in_special_code = False
+		special_code = ""
 		for i in range(0, len(text)):
 			if text[i] == "{":
 				in_special_code = True
@@ -286,7 +293,7 @@ class PlatformManagerWindows(object):
 				self.releaseKeyCode(self._MODIFIER_KEYCODES[text[i]])
 			elif text[i] in self._REGULAR_KEYCODES.keys():
 				self.releaseKeyCode(self._REGULAR_KEYCODES[text[i]])
-	def typeKeys(self, text, delay=0):
+	def typeKeys(self, text, delay=0.1):
 		""" Translates a string (with modifiers) into a series of keystrokes.
 
 		Equivalent to Microsoft's SendKeys, with the addition of "@" as a Win-key modifier.
@@ -376,13 +383,22 @@ class PlatformManagerWindows(object):
 		x = self._INPUT(type=self._INPUT_MOUSE, mi=self._MOUSEINPUT(dwFlags=click_up_code))
 		self._user32.SendInput(1, ctypes.byref(x), ctypes.sizeof(x))
 	def clickMouse(self, button=0):
-		""" Abstracts the clicking function """
+		""" Abstracts the clicking function 
+
+		Button codes are (0=LEFT, 1=MIDDLE, 2=RIGHT) and should be provided as constants
+		by the Mouse class
+		"""
 		# LEFT = 0
 		# MIDDLE = 1
 		# RIGHT = 2
 		self.mouseButtonDown(button)
 		self.mouseButtonUp(button)
 	def mouseWheel(self, direction, steps):
+		""" Clicks the mouse wheel the specified number of steps in the given direction
+		
+		Valid directions are 0 (for down) and 1 (for up). These should be provided
+		as constants by the Mouse class.
+		"""
 		MOUSEEVENTF_WHEEL = 0x0800
 		if direction == 1:
 			wheel_moved = 120*steps
@@ -403,39 +419,25 @@ class PlatformManagerWindows(object):
 	## Clipboard functions
 
 	def getClipboard(self):
-		""" Fetches any text on the clipboard. """
+		""" Uses Tkinter to fetch any text on the clipboard. """
 		r = Tk()
 		r.withdraw()
 		to_return = r.clipboard_get()
 		r.destroy()
 		return to_return
 
-	# def setClipboard(self, text):
-	# 	""" Sets the clipboard to the contents of "text" """
-	# 	if not isinstance(text, basestring):
-	# 		raise TypeError("setClipboard expected text to be a string")
-	# 	GMEM_DDESHARE = 0x2000
-	# 	CF_TEXT = 1
-	# 	self._user32.OpenClipboard(0)
-	# 	self._user32.EmptyClipboard()
-	# 	# Set up a memory space for the copied data
-	# 	clipdata_handle = ctypes.windll.kernel32.GlobalAlloc(GMEM_DDESHARE, len(text)+1)
-	# 	#clipdata_handle = ctypes.windll.kernel32.GlobalAlloc(GMEM_DDESHARE, len(bytes(text, "ascii"))+1) # May need for Python 3.x
-	# 	clipdata_data = ctypes.windll.kernel32.GlobalLock(clipdata_handle)
-	# 	ctypes.cdll.msvcrt.wcscpy(ctypes.c_wchar_p(clipdata_data), text)
-	# 	ctypes.windll.kernel32.GlobalUnlock(clipdata_handle)
-	# 	# Assign the pointer to the clipboard
-	# 	self._user32.setClipboardData(CF_TEXT, clipdata_handle)
-	# 	self._user32.CloseClipboard()
 	def setClipboard(self, text):
+		""" Uses Tkinter to set the system clipboard """
 		r = Tk()
 		r.withdraw()
 		r.clipboard_clear()
 		r.clipboard_append(text)
 		r.destroy()
 	def osCopy(self):
+		""" Triggers the OS "copy" keyboard shortcut """
 		self.typeKeys("^c")
 	def osPaste(self):
+		""" Triggers the OS "paste" keyboard shortcut """
 		self.typeKeys("^v")
 
 	## Window functions
@@ -474,7 +476,7 @@ class PlatformManagerWindows(object):
 		ctypes.windll.user32.SetForegroundWindow(hwnd)
 
 	def getWindowTitle(self, hwnd):
-		""" Self explanatory """
+		""" Gets the title for the specified window """
 		return ctypes.windll.user32.GetWindowText(hwnd)
 
 	def getWindowPID(self, hwnd):
