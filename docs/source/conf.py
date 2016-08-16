@@ -18,7 +18,9 @@
 #
 import os
 import sys
-sys.path.insert(0, os.path.abspath('..\..'))
+path = os.path.abspath('..\..')
+print path
+sys.path.insert(0, path)
 
 # -- General configuration ------------------------------------------------
 
