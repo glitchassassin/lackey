@@ -1,0 +1,6 @@
+#
+####### requirements.txt #######
+#
+###### Requirements without Version Specifiers ######
+numpy
+pillow
