@@ -1,4 +1,7 @@
 # Lackey v0.01 #
+
+![lackey](https://cloud.githubusercontent.com/assets/4360430/17687155/539354b4-6338-11e6-95db-c8fbc6b446d6.jpg)
+
 ## A Graphical Python Automation Suite ##
 
 Developed by [Jon Winsley](https://github.com/glitchassassin)
