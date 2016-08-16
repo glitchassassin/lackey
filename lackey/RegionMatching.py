@@ -221,8 +221,8 @@ class Region(object):
 
 	def getBitmap(self):
 		""" Captures screen area of this region, at least the part that is on the screen """
-		max_x, max_y = self.screen.getBounds()[1]
-		img = ImageGrab.grab(bbox=(max(0, self.x),max(0, self.y),min(max_x, self.w+self.x),min(max_y, self.y+self.h)))
+
+		img = PlatformManager.getBitmapFromRect(self.x, self.y, self.w, self.h)
 		img_np = numpy.array(img)
 		#img_np = cv2.cvtColor(img_np, cv2.COLOR_RGB2GRAY)
 		img_np = cv2.cvtColor(img_np, cv2.COLOR_RGB2BGR)
@@ -503,6 +503,12 @@ class Region(object):
 		"""
 		raise NotImplementedError("highlight not yet supported.")
 
+	def capture(self):
+		""" Captures the region as an image and saves to a temporary file (specified by TMPDIR, TEMP, or TMP environmental variable) """
+		bitmap = self.getBitmap()
+		tfile, tpath = tempfile.mkstemp(".png")
+		cv2.imwrite(tpath, bitmap)
+
 	def hover(self, target):
 		""" Moves the cursor to the target location """
 		target_location = None
@@ -682,64 +688,22 @@ class Match(Region):
 		""" Returns the location of the match click target (center by default, but may be offset) """
 		return self.getCenter().offset(self._target.x, self._target.y)
 
-class Screen(object):
-	""" Main screen only supported in current version. Multi-monitor support is coming. """
-	def __init__(self, id=0):
-		""" Lackey doesn't support multiple screens at this time, so this will always default to the main screen """
-		self._id = 0
+class Screen(Region):
+	""" Individual screen objects can be created for each monitor in a multi-monitor system. """
+	def __init__(self, screenId=0):
+		""" Lackey doesn't support multiple screens at this time, so this will always default to the main screen. """
+		self._screenId = screenId
+		bounds = self.getBounds()
+		super(Screen, self).__init__(bounds[0][0], bounds[0][1], bounds[1][0], bounds[1][1])
 
 	def getNumberScreens(self):
-		""" Get the number of screens in a multi-monitor environment at the time the script is running
-
-		Lackey doesn't support multiple screens at this time, so this will always default to one.
-		"""
-		return 1
+		""" Get the number of screens in a multi-monitor environment at the time the script is running """
+		return PlatformManager.getScreenCount()
 
 	def getBounds(self):
 		""" Returns bounds of screen as ((x, y), (w, h)) """
-		screen_size = PlatformManager.getScreenSize()
+		screen_size = PlatformManager.getScreenSize(screen)
 		return ((0, 0), screen_size)
-
-	def pointVisible(self, location):
-		""" Checks if point is visible on screen """
-		coords, screen_size = self.getBounds()
-		screen_width, screen_height = screen_size
-		return (location.x >= 0 and location.x < screen_width and location.y >= 0 and location.y < screen_height)
-
-	def capture(self, *args):
-		""" Captures the specified region as an image and saves to a temporary file (specified by TMPDIR, TEMP, or TMP environmental variable)
-		
-		Usage:
-		capture(x, y, w, h)
-		capture(region)
-		capture( ((x,y),(w,h)) )
-		"""
-		if len(args) == 4:
-			# List of coords
-			x = int(args[0])
-			y = int(args[1])
-			w = int(args[2])
-			h = int(args[3])
-		elif len(args) == 1 and isinstance(args[0], Region):
-			# Region object
-			x = args[0].x
-			y = args[0].y
-			w = args[0].w
-			h = args[0].h
-		elif len(args) == 1 and len(args[0]) == 2:
-			# Rectangle ((x, y), (w, h))
-			rect = args[0]
-			x = rect[0][0]
-			y = rect[0][1]
-			w = rect[1][0]-1
-			h = rect[1][1]-1
-		else:
-			raise ValueError("capture didn't recognize coordinates")
-		if not self.point_visible(Location(x+w, y+h)) or not self.point_visible(Location(x, y)):
-			raise RuntimeError("capture coordinates outside of main screen resolution")
-		bitmap = self.toRegion().getBitmap()
-		tfile, tpath = tempfile.mkstemp(".png")
-		cv2.imwrite(tpath, bitmap)
 
 	def selectRegion(self, text=""):
 		""" Not yet implemented """
@@ -748,7 +712,7 @@ class Screen(object):
 	def toRegion(self):
 		""" Returns a region in the shape of the screen """
 		bounds = self.getBounds()
-		return Region(bounds[0][0], bounds[0][1], bounds[1][0], bounds[1][1])
+		return 
 
 class Location(object):
 	""" Basic 2D point object """
@@ -818,7 +782,7 @@ class Mouse(object):
 		If `seconds` is 0, moves the cursor immediately. Used for smooth
 		somewhat-human-like motion.
 		"""
-		if seconds == 0 or not Screen().pointVisible(self.getPos()):
+		if seconds == 0 or not PlatformManager.isPointVisible(self.getPos()):
 			# If the mouse isn't on the main screen, snap to point automatically instead of trying to track a path back
 			self.move(location)
 			return

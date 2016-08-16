@@ -6,6 +6,7 @@ try:
 except ImportError:
 	from tkinter import Tk
 from ctypes import wintypes
+from PIL import ImageGrab
 
 class PlatformManagerWindows(object):
 	""" Abstracts Windows-specific OS-level features like mouse/keyboard control """
@@ -371,7 +372,8 @@ class PlatformManagerWindows(object):
 	def setMousePos(self, location):
 		""" Accepts a tuple (x,y) and sets the mouse position accordingly """
 		x, y = location
-		self._user32.SetCursorPos(x, y)
+		if self.isPointVisible(x, y):
+			self._user32.SetCursorPos(x, y)
 	def getMousePos(self):
 		""" Returns the current mouse position as a tuple (x,y) """
 		class POINT(ctypes.Structure):
@@ -418,10 +420,55 @@ class PlatformManagerWindows(object):
 
 	## Screen functions
 
-	def getScreenSize(self):
-		""" Returns the screen size of the main monitor. To be updated for multiple monitors. """
-		return (self._user32.GetSystemMetrics(0), self._user32.GetSystemMetrics(1))
+	def getScreenCount(self):
+		""" Returns the number of monitors attached to the system """
+		SM_CMONITORS = 80
+		return (self._user32.GetSystemMetrics(SM_CMONITORS))
 
+	def getVirtualScreenRect(self):
+		""" The virtual screen is the bounding box containing all monitors. 
+
+		Not all regions in the virtual screen are actually visible. The (0,0) coordinate is the top left corner of the primary
+		screen rather than the whole bounding box, so some regions of the virtual screen may have negative coordinates if another
+		screen is positioned in Windows as further to the left or above the primary screen.
+
+		Returns the rect as (x, y, w, h)
+		"""
+		SM_XVIRTUALSCREEN = 76  # Left of virtual screen
+		SM_YVIRTUALSCREEN = 77  # Top of virtual screen
+		SM_CXVIRTUALSCREEN = 78 # Width of virtual screen
+		SM_CYVIRTUALSCREEN = 79 # Heigiht of virtual screen
+
+		return (self._user32.GetSystemMetrics(SM_XVIRTUALSCREEN), \
+				self._user32.GetSystemMetrics(SM_YVIRTUALSCREEN), \
+				self._user32.GetSystemMetrics(SM_CXVIRTUALSCREEN), \
+				self._user32.GetSystemMetrics(SM_CYVIRTUALSCREEN))
+
+	def isPointVisible(self, x, y):
+		""" Checks if a point is visible on any monitor. """
+		class POINT(ctypes.Structure):
+			_fields_ = [("x", ctypes.c_ulong), ("y", ctypes.c_ulong)]
+		pt = POINT()
+		pt.x = x
+		pt.y = y
+		MONITOR_DEFAULTTONULL = 0
+		hmon = self._user32.MonitorFromPoint(pt, MONITOR_DEFAULTTONULL)
+		print hmon
+		if hmon == 0:
+			return False
+		return True
+
+	def getScreenSize(self, monitorID):
+		""" Returns the screen size of the main monitor. To be updated for multiple monitors. """
+		SM_CXSCREEN = 0
+		SM_CYSCREEN = 1
+		return (self._user32.GetSystemMetrics(SM_CXSCREEN), self._user32.GetSystemMetrics(SM_CYSCREEN))
+
+	def getBitmapFromRect(self, x, y, w, h):
+		""" Capture the specified area of the (virtual) screen. """
+		min_x, min_y, screen_width, screen_height = self.getVirtualScreenRect()
+		img = ImageGrab.grab(bbox=(max(min_x, x),max(min_y, y),min(screen_width+min_x, w+x),min(screen_height+min_y, y+h)))
+		return img
 
 	## Clipboard functions
 
