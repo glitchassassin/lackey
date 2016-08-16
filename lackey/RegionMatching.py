@@ -12,7 +12,8 @@ from .Exceptions import FindFailed
 if platform.system() == "Windows":
 	PlatformManager = PlatformManagerWindows() # No other input managers built yet
 else:
-	raise NotImplementedError("Pykuli v0.01 is currently only compatible with Windows.")
+	if not (os.environ.get('READTHEDOCS') == 'True'): # Avoid throwing an error if it's just being imported for documentation purposes
+		raise NotImplementedError("Lackey v0.1.0a is currently only compatible with Windows.")
 	
 class Pattern(object):
 	""" Defines a pattern based on a bitmap, similarity, and target offset """

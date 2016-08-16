@@ -42,6 +42,10 @@ Sample code:
     r.wait("Control_Panel.png", 5) # Maybe the Start menu is slow
     r.click("Notepad.png")
 
+## Documentation ##
+
+Full API documentation can be found at [ReadTheDocs](http://lackey.readthedocs.io/en/latest/).
+
 ## Rationale ##
 
 In my line of work, I have a lot of tasks walking through line-of-business applications to do boring things that any computer could do. Laziness being the mother of invention, I decided to script what I could. I found [SikuliX](http://sikulix.com/) to be a tremendously valuable tool for the job, but its Java dependencies and limited Python coupling posed problems in several cases. So, I decided to implement my own graphical automation library in pure Python.
