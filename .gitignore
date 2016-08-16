@@ -2,6 +2,11 @@
 /build
 /Lackey.egg-info
 
+# Byte-compiled / optimized [Not excluding DLLs because of opencv]
+__pycache__/
+*.py[co]
+*$py.class
+
 # Windows image file caches
 Thumbs.db
 ehthumbs.db
