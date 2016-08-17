@@ -45,7 +45,6 @@ class Pattern(object):
 class Region(object):
 	def __init__(self, x, y, w, h):
 		self.setROI(x, y, w, h)
-		self.screen = Screen(0)
 		self.lastMatch = None
 		self.lastMatches = []
 		self.autoWaitTimeout = 3.0
@@ -119,8 +118,8 @@ class Region(object):
 		return Location(self.x+self.w, self.y+self.h)
 
 	def getScreen(self):
-		""" Return the `Screen` instance this region is associated with """
-		return self.screen
+		""" Return the `Screen` instance this region is inside """
+		return PlatformManager.
 
 	def getLastMatch(self):
 		""" Returns the last successful `Match` returned by `find()`, `exists()`, etc. """
@@ -702,7 +701,7 @@ class Screen(Region):
 
 	def getBounds(self):
 		""" Returns bounds of screen as ((x, y), (w, h)) """
-		screen_size = PlatformManager.getScreenSize(screen)
+		screen_size = PlatformManager.getScreenSize(self._screenId)
 		return ((0, 0), screen_size)
 
 	def selectRegion(self, text=""):
@@ -782,7 +781,7 @@ class Mouse(object):
 		If `seconds` is 0, moves the cursor immediately. Used for smooth
 		somewhat-human-like motion.
 		"""
-		if seconds == 0 or not PlatformManager.isPointVisible(self.getPos()):
+		if seconds == 0 or not PlatformManager.isPointVisible(*PlatformManager.getMousePos()):
 			# If the mouse isn't on the main screen, snap to point automatically instead of trying to track a path back
 			self.move(location)
 			return
