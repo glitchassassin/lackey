@@ -430,6 +430,21 @@ class PlatformManagerWindows(object):
 		""" Returns the number of monitors attached to the system """
 		SM_CMONITORS = 80
 		return (self._user32.GetSystemMetrics(SM_CMONITORS))
+	def getScreenDetails(self):
+		monitors = self._getMonitorInfo()
+		screens = []
+		for monitor in monitors:
+			# Convert screen rect to Lackey-style rect (x,y,w,h) as position in virtual screen
+			screens.append({
+				"rect": (
+					monitor["rect"][0],
+					monitor["rect"][1],
+					monitor["rect"][2] - monitor["rect"][0],
+					monitor["rect"][3] - monitor["rect"][1]
+				)
+			})
+		return screens
+
 	def getVirtualScreenRect(self):
 		""" The virtual screen is the bounding box containing all monitors. 
 
@@ -461,11 +476,15 @@ class PlatformManagerWindows(object):
 		if hmon == 0:
 			return False
 		return True
-	def getScreenSize(self, monitorID):
-		""" Returns the screen size of the main monitor. To be updated for multiple monitors. """
-		SM_CXSCREEN = 0
-		SM_CYSCREEN = 1
-		return (self._user32.GetSystemMetrics(SM_CXSCREEN), self._user32.GetSystemMetrics(SM_CYSCREEN))
+	def getScreenBounds(self, screenId):
+		""" Returns the screen size of the specified monitor (0 being the main monitor). """
+		if not isinstance(screenId, int) or screenId < 0 or screenId >= self.getScreenCount():
+			raise ValueError("Invalid screen ID")
+		if screenId == -1:
+			# -1 represents the entire virtual screen
+			x1, y1, x2, y2 = self.getVirtualScreenRect()
+			return (x1, y1, x2-x1, y2-y1)
+		return self.getScreenDetails()[screenId]["rect"]
 	def getBitmapFromRect(self, x, y, w, h):
 	 	""" Capture the specified area of the (virtual) screen. """
 	 	min_x, min_y, screen_width, screen_height = self.getVirtualScreenRect()
@@ -526,6 +545,7 @@ class PlatformManagerWindows(object):
 							lprcMonitor.contents.bottom),
 					"name": lpmi.szDevice
 				})
+			return True
 		MonitorEnumProc = ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.c_ulong, ctypes.c_ulong, ctypes.POINTER(ctypes.wintypes.RECT), ctypes.c_int)
 		callback = MonitorEnumProc(_MonitorEnumProcCallback)
 		if self._user32.EnumDisplayMonitors(0,0,callback,0) == 0:
