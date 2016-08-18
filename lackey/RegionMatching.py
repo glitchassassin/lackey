@@ -1,8 +1,8 @@
+import pyscreenshot as ImageGrab
 import platform
 import time
 import os
 
-from PIL import ImageGrab
 import numpy
 import cv2
 
@@ -119,7 +119,7 @@ class Region(object):
 
 	def getScreen(self):
 		""" Return the `Screen` instance this region is inside """
-		return PlatformManager.
+		return None # TODO PlatformManager.
 
 	def getLastMatch(self):
 		""" Returns the last successful `Match` returned by `find()`, `exists()`, etc. """
@@ -220,11 +220,11 @@ class Region(object):
 
 	def getBitmap(self):
 		""" Captures screen area of this region, at least the part that is on the screen """
-
-		img = PlatformManager.getBitmapFromRect(self.x, self.y, self.w, self.h)
+		min_x, min_y, screen_width, screen_height = PlatformManager.getVirtualScreenRect()
+		img = ImageGrab.grab(bbox=(max(min_x, self.x),max(min_y, self.y),min(screen_width+min_x, self.w+self.x),min(screen_height+min_y, self.y+self.h)))
 		img_np = numpy.array(img)
 		#img_np = cv2.cvtColor(img_np, cv2.COLOR_RGB2GRAY)
-		img_np = cv2.cvtColor(img_np, cv2.COLOR_RGB2BGR)
+		#img_np = cv2.cvtColor(img_np, cv2.COLOR_RGB2BGR)
 		return img_np
 
 	def find(self, pattern, seconds=None):
