@@ -1,5 +1,6 @@
 import re
 import time
+import numpy
 import ctypes
 try:
 	from Tkinter import Tk
@@ -426,11 +427,30 @@ class PlatformManagerWindows(object):
 
 	## Screen functions
 
-	def getScreenCount(self):
-		""" Returns the number of monitors attached to the system """
-		SM_CMONITORS = 80
-		return (self._user32.GetSystemMetrics(SM_CMONITORS))
+	def getBitmapFromRect(self, x, y, w, h):
+	 	""" Capture the specified area of the (virtual) screen. """
+	 	min_x, min_y, screen_width, screen_height = self._getVirtualScreenRect()
+	 	img = self._getVirtualScreenBitmap()
+	 	# Limit the coordinates to the virtual screen
+	 	# Then offset so 0,0 is the top left corner of the image
+	 	# (Top left of virtual screen could be negative)
+	 	x1 = min(max(min_x, x), min_x+screen_width) - min_x
+	 	y1 = min(max(min_y, y), min_y+screen_height) - min_y
+	 	x2 = min(max(min_x, x+w), min_x+screen_width) - min_x
+	 	y2 = min(max(min_y, y+h), min_y+screen_height) - min_y
+	 	return numpy.array(img.crop((x1, y1, x2, y2)))
+	def getScreenBounds(self, screenId):
+		""" Returns the screen size of the specified monitor (0 being the main monitor). """
+		screen_details = self.getScreenDetails()
+		if not isinstance(screenId, int) or screenId < -1 or screenId >= len(screen_details):
+			raise ValueError("Invalid screen ID")
+		if screenId == -1:
+			# -1 represents the entire virtual screen
+			x1, y1, x2, y2 = self._getVirtualScreenRect()
+			return (x1, y1, x2-x1, y2-y1)
+		return screen_details[screenId]["rect"]
 	def getScreenDetails(self):
+		""" Return list of attached monitors with `rect` representing each screen as positioned in virtual screen. """
 		monitors = self._getMonitorInfo()
 		screens = []
 		for monitor in monitors:
@@ -444,25 +464,6 @@ class PlatformManagerWindows(object):
 				)
 			})
 		return screens
-
-	def getVirtualScreenRect(self):
-		""" The virtual screen is the bounding box containing all monitors. 
-
-		Not all regions in the virtual screen are actually visible. The (0,0) coordinate is the top left corner of the primary
-		screen rather than the whole bounding box, so some regions of the virtual screen may have negative coordinates if another
-		screen is positioned in Windows as further to the left or above the primary screen.
-
-		Returns the rect as (x, y, w, h)
-		"""
-		SM_XVIRTUALSCREEN = 76  # Left of virtual screen
-		SM_YVIRTUALSCREEN = 77  # Top of virtual screen
-		SM_CXVIRTUALSCREEN = 78 # Width of virtual screen
-		SM_CYVIRTUALSCREEN = 79 # Heigiht of virtual screen
-
-		return (self._user32.GetSystemMetrics(SM_XVIRTUALSCREEN), \
-				self._user32.GetSystemMetrics(SM_YVIRTUALSCREEN), \
-				self._user32.GetSystemMetrics(SM_CXVIRTUALSCREEN), \
-				self._user32.GetSystemMetrics(SM_CYVIRTUALSCREEN))
 	def isPointVisible(self, x, y):
 		""" Checks if a point is visible on any monitor. """
 		class POINT(ctypes.Structure):
@@ -472,86 +473,9 @@ class PlatformManagerWindows(object):
 		pt.y = y
 		MONITOR_DEFAULTTONULL = 0
 		hmon = self._user32.MonitorFromPoint(pt, MONITOR_DEFAULTTONULL)
-		print hmon
 		if hmon == 0:
 			return False
 		return True
-	def getScreenBounds(self, screenId):
-		""" Returns the screen size of the specified monitor (0 being the main monitor). """
-		if not isinstance(screenId, int) or screenId < 0 or screenId >= self.getScreenCount():
-			raise ValueError("Invalid screen ID")
-		if screenId == -1:
-			# -1 represents the entire virtual screen
-			x1, y1, x2, y2 = self.getVirtualScreenRect()
-			return (x1, y1, x2-x1, y2-y1)
-		return self.getScreenDetails()[screenId]["rect"]
-	def getBitmapFromRect(self, x, y, w, h):
-	 	""" Capture the specified area of the (virtual) screen. """
-	 	min_x, min_y, screen_width, screen_height = self.getVirtualScreenRect()
-	 	img = self.getVirtualScreenBitmap()
-	 	# Limit the coordinates to the virtual screen
-	 	# Then offset so 0,0 is the top left corner of the image
-	 	# (Top left of virtual screen could be negative)
-	 	x1 = min(max(min_x, x), min_x+screen_width) - min_x
-	 	y1 = min(max(min_y, y), min_y+screen_height) - min_y
-	 	x2 = min(max(min_x, x+w), min_x+screen_width) - min_x
-	 	y2 = min(max(min_y, y+h), min_y+screen_height) - min_y
-	 	return img.crop((x1, y1, x2, y2))
-	def getVirtualScreenBitmap(self):
-		""" Returns a PIL bitmap (BGR channel order) of a screenshot from all monitors arranged like the Virtual Screen """
-
-		# Collect information about the virtual screen & monitors
-		min_x, min_y, screen_width, screen_height = self.getVirtualScreenRect()
-		monitors = self._getMonitorInfo()
-
-		# Initialize new black image the size of the virtual screen
-		virt_screen = Image.new("RGB", (screen_width, screen_height)) 
-
-		# Capture images of each of the monitors and overlay on the virtual screen
-		for monitor_id in range(0, len(monitors)):
-			print monitors[monitor_id]
-			img = self._captureScreen(monitors[monitor_id]["hdc"])
-			# Capture virtscreen coordinates of monitor
-			x1, y1, x2, y2 = monitors[monitor_id]["rect"]
-			# Convert to image-local coordinates
-			x = x1 - min_x
-			y = y1 - min_y
-			# Paste on the virtual screen
-			virt_screen.paste(img, (x,y))
-		return virt_screen
-	def _getMonitorInfo(self):
-		""" Returns info about the attached monitors, in device order
-
-		"""
-		monitors = []
-		CCHDEVICENAME = 32
-		def _MonitorEnumProcCallback(hMonitor, hdcMonitor, lprcMonitor, dwData):
-			class MONITORINFOEX(ctypes.Structure):
-				_fields_ = [("cbSize", ctypes.wintypes.DWORD),
-							("rcMonitor", ctypes.wintypes.RECT),
-							("rcWork", ctypes.wintypes.RECT),
-							("dwFlags", ctypes.wintypes.DWORD),
-							("szDevice", ctypes.wintypes.WCHAR*CCHDEVICENAME)]
-			lpmi = MONITORINFOEX()
-			lpmi.cbSize = ctypes.sizeof(MONITORINFOEX)
-			self._user32.GetMonitorInfoW(hMonitor, ctypes.byref(lpmi))
-			hdc = self._gdi32.CreateDCA(ctypes.c_char_p(lpmi.szDevice), 0, 0, 0)
-			monitors.append({
-					"hmon": hMonitor,
-					"hdc":  hdc,
-					"rect": (lprcMonitor.contents.left,
-							lprcMonitor.contents.top,
-							lprcMonitor.contents.right,
-							lprcMonitor.contents.bottom),
-					"name": lpmi.szDevice
-				})
-			return True
-		MonitorEnumProc = ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.c_ulong, ctypes.c_ulong, ctypes.POINTER(ctypes.wintypes.RECT), ctypes.c_int)
-		callback = MonitorEnumProc(_MonitorEnumProcCallback)
-		if self._user32.EnumDisplayMonitors(0,0,callback,0) == 0:
-			raise WindowsError("Unable to enumerate monitors")
-		monitors.sort(key=lambda x: x["name"]) # Sort by device ID - 0 is primary, 1 is next, etc.
-		return monitors
 	def _captureScreen(self, hdc):
 		""" Captures a bitmap from the given monitor DC handle 
 		
@@ -594,8 +518,6 @@ class PlatformManagerWindows(object):
 		# Get monitor specs
 		screen_width = self._gdi32.GetDeviceCaps(hdc, HORZRES)
 		screen_height = self._gdi32.GetDeviceCaps(hdc, VERTRES)
-		print hdc
-		print screen_width, screen_height
 
 		# Create memory device context for monitor
 		hCaptureDC = self._gdi32.CreateCompatibleDC(hdc)
@@ -631,7 +553,78 @@ class PlatformManagerWindows(object):
 		if scanlines != screen_height:
 			raise WindowsError("gdi:GetDIBits failed")
 		return ImageOps.flip(Image.frombuffer("RGBX", (screen_width, screen_height), image_data, "raw", "RGBX", 0, 1))
+	def _getMonitorInfo(self):
+		""" Returns info about the attached monitors, in device order
 
+		"""
+		monitors = []
+		CCHDEVICENAME = 32
+		def _MonitorEnumProcCallback(hMonitor, hdcMonitor, lprcMonitor, dwData):
+			class MONITORINFOEX(ctypes.Structure):
+				_fields_ = [("cbSize", ctypes.wintypes.DWORD),
+							("rcMonitor", ctypes.wintypes.RECT),
+							("rcWork", ctypes.wintypes.RECT),
+							("dwFlags", ctypes.wintypes.DWORD),
+							("szDevice", ctypes.wintypes.WCHAR*CCHDEVICENAME)]
+			lpmi = MONITORINFOEX()
+			lpmi.cbSize = ctypes.sizeof(MONITORINFOEX)
+			self._user32.GetMonitorInfoW(hMonitor, ctypes.byref(lpmi))
+			hdc = self._gdi32.CreateDCA(ctypes.c_char_p(lpmi.szDevice), 0, 0, 0)
+			monitors.append({
+					"hmon": hMonitor,
+					"hdc":  hdc,
+					"rect": (lprcMonitor.contents.left,
+							lprcMonitor.contents.top,
+							lprcMonitor.contents.right,
+							lprcMonitor.contents.bottom),
+					"name": lpmi.szDevice
+				})
+			return True
+		MonitorEnumProc = ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.c_ulong, ctypes.c_ulong, ctypes.POINTER(ctypes.wintypes.RECT), ctypes.c_int)
+		callback = MonitorEnumProc(_MonitorEnumProcCallback)
+		if self._user32.EnumDisplayMonitors(0,0,callback,0) == 0:
+			raise WindowsError("Unable to enumerate monitors")
+		monitors.sort(key=lambda x: x["name"]) # Sort by device ID - 0 is primary, 1 is next, etc.
+		return monitors
+	def _getVirtualScreenRect(self):
+		""" The virtual screen is the bounding box containing all monitors. 
+
+		Not all regions in the virtual screen are actually visible. The (0,0) coordinate is the top left corner of the primary
+		screen rather than the whole bounding box, so some regions of the virtual screen may have negative coordinates if another
+		screen is positioned in Windows as further to the left or above the primary screen.
+
+		Returns the rect as (x, y, w, h)
+		"""
+		SM_XVIRTUALSCREEN = 76  # Left of virtual screen
+		SM_YVIRTUALSCREEN = 77  # Top of virtual screen
+		SM_CXVIRTUALSCREEN = 78 # Width of virtual screen
+		SM_CYVIRTUALSCREEN = 79 # Heigiht of virtual screen
+
+		return (self._user32.GetSystemMetrics(SM_XVIRTUALSCREEN), \
+				self._user32.GetSystemMetrics(SM_YVIRTUALSCREEN), \
+				self._user32.GetSystemMetrics(SM_CXVIRTUALSCREEN), \
+				self._user32.GetSystemMetrics(SM_CYVIRTUALSCREEN))
+	def _getVirtualScreenBitmap(self):
+		""" Returns a PIL bitmap (BGR channel order) of a screenshot from all monitors arranged like the Virtual Screen """
+
+		# Collect information about the virtual screen & monitors
+		min_x, min_y, screen_width, screen_height = self._getVirtualScreenRect()
+		monitors = self._getMonitorInfo()
+
+		# Initialize new black image the size of the virtual screen
+		virt_screen = Image.new("RGB", (screen_width, screen_height)) 
+
+		# Capture images of each of the monitors and overlay on the virtual screen
+		for monitor_id in range(0, len(monitors)):
+			img = self._captureScreen(monitors[monitor_id]["hdc"])
+			# Capture virtscreen coordinates of monitor
+			x1, y1, x2, y2 = monitors[monitor_id]["rect"]
+			# Convert to image-local coordinates
+			x = x1 - min_x
+			y = y1 - min_y
+			# Paste on the virtual screen
+			virt_screen.paste(img, (x,y))
+		return virt_screen
 
 	## Clipboard functions
 

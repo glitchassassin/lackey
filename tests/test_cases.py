@@ -114,6 +114,23 @@ class TestWindowMethods(unittest.TestCase):
 		self.assertGreater(region.getW(), 0)
 		self.assertGreater(region.getH(), 0)
 
+class TestScreenMethods(unittest.TestCase):
+	def setUp(self):
+		self.primaryScreen = lackey.Screen(0)
+
+	def testScreenInfo(self):
+		self.assertGreater(self.primaryScreen.getNumberScreens(), 0)
+		x,y,w,h = self.primaryScreen.getBounds()
+		self.assertEqual(x, 0) # Top left corner of primary screen should be 0,0
+		self.assertEqual(y, 0) # Top left corner of primary screen should be 0,0
+		self.assertGreater(w, 0) # Primary screen should be wider than 0
+		self.assertGreater(h, 0) # Primary screen should be taller than 0
+
+	def testCapture(self):
+		tpath = self.primaryScreen.capture()
+		self.assertIsInstance(tpath, basestring)
+		self.assertNotEqual(tpath, "")
+
 class TestComplexFeatures(unittest.TestCase):
 	def setUp(self):
 		if sys.platform.startswith("win"):

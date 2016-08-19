@@ -1,3 +1,4 @@
+import tempfile
 import platform
 import time
 import os
@@ -78,7 +79,7 @@ class Region(object):
 		return self.h
 
 	def moveTo(self, location):
-		""" Change the upper left-hand corner to a new `Location` (without changing width or height) """
+		""" Change the upper left-hand corner to a new ``Location`` (without changing width or height) """
 		if not location or not isinstance(location, Location):
 			raise ValueError("moveTo expected a Location object")
 		self.x = location.x
@@ -94,30 +95,30 @@ class Region(object):
 	setRect = setROI
 
 	def morphTo(self, region):
-		""" Change shape of this region to match the given `Region` object """
+		""" Change shape of this region to match the given ``Region`` object """
 		if not region or not isinstance(region, Region):
 			raise TypeError("morphTo expected a Region object")
 		self.setROI(region.x, region.y, region.w, region.h)
 		return self
 
 	def getCenter(self):
-		""" Return the `Location` of the center of this region """
+		""" Return the ``Location`` of the center of this region """
 		return Location(self.x+(self.w/2), self.y+(self.h/2))
 	def getTopLeft(self):
-		""" Return the `Location` of the top left corner of this region """
+		""" Return the ``Location`` of the top left corner of this region """
 		return Location(self.x, self.y)
 	def getTopRight(self):
-		""" Return the `Location` of the top right corner of this region """
+		""" Return the ``Location`` of the top right corner of this region """
 		return Location(self.x+self.w, self.y)
 	def getBottomLeft(self):
-		""" Return the `Location` of the bottom left corner of this region """
+		""" Return the ``Location`` of the bottom left corner of this region """
 		return Location(self.x, self.y+self.h)
 	def getBottomRight(self):
-		""" Return the `Location` of the bottom right corner of this region """
+		""" Return the ``Location`` of the bottom right corner of this region """
 		return Location(self.x+self.w, self.y+self.h)
 
 	def getScreen(self):
-		""" Return an instance of the `Screen` object representing the screen this region is inside.
+		""" Return an instance of the ``Screen`` object representing the screen this region is inside.
 
 		Checks the top left corner of this region (if it touches multiple screens) is inside. Returns None if the region isn't positioned in any screen. """
 		screens = PlatformManager.getScreenDetails()
@@ -129,10 +130,10 @@ class Region(object):
 		return None # Could not find matching screen
 
 	def getLastMatch(self):
-		""" Returns the last successful `Match` returned by `find()`, `exists()`, etc. """
+		""" Returns the last successful ``Match`` returned by ``find()``, ``exists()``, etc. """
 		return self.lastMatch
 	def getLastMatches(self):
-		""" Returns the last successful set of `Match` objects returned by `findAll()` """
+		""" Returns the last successful set of ``Match`` objects returned by ``findAll()`` """
 		return self.lastMatches
 
 	def setAutoWaitTimeout(self, seconds):
@@ -143,7 +144,7 @@ class Region(object):
 		return self.autoWaitTimeout
 
 	def offset(self, location):
-		""" Returns a new `Region` of the same width and height, but offset from this one by `location` """
+		""" Returns a new ``Region`` of the same width and height, but offset from this one by ``location`` """
 		return Region(self.x+location.x, self.y+location.y, self.w, self.h)
 	def inside(self):
 		""" Returns the same object. Included for Sikuli compatibility. """
@@ -226,13 +227,11 @@ class Region(object):
 		return Region(x, y, w, h)
 
 	def getBitmap(self):
-		""" Captures screen area of this region, at least the part that is on the screen """
-		#min_x, min_y, screen_width, screen_height = PlatformManager.getVirtualScreenRect()
-		img = PlatformManager.getBitmapFromRect(self.x, self.y, self.w, self.h)
-		img_np = numpy.array(img)
-		#img_np = cv2.cvtColor(img_np, cv2.COLOR_RGB2GRAY)
-		#img_np = cv2.cvtColor(img_np, cv2.COLOR_RGB2BGR)
-		return img_np
+		""" Captures screen area of this region, at least the part that is on the screen 
+		
+		Returns image as numpy array
+		"""
+		return PlatformManager.getBitmapFromRect(self.x, self.y, self.w, self.h)
 	def debugPreview(self, region=None):
 		""" Displays the region in a preview window. If another region is provided, highlights it with a square. If a target area is provided, circles it. """
 		if region is None:
@@ -241,20 +240,16 @@ class Region(object):
 		cv2.rectangle(haystack, (region.x - self.x, region.y - self.y), (region.x - self.x + region.w, region.y - self.y + region.h), 255, 2)
 		if isinstance(region, Match):
 			cv2.circle(haystack, (region.getTarget().x - self.x, region.getTarget().y - self.y), 5, 255)
-		cv2.imshow("Debug", haystack)
+		cv2.imshow("Debug", cv2.resize(haystack, (0,0), fx=0.5, fy=0.5))
 		cv2.waitKey(0)
 		cv2.destroyAllWindows()
 	def highlight(self):
-		""" Not implemented yet
+		""" Temporarily using ``debugPreview()`` to show the region instead of highlighting it
 
 		Probably requires transparent GUI creation/manipulation. TODO
 		"""
-		raise NotImplementedError("highlight not yet supported.")
-	def capture(self):
-		""" Captures the region as an image and saves to a temporary file (specified by TMPDIR, TEMP, or TMP environmental variable) """
-		bitmap = self.getBitmap()
-		tfile, tpath = tempfile.mkstemp(".png")
-		cv2.imwrite(tpath, bitmap)
+		return self.debugPreview()
+		#raise NotImplementedError("highlight not yet supported.")
 
 	def find(self, pattern, seconds=None):
 		""" Searches for an image pattern in the given region
@@ -270,9 +265,12 @@ class Region(object):
 	def findAll(self, pattern, seconds=None):
 		""" Searches for an image pattern in the given region
 		
-		Returns `Match` object if `pattern` exists, empty array otherwise (does not throw exception)
+		Returns ``Match`` object if ``pattern`` exists, empty array otherwise (does not throw exception)
 		Sikuli supports OCR search with a text parameter. This does not (yet).
 		"""
+		r = self.clipRegionToScreen()
+		if r is None:
+			return FindFailed("Region outside all visible screens")
 		if seconds is None:
 			seconds = self.autoWaitTimeout
 		if isinstance(pattern, int):
@@ -292,7 +290,7 @@ class Region(object):
 		timeout = time.time() + seconds
 		method = cv2.TM_CCOEFF_NORMED
 		while time.time() < timeout:
-			haystack = self.getBitmap()
+			haystack = r.getBitmap()
 			match = cv2.matchTemplate(haystack,needle,method)
 			indices = (-match).argpartition(100, axis=None)[:100] # Review the 100 top matches
 			unraveled_indices = numpy.array(numpy.unravel_index(indices, match.shape)).T
@@ -330,9 +328,12 @@ class Region(object):
 	def waitVanish(self, pattern, seconds=None):
 		""" Waits until the specified pattern is not visible on screen. 
 
-		If `seconds` pass and the pattern is still visible, raises FindFailed exception.
+		If ``seconds`` pass and the pattern is still visible, raises FindFailed exception.
 		Sikuli supports OCR search with a text parameter. This does not (yet).
 		"""
+		r = self.clipRegionToScreen()
+		if r is None:
+			return # FindFailed("Region outside all visible screens")
 		if seconds is None:
 			seconds = self.autoWaitTimeout
 		if isinstance(pattern, int):
@@ -352,7 +353,7 @@ class Region(object):
 		timeout = time.time() + seconds
 		method = cv2.TM_CCOEFF_NORMED
 		while not position and time.time() < timeout:
-			haystack = self.getBitmap()
+			haystack = r.getBitmap()
 			match = cv2.matchTemplate(haystack,needle,method)
 			min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(match)
 			if method == cv2.TM_SQDIFF_NORMED or method == cv2.TM_SQDIFF:
@@ -376,9 +377,13 @@ class Region(object):
 		Returns Match if pattern exists, None otherwise (does not throw exception)
 		Sikuli supports OCR search with a text parameter. This does not (yet).
 		"""
+		r = self.clipRegionToScreen()
+		if r is None:
+			return FindFailed("Region outside all visible screens")
 		if seconds is None:
 			seconds = self.autoWaitTimeout
 		if isinstance(pattern, int):
+			# Actually just a "wait" statement
 			time.sleep(pattern)
 			return
 		if not pattern:
@@ -390,13 +395,12 @@ class Region(object):
 		needle = cv2.imread(pattern.path)
 		if needle is None:
 			raise ValueError("Unable to load image '{}'".format(pattern.path))
-		#needle = cv2.cvtColor(needle, cv2.COLOR_BGR2GRAY)
 		needle_height, needle_width, needle_channels = needle.shape
 		position = None
 		timeout = time.time() + seconds
 		method = cv2.TM_CCOEFF_NORMED
 		while not position and time.time() < timeout:
-			haystack = self.getBitmap()
+			haystack = r.getBitmap()
 			match = cv2.matchTemplate(haystack,needle,method)
 			min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(match)
 			if method == cv2.TM_SQDIFF_NORMED or method == cv2.TM_SQDIFF:
@@ -413,12 +417,7 @@ class Region(object):
 					position = max_loc
 			time.sleep(self._defaultScanRate)
 		if not position:
-			# Debugging #
 			print("Couldn't find '{}' with enough similarity. Best match {} at ({},{})".format(pattern.path, confidence, best_loc[0], best_loc[1]))
-			#cv2.rectangle(haystack, (best_loc[0], best_loc[1]), (best_loc[0] + needle_width, best_loc[1] + needle_height), 255, 2)
-			#cv2.imshow("Debug", haystack)
-			#cv2.waitKey(0)
-			#cv2.destroyAllWindows()
 			return None
 		# Translate local position into global screen position
 		position = (position[0] + self.x, position[1] + self.y)
@@ -545,7 +544,7 @@ class Region(object):
 		mouse.buttonDown()
 		return 1
 	def dropAt(self, dragTo, delay=0.2):
-		""" Moves the cursor to the target location, waits `delay` seconds, and releases the mouse button """
+		""" Moves the cursor to the target location, waits ``delay`` seconds, and releases the mouse button """
 		if isinstance(dragTo, Pattern):
 			dragToLocation = self.find(dragTo).getTarget()
 		elif isinstance(dragTo, basestring):
@@ -564,9 +563,9 @@ class Region(object):
 		mouse.buttonUp()
 		return 1
 	def dragDrop(self, dragFrom, dragTo, modifiers=""):
-		""" Holds down the mouse button on `dragFrom`, moves the mouse to `dragTo`, and releases the mouse button 
+		""" Holds down the mouse button on ``dragFrom``, moves the mouse to ``dragTo``, and releases the mouse button 
 		
-		`modifiers` may be a typeKeys() compatible string. The specified keys will be held during the drag-drop operation.
+		``modifiers`` may be a typeKeys() compatible string. The specified keys will be held during the drag-drop operation.
 		"""
 		if modifiers != "":
 			PlatformManager.pressKey(modifiers)
@@ -581,7 +580,7 @@ class Region(object):
 		""" Usage: type([PSMRL], text, [modifiers])
 		
 		If a pattern is specified, the pattern is clicked first. Doesn't support text paths.
-		`modifiers` may be a typeKeys() compatible string. The specified keys will be held during the drag-drop operation.
+		``modifiers`` may be a typeKeys() compatible string. The specified keys will be held during the drag-drop operation.
 		"""
 		pattern = None
 		text = None
@@ -619,6 +618,11 @@ class Region(object):
 			kb.keyUp(modifiers)
 		time.sleep(0.2)
 	def paste(self, *args):
+		""" Usage: paste([PSMRL], text)
+		
+		If a pattern is specified, the pattern is clicked first. Doesn't support text paths.
+		``text`` is pasted as is using the OS paste shortcut (Ctrl+V for Windows/Linux, Cmd+V for OS X). Note that `paste()` does NOT use special formatting like `type()`.
+		"""
 		target = None
 		text = ""
 		if len(args) == 1 and isinstance(args[0], basestring):
@@ -660,6 +664,39 @@ class Region(object):
 		""" Concatenate multiple keys to up them all. """
 		return Keyboard().keyUp(keys)
 
+	def isRegionOutsideScreens(self):
+		""" Returns true if the whole region is outside any screen, otherwise false """
+		screens = PlatformManager.getScreenDetails()
+		for screen in screens:
+			s_x, s_y, s_w, s_h = screen["rect"]
+			if (self.x+self.w < s_x or s_x+s_w < self.x or self.y+self.h < s_y or s_y+s_h < self.y):
+				# Rects overlap
+				return False
+		return True
+
+	def clipRegionToScreen(self):
+		""" Returns the part of the region that is visible on a screen (or the screen with the smallest ID, if the region is visible on multiple screens). 
+
+		Returns None if the region is outside the screen. 
+		"""
+		if self.isRegionOutsideScreens():
+			return None
+		screens = PlatformManager.getScreenDetails()
+		containing_screen = None
+		for screen in screens:
+			s_x, s_y, s_w, s_h = screen["rect"]
+			if (self.x >= s_x and self.x+self.w <= s_x+s_w and self.y >= s_y and self.y+self.h <= s_y+s_h):
+				# Region completely inside screen
+				return self
+			elif (self.x+self.w < s_x or s_x+s_w < self.x or self.y+self.h < s_y or s_y+s_h < self.y):
+				containing_screen = screen
+				break
+		x = max(self.x, s_x)
+		y = max(self.y, s_y)
+		w = min(self.w, s_w)
+		h = min(self.h, s_h)
+		return Region(x,y,w,h)
+
 class Match(Region):
 	""" Extended Region object with additional data on click target, match score """
 	def __init__(self, score, target, rect):
@@ -678,23 +715,45 @@ class Match(Region):
 		return self.getCenter().offset(self._target.x, self._target.y)
 
 class Screen(Region):
-	""" Individual screen objects can be created for each monitor in a multi-monitor system. """
+	""" Individual screen objects can be created for each monitor in a multi-monitor system. 
+
+	Screens are indexed according to the system order. 0 is the main monitor (display 1), 1 is the next monitor, etc.
+
+	Lackey also makes it possible to search all screens as a single "virtual screen," arranged
+	according to the system's settings. Screen(-1) returns this virtual screen. Note that the
+	larger your search region is, the slower your search will be, so it's best practice to adjust
+	your region to the particular area of the screen where you know your target will be.
+	"""
 	def __init__(self, screenId=0):
 		""" Defaults to the main screen. """
-		if not isinstance(screenId, int) or screenId < 0 or screenId >= PlatformManager.getScreenCount():
+		if not isinstance(screenId, int) or screenId < -1 or screenId >= len(PlatformManager.getScreenDetails()):
 			screenId = 0
 		self._screenId = screenId
 		x, y, w, h = self.getBounds()
 		super(Screen, self).__init__(x, y, w, h)
-
 	def getNumberScreens(self):
 		""" Get the number of screens in a multi-monitor environment at the time the script is running """
-		return PlatformManager.getScreenCount()
-
+		return len(PlatformManager.getScreenDetails())
 	def getBounds(self):
 		""" Returns bounds of screen as (x, y, w, h) """
 		return PlatformManager.getScreenBounds(self._screenId)
-
+	def capture(self, x=None, y=None, w=None, h=None):
+		""" Captures the region as an image and saves to a temporary file (specified by TMPDIR, TEMP, or TMP environmental variable) """
+		if x is None:
+			region = self
+		elif isinstance(x, Region):
+			region = x
+		elif isinstance(x, tuple):
+			region = Region(*x)
+		elif isinstance(x, basestring):
+			# Interactive mode
+			raise NotImplementedError("Interactive capture mode not defined")
+		elif isinstance(x, int):
+			region = Region(x, y, w, h)
+		bitmap = region.getBitmap()
+		tfile, tpath = tempfile.mkstemp(".png")
+		cv2.imwrite(tpath, bitmap)
+		return tpath
 	def selectRegion(self, text=""):
 		""" Not yet implemented """
 		raise NotImplementedError()
@@ -741,7 +800,7 @@ class Location(object):
 		return "(Location object at ({},{}))".format(self.x, self.y)
 
 class Mouse(object):
-	""" Mid-level mouse routines. Interfaces with `PlatformManager` """
+	""" Mid-level mouse routines. Interfaces with ``PlatformManager`` """
 	def __init__(self):
 		self._defaultScanRate = 0.01
 	
@@ -753,24 +812,40 @@ class Mouse(object):
 	RIGHT = 2
 
 	def move(self, location):
-		""" Moves cursor to specified `Location` """
+		""" Moves cursor to specified ``Location`` """
+
+		# Check if move point is outside a monitor rectangle
+		if not PlatformManager.isPointVisible(location.x, location.y):
+			# move point is outside a monitor rectangle. Snap to closest edge of primary monitor.
+			s_x, s_y, s_w, s_h = Screen(0).getBounds()
+			location.x = min(max(location.x, s_x), s_x+s_w)
+			location.y = min(max(location.y, s_y), s_y+s_h)
+
 		PlatformManager.setMousePos(location.getTuple())
 
 	def getPos(self):
-		""" Gets `Location` of cursor """
+		""" Gets ``Location`` of cursor """
 		x, y = PlatformManager.getMousePos()
 		return Location(x, y)
 
 	def moveSpeed(self, location, seconds=1):
-		""" Moves cursor to specified `Location` over `seconds`. 
+		""" Moves cursor to specified ``Location`` over ``seconds``. 
 
-		If `seconds` is 0, moves the cursor immediately. Used for smooth
+		If ``seconds`` is 0, moves the cursor immediately. Used for smooth
 		somewhat-human-like motion.
 		"""
-		if seconds == 0 or not PlatformManager.isPointVisible(*PlatformManager.getMousePos()):
+		if seconds == 0:
 			# If the mouse isn't on the main screen, snap to point automatically instead of trying to track a path back
 			self.move(location)
 			return
+
+		# Check if move point is outside a monitor rectangle
+		if not PlatformManager.isPointVisible(location.x, location.y):
+			# move point is outside a monitor rectangle. Snap to closest edge of primary monitor.
+			s_x, s_y, s_w, s_h = Screen(0).getBounds()
+			location.x = min(max(location.x, s_x), s_x+s_w)
+			location.y = min(max(location.y, s_y), s_y+s_h)
+
 		frames = int(seconds*0.1 / self._defaultScanRate)
 		while frames > 0:
 			mouse_pos = self.getPos()
@@ -806,7 +881,7 @@ class Mouse(object):
 		return PlatformManager.mouseWheel(direction, steps)
 
 class Keyboard(object):
-	""" Mid-level keyboard routines. Interfaces with `PlatformManager` """
+	""" Mid-level keyboard routines. Interfaces with ``PlatformManager`` """
 	def __init__(self):
 		pass
 
@@ -817,7 +892,7 @@ class Keyboard(object):
 		""" Releases the specified keys """
 		return PlatformManager.releaseKey(keys)
 	def type(self, text, delay=0.1):
-		""" Types `text` with `delay` seconds between keypresses """
+		""" Types ``text`` with ``delay`` seconds between keypresses """
 		return PlatformManager.typeKeys(text, delay)
 
 class Window(object):
@@ -833,7 +908,7 @@ class Window(object):
 		return self
 
 	def getRegion(self):
-		""" Returns a `Region` object corresponding to the window's shape and location. """
+		""" Returns a ``Region`` object corresponding to the window's shape and location. """
 		if self._handle is None:
 			return None
 		x1, y1, x2, y2 = PlatformManager.getWindowRect(self._handle)
@@ -877,7 +952,7 @@ class App(Window):
 		return app.focus()
 
 	def _focus_instance(self, wildcard=None):
-		""" For instances of App, the focus() classmethod is replaced with this instance method. """
+		""" For instances of App, the ``focus()`` classmethod is replaced with this instance method. """
 		if wildcard is not None:
 			self.initialize_wildcard(wildcard)
 		if self._handle is None:

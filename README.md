@@ -1,4 +1,4 @@
-# Lackey v0.01 #
+# Lackey v0.2.0a1 #
 ## A Graphical Python Automation Suite ##
 [![Documentation Status](https://readthedocs.org/projects/lackey/badge/?version=latest)](http://lackey.readthedocs.io/en/latest/?badge=latest)
 

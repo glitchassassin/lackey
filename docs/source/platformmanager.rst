@@ -60,16 +60,14 @@ Methods
     * **focusWindow**(handle):
         * Bring the specified window to the front and give it focus.
 * **Screen Functions**
-    * **getScreenCount**():
-        * Returns the number of monitors attached to the system.
-    * **getVirtualScreenRect**():
-        * Returns the virtual bounding box ``(x,y,w,h)`` for all screens as arranged by the OS. (Note that not all areas in the bounding box are necessarily visible on a screen.)
-    * **isPointVisible**(x, y):
-        * Checks if a point is visible (on any monitor).
-    * **getScreenSize**(screen):
-        * Returns the screen size of the specified monitor (0 being the primary monitor, 1+ being additional monitors)
     * **getBitmapFromRect**(x, y, w, h):
         * Returns a numpy array of the specified area of the screen. If the area goes outside the virtual screen rect, truncate the area at the edge. If part of the area is outside of a visible screen (but inside the virtual screen rect), set it to black.
+    * **getScreenBounds**(screen):
+        * Returns the screen size of the specified monitor (0 being the primary monitor, 1+ being additional monitors; -1 to get the bounds of the virtual screen)
+    * **getScreenDetails**():
+        * Returns a list of the screens attached to the system. Each screen object has one property, "rect", which is a tuple containing the rect ``(x,y,w,h)`` of the screen's area relative to the main monitor.
+    * **isPointVisible**(x, y):
+        * Checks if a point is visible (on any monitor).
 
 
 ### Supported Key Codes ###
