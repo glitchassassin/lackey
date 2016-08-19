@@ -72,3 +72,11 @@ Don't forget to update the unit tests and verify that they still run.
 ## Fair Warning ##
 
 This library is currently under development, and is missing many features needed for full Sikuli compatibility (and plenty of bugs). Fork at your own risk!
+
+## Build Instructions ##
+
+To build the wheel from source, run:
+
+    python setup.py bdist_wheel
+
+(Note that you may need to make sure `wheel` is installed)
