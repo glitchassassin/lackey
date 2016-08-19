@@ -65,7 +65,7 @@ Note that I *have* had to adjust some of my image search similarity settings in 
 
 ## Structure ##
 
-Each platform (Windows/OSX/Linux) needs its own [PlatformManager](https://github.com/glitchassassin/lackey/blob/master/docs/PlatformManager.md) to abstract OS-level functionality, like simulating mouse clicks or key presses. Ideally, these should be implemented with as few 3rd-party library dependencies as possible. If you'd like to contribute a PlatformManager for your OS, feel free to submit a pull request! 
+Each platform (Windows/OSX/Linux) needs its own PlatformManager (see documentation above) to abstract OS-level functionality, like simulating mouse clicks or key presses. Ideally, these should be implemented with as few 3rd-party library dependencies as possible. If you'd like to contribute a PlatformManager for your OS, feel free to submit a pull request! 
 
 Don't forget to update the unit tests and verify that they still run.
 

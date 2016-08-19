@@ -155,7 +155,18 @@ class TestComplexFeatures(unittest.TestCase):
 		self.r.type("^c") # Copy
 		self.assertEqual(self.r.getClipboard(), "This, on the other hand, is a +broken +record.")
 
+class TestRasterMethods(unittest.TestCase):
+	def setUp(self):
+		self.r = lackey.Screen(0)
 
+	def testRaster(self):
+		# This should preview the specified sections of the primary screen.
+		self.r.debugPreview("Full screen")
+		self.r.get(lackey.Region.NORTH).debugPreview("Top half")
+		self.r.get(lackey.Region.SOUTH).debugPreview("Bottom half")
+		self.r.get(lackey.Region.NORTH_WEST).debugPreview("Upper right corner")
+		self.r.get(522).debugPreview("Center (small)")
+		self.r.get(lackey.Region.MID_BIG).debugPreview("Center (half)")
 
 
 if __name__ == '__main__':

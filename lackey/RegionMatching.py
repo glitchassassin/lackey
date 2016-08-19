@@ -45,12 +45,14 @@ class Pattern(object):
 class Region(object):
 	def __init__(self, x, y, w, h):
 		self.setROI(x, y, w, h)
-		self.lastMatch = None
-		self.lastMatches = []
+		self._lastMatch = None
+		self._lastMatches = []
+		self._lastMatchTime = 0
 		self.autoWaitTimeout = 3.0
-		self._defaultScanRate = 0.1
+		self._defaultScanRate = 0.33
 		self._defaultMouseSpeed = 1
 		self._defaultTypeSpeed = 0.05
+		self._raster = (0,0)
 
 	def setX(self, x):
 		""" Set the x-coordinate of the upper left-hand corner """
@@ -131,10 +133,13 @@ class Region(object):
 
 	def getLastMatch(self):
 		""" Returns the last successful ``Match`` returned by ``find()``, ``exists()``, etc. """
-		return self.lastMatch
+		return self._lastMatch
 	def getLastMatches(self):
 		""" Returns the last successful set of ``Match`` objects returned by ``findAll()`` """
-		return self.lastMatches
+		return self._lastMatches
+	def getTime(self):
+		""" Returns the elapsed time in milliseconds to find the last match """
+		return self._lastMatchTime
 
 	def setAutoWaitTimeout(self, seconds):
 		""" Specify the time to wait for an image to appear on the screen """
@@ -142,10 +147,31 @@ class Region(object):
 	def getAutoWaitTimeout(self):
 		""" Returns the time to wait for an image to appear on the screen """
 		return self.autoWaitTimeout
+	def setWaitScanRate(self, seconds):
+		"""Set this Region's scan rate: A find op should repeat the search for the given Visual rate times per second until found or the maximum waiting time is reached."""
+		if seconds == 0:
+			seconds = 3
+		self._defaultScanRate = 1/seconds
+	def getWaitScanRate(self):
+		""" Get the current scan rate """
+		return 1/self._defaultScanRate
 
 	def offset(self, location):
 		""" Returns a new ``Region`` of the same width and height, but offset from this one by ``location`` """
-		return Region(self.x+location.x, self.y+location.y, self.w, self.h)
+		r = Region(self.x+location.x, self.y+location.y, self.w, self.h).clipRegionToScreen()
+		if r is None:
+			raise FindFailed("Specified region is not visible on any screen")
+			return None
+		return r
+	def grow(self, width, height=None):
+		""" Expands the region by ``width`` on both sides and ``height`` on the top and bottom.
+
+		If only one value is provided, expands the region by that amount on all sides (equivalent to ``nearby()``).
+		"""
+		if height is None:
+			return self.nearby(width)
+		else:
+			return Region(self.x-width, self.y-height, self.w+(2*width), self.h+(2*height)).clipRegionToScreen()
 	def inside(self):
 		""" Returns the same object. Included for Sikuli compatibility. """
 		return self
@@ -156,7 +182,7 @@ class Region(object):
 		all directions by range number of pixels. The center of the new region remains the 
 		same. 
 		"""
-		return Region(self.x-expand, self.y-expand, self.w+(2*expand), self.h+(2*expand))
+		return Region(self.x-expand, self.y-expand, self.w+(2*expand), self.h+(2*expand)).clipRegionToScreen()
 	def above(self, expand):
 		""" Returns a new Region that is defined above the current region's top border with a height of range number of pixels. 
 
@@ -173,7 +199,7 @@ class Region(object):
 			y = self.y - expand
 			w = self.w
 			h = expand
-		return Region(x, y, w, h)
+		return Region(x, y, w, h).clipRegionToScreen()
 	def below(self, expand):
 		""" Returns a new Region that is defined below the current region's bottom border with a height of range number of pixels. 
 
@@ -190,7 +216,7 @@ class Region(object):
 			y = self.y + self.h
 			w = self.w
 			h = expand
-		return Region(x, y, w, h)
+		return Region(x, y, w, h).clipRegionToScreen()
 	def left(self, expand):
 		""" Returns a new Region that is defined left of the current region's left border with a width of range number of pixels. 
 
@@ -207,7 +233,7 @@ class Region(object):
 			y = self.y
 			w = expand
 			h = self.h
-		return Region(x, y, w, h)
+		return Region(x, y, w, h).clipRegionToScreen()
 	def right(self, expand):
 		""" Returns a new Region that is defined right of the current region's right border with a width of range number of pixels. 
 
@@ -224,7 +250,7 @@ class Region(object):
 			y = self.y
 			w = expand
 			h = self.h
-		return Region(x, y, w, h)
+		return Region(x, y, w, h).clipRegionToScreen()
 
 	def getBitmap(self):
 		""" Captures screen area of this region, at least the part that is on the screen 
@@ -232,15 +258,20 @@ class Region(object):
 		Returns image as numpy array
 		"""
 		return PlatformManager.getBitmapFromRect(self.x, self.y, self.w, self.h)
-	def debugPreview(self, region=None):
-		""" Displays the region in a preview window. If another region is provided, highlights it with a square. If a target area is provided, circles it. """
-		if region is None:
-			region = self
+	def debugPreview(self, title="Debug"):
+		""" Displays the region in a preview window. 
+
+		If the region is a Match, circles the target area. If the region is larger than half the 
+		primary screen in either dimension, scales it down to half size.
+		"""
+		region = self
 		haystack = self.getBitmap()
-		cv2.rectangle(haystack, (region.x - self.x, region.y - self.y), (region.x - self.x + region.w, region.y - self.y + region.h), 255, 2)
 		if isinstance(region, Match):
 			cv2.circle(haystack, (region.getTarget().x - self.x, region.getTarget().y - self.y), 5, 255)
-		cv2.imshow("Debug", cv2.resize(haystack, (0,0), fx=0.5, fy=0.5))
+		if haystack.shape[0] > (Screen(0).getBounds()[2]/2) or haystack.shape[1] > (Screen(0).getBounds()[3]/2):
+			# Image is bigger than half the screen; scale it down
+			haystack = cv2.resize(haystack, (0,0), fx=0.5, fy=0.5)
+		cv2.imshow(title, haystack)
 		cv2.waitKey(0)
 		cv2.destroyAllWindows()
 	def highlight(self):
@@ -254,13 +285,14 @@ class Region(object):
 	def find(self, pattern, seconds=None):
 		""" Searches for an image pattern in the given region
 
-		Throws FindFailed exception if the image could not be found.
+		Throws ``FindFailed`` exception if the image could not be found.
 		Sikuli supports OCR search with a text parameter. This does not (yet).
 		"""
 		match = self.exists(pattern, seconds)
 		if match is None:
 			path = pattern.path if isinstance(pattern, Pattern) else pattern
 			raise FindFailed("Could not find pattern '{}'".format(path))
+			return None
 		return match
 	def findAll(self, pattern, seconds=None):
 		""" Searches for an image pattern in the given region
@@ -268,9 +300,11 @@ class Region(object):
 		Returns ``Match`` object if ``pattern`` exists, empty array otherwise (does not throw exception)
 		Sikuli supports OCR search with a text parameter. This does not (yet).
 		"""
+		find_time = time.time()
 		r = self.clipRegionToScreen()
 		if r is None:
-			return FindFailed("Region outside all visible screens")
+			raise FindFailed("Region outside all visible screens")
+			return None
 		if seconds is None:
 			seconds = self.autoWaitTimeout
 		if isinstance(pattern, int):
@@ -306,7 +340,7 @@ class Region(object):
 			time.sleep(self._defaultScanRate)
 			if len(positions) > 0:
 				break
-		self.lastMatches = []
+		lastMatches = []
 		
 		if len(positions) == 0:
 			print("Couldn't find '{}' with enough similarity.".format(pattern.path))
@@ -315,9 +349,11 @@ class Region(object):
 		positions.sort(key=lambda x: (x[1], -x[0]))
 		for position in positions:
 			x, y, confidence = position
-			self.lastMatches.append(Match(confidence, pattern.offset, ((x+self.x, y+self.y), (needle_width, needle_height))))
-		print("Found {} match(es) for pattern '{}' at similarity ({})".format(len(self.lastMatches), pattern.path, pattern.similarity))
-		return self.lastMatches
+			lastMatches.append(Match(confidence, pattern.offset, ((x+self.x, y+self.y), (needle_width, needle_height))))
+		self._lastMatches = iter(lastMatches)
+		print("Found {} match(es) for pattern '{}' at similarity ({})".format(len(self._lastMatches), pattern.path, pattern.similarity))
+		self._lastMatchTime = (time.time() - find_time) * 1000 # Capture find time in milliseconds
+		return self._lastMatches
 	def wait(self, pattern, seconds=None):
 		""" Searches for an image pattern in the given region, given a specified timeout period
 
@@ -333,7 +369,8 @@ class Region(object):
 		"""
 		r = self.clipRegionToScreen()
 		if r is None:
-			return # FindFailed("Region outside all visible screens")
+			raise FindFailed("Region outside all visible screens")
+			return None
 		if seconds is None:
 			seconds = self.autoWaitTimeout
 		if isinstance(pattern, int):
@@ -370,16 +407,19 @@ class Region(object):
 					position = max_loc
 			time.sleep(self._defaultScanRate)
 		if position:
-			raise FindFailed("Pattern '{}' did not vanish".format(pattern.path))
+			return False
+			#self._findFailedHandler(FindFailed("Pattern '{}' did not vanish".format(pattern.path)))
 	def exists(self, pattern, seconds=None):
 		""" Searches for an image pattern in the given region
 		
 		Returns Match if pattern exists, None otherwise (does not throw exception)
 		Sikuli supports OCR search with a text parameter. This does not (yet).
 		"""
+		find_time = time.time()
 		r = self.clipRegionToScreen()
 		if r is None:
-			return FindFailed("Region outside all visible screens")
+			raise FindFailed("Region outside all visible screens")
+			return None
 		if seconds is None:
 			seconds = self.autoWaitTimeout
 		if isinstance(pattern, int):
@@ -421,11 +461,11 @@ class Region(object):
 			return None
 		# Translate local position into global screen position
 		position = (position[0] + self.x, position[1] + self.y)
-		self.lastMatch = Match(confidence, pattern.offset, (position, (needle_width, needle_height)))
-		#self.lastMatch.debug_preview()
-		print("Found match for pattern '{}' at ({},{}) with confidence ({}). Target at ({},{})".format(pattern.path, self.lastMatch.getX(), self.lastMatch.getY(), self.lastMatch.getScore(), self.lastMatch.getTarget().x, self.lastMatch.getTarget().y))
-		
-		return self.lastMatch
+		self._lastMatch = Match(confidence, pattern.offset, (position, (needle_width, needle_height)))
+		#self._lastMatch.debug_preview()
+		print("Found match for pattern '{}' at ({},{}) with confidence ({}). Target at ({},{})".format(pattern.path, self._lastMatch.getX(), self._lastMatch.getY(), self._lastMatch.getScore(), self._lastMatch.getTarget().x, self._lastMatch.getTarget().y))
+		self._lastMatchTime = (time.time() - find_time) * 1000 # Capture find time in milliseconds
+		return self._lastMatch
 
 	def click(self, target, modifiers=""):
 		""" Moves the cursor to the target location and clicks the default mouse button. """
@@ -441,6 +481,8 @@ class Region(object):
 			target_location = target.getCenter()
 		elif isinstance(target, Location):
 			target_location = target
+		elif target is None and isinstance(self._lastMatch, Match):
+			target_location = self._lastMatch.getTarget()
 		else:
 			raise TypeError("click expected Pattern, String, Match, Region, or Location object")
 		if modifiers != "":
@@ -664,22 +706,22 @@ class Region(object):
 		""" Concatenate multiple keys to up them all. """
 		return Keyboard().keyUp(keys)
 
-	def isRegionOutsideScreens(self):
-		""" Returns true if the whole region is outside any screen, otherwise false """
+	def isRegionValid(self):
+		""" Returns false if the whole region is outside any screen, otherwise true """
 		screens = PlatformManager.getScreenDetails()
 		for screen in screens:
 			s_x, s_y, s_w, s_h = screen["rect"]
 			if (self.x+self.w < s_x or s_x+s_w < self.x or self.y+self.h < s_y or s_y+s_h < self.y):
 				# Rects overlap
-				return False
-		return True
+				return True
+		return False
 
 	def clipRegionToScreen(self):
 		""" Returns the part of the region that is visible on a screen (or the screen with the smallest ID, if the region is visible on multiple screens). 
 
 		Returns None if the region is outside the screen. 
 		"""
-		if self.isRegionOutsideScreens():
+		if not self.isRegionValid():
 			return None
 		screens = PlatformManager.getScreenDetails()
 		containing_screen = None
@@ -696,6 +738,156 @@ class Region(object):
 		w = min(self.w, s_w)
 		h = min(self.h, s_h)
 		return Region(x,y,w,h)
+
+
+	# Partitioning constants
+	NORTH 			= 202 # Upper half
+	NORTH_WEST 		= 300 # Left third in upper third
+	NORTH_MID 		= 301 # Middle third in upper third
+	NORTH_EAST 		= 302 # Right third in upper third
+	SOUTH 			= 212 # Lower half
+	SOUTH_WEST 		= 320 # Left third in lower third
+	SOUTH_MID 		= 321 # Middle third in lower third
+	SOUTH_EAST 		= 322 # Right third in lower third
+	EAST 			= 220 # Right half
+	EAST_MID 		= 310 # Middle third in right third
+	WEST 			= 221 # Left half
+	WEST_MID 		= 312 # Middle third in left third
+	MID_THIRD 		= 311 # Middle third in middle third
+	TT 				= 200 # Top left quarter
+	RR 				= 201 # Top right quarter
+	BB 				= 211 # Bottom right quarter
+	LL 				= 210 # Bottom left quarter
+
+	MID_VERTICAL 	= "MID_VERT" # Half of width vertically centered
+	MID_HORIZONTAL	= "MID_HORZ" # Half of height horizontally centered
+	MID_BIG			= "MID_HALF" # Half of width/half of height centered
+	
+	def setRaster(self, rows, columns):
+		""" Sets the raster for the region, allowing sections to be indexed by row/column """
+		rows = int(rows)
+		columns = int(columns)
+		if rows <= 0 or columns <= 0:
+			return self
+		self._raster = (rows,columns)
+		return self.getCell(0,0)
+	def getRow(self, row):
+		""" Returns the specified row of the region (if the raster is set) """
+		row = int(row)
+		if self._raster[0] == 0 or self._raster[1] == 0:
+			return self
+		rowHeight = self.h / self._raster[0]
+		if row < 0:
+			# If row is negative, count backwards from the end
+			row = self._raster[0] - row
+			if row < 0:
+				# Bad row index, return last row
+				return Region(self.x, self.y+self.h-rowHeight, self.w, rowHeight)
+		elif row > self._raster[0]:
+			# Bad row index, return first row
+			return Region(self.x, self.y, self.w, rowHeight)
+		return Region(self.x, self.y + (row * rowHeight), self.w, rowHeight)
+	def getCol(self, column):
+		""" Returns the specified column of the region (if the raster is set) """
+		column = int(column)
+		if self._raster[0] == 0 or self._raster[1] == 0:
+			return self
+		columnWidth = self.w / self._raster[1]
+		if column < 0:
+			# If column is negative, count backwards from the end
+			column = self._raster[1] - column
+			if column < 0:
+				# Bad column index, return last column
+				return Region(self.x+self.w-columnWidth, self.y, columnWidth, self.h)
+		elif column > self._raster[1]:
+			# Bad column index, return first column
+			return Region(self.x, self.y, columnWidth, self.h)
+		return Region(self.x + (column * columnWidth), self.y, columnWidth, self.h)
+	def getCell(self, row, column):
+		""" Returns the specified cell (if a raster is set for the region) """
+		row = int(row)
+		column = int(column)
+		if self._raster[0] == 0 or self._raster[1] == 0:
+			return self
+		rowHeight = self.h / self._raster[0]
+		columnWidth = self.h / self._raster[1]
+		if column < 0:
+			# If column is negative, count backwards from the end
+			column = self._raster[1] - column
+			if column < 0:
+				# Bad column index, return last column
+				column = self._raster[1]
+		elif column > self._raster[1]:
+			# Bad column index, return first column
+			column = 0
+		if row < 0:
+			# If row is negative, count backwards from the end
+			row = self._raster[0] - row
+			if row < 0:
+				# Bad row index, return last row
+				row = self._raster[0]
+		elif row > self._raster[0]:
+			# Bad row index, return first row
+			row = 0
+		return Region(self.x+(column*columnWidth), self.y+(row*rowHeight), columnWidth, rowHeight)
+	def get(self, part):
+		""" Returns a section of the region as a new region
+
+		Accepts partitioning constants, e.g. Region.NORTH, Region.NORTH_WEST, etc.
+		Also accepts an int 200-999:
+		* First digit:  Raster (*n* rows by *n* columns)
+		* Second digit: Row index (if equal to raster, gets the whole row)
+		* Third digit:  Column index (if equal to raster, gets the whole column)
+
+		Region.get(522) will use a raster of 5 rows and 5 columns and return 
+		the cell in the middle.
+
+		Region.get(525) will use a raster of 5 rows and 5 columns and return the row in the middle.
+		"""
+		if part == self.MID_VERTICAL:
+			return Region(self.x+(self.w/4), y, self.w/2, self.h)
+		elif part == self.MID_HORIZONTAL:
+			return Region(self.x,self.y+(self.h/4), self.w, self.h/2)
+		elif part == self.MID_BIG:
+			return Region(self.x+(self.w/4),self.y+(self.h/4), self.w/2, self.h/2)
+		elif isinstance(part, int) and part >= 200 and part <= 999:
+			raster, row, column = str(part)
+			self.setRaster(raster,raster)
+			#print self._raster
+			if row == raster and column == raster:
+				return self
+			elif row == raster:
+				return self.getCol(column)
+			elif column == raster:
+				return self.getRow(row)
+			else:
+				return self.getCell(row,column)
+		else:
+			return self
+	def setRows(self, rows):
+		""" Sets the number of rows in the raster (if columns have not been initialized, set to 1 as well) """
+		self._raster[0] = rows
+		if self._raster[1] == 0:
+			self._raster[1] = 1
+	def setCols(self, columns):
+		""" Sets the number of columns in the raster (if rows have not been initialized, set to 1 as well) """
+		self._raster[1] = columns
+		if self._raster[0] == 0:
+			self._raster[0] = 1
+	def isRasterValid(self):
+		return self.getCols() > 0 and self.getRows() > 0
+	def getRows():
+		return self._raster[0]
+	def getCols():
+		return self._raster[1]
+	def getRowH():
+		if self._raster[0] == 0:
+			return 0
+		return self.h / self._raster[0]
+	def getColW():
+		if self._raster[1] == 0:
+			return 0
+		return self.w / self._raster[1]
 
 class Match(Region):
 	""" Extended Region object with additional data on click target, match score """
@@ -714,17 +906,25 @@ class Match(Region):
 		""" Returns the location of the match click target (center by default, but may be offset) """
 		return self.getCenter().offset(self._target.x, self._target.y)
 
+	def __repr__(self):
+		return "Match[{},{} {}x{}] score={.2f}, target={}".format(self.x, self.y, self.w, self.h, self._score, self.target.getTuple())
+
 class Screen(Region):
 	""" Individual screen objects can be created for each monitor in a multi-monitor system. 
 
-	Screens are indexed according to the system order. 0 is the main monitor (display 1), 1 is the next monitor, etc.
+	Screens are indexed according to the system order. 0 is the primary monitor (display 1), 1 is the next monitor, etc.
 
 	Lackey also makes it possible to search all screens as a single "virtual screen," arranged
 	according to the system's settings. Screen(-1) returns this virtual screen. Note that the
 	larger your search region is, the slower your search will be, so it's best practice to adjust
 	your region to the particular area of the screen where you know your target will be.
+
+	Note that Sikuli is inconsistent in identifying screens. In Windows, Sikuli identifies the
+	first hardware monitor as Screen(0) rather than the actual primary monitor. However, on OS X
+	it follows the latter convention. We've opted to make Screen(0) the actual primary monitor
+	(wherever the Start Menu/System Menu Bar is) across the board.
 	"""
-	def __init__(self, screenId=0):
+	def __init__(self, screenId=None):
 		""" Defaults to the main screen. """
 		if not isinstance(screenId, int) or screenId < -1 or screenId >= len(PlatformManager.getScreenDetails()):
 			screenId = 0

@@ -18,12 +18,14 @@
 
 * Overall
 	* [ ] Verbosity levels for console logging
+	* [ ] Event handling
 * Region
 	* [ ] highlight()
 	* [ ] text() (OCR functionality)
 	* [X] Low-level mouse/keyboard functions (should map to PlatformManager)
+	* [X] Raster functions
 	* [ ] selectRegion()
 * Screen
-	* [ ] Implement multi-monitor support
+	* [X] Implement multi-monitor support
 * App
 	* [ ] focus(): Cleanup translation of Sikuli wildcards into regex

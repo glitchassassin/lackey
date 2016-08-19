@@ -450,19 +450,24 @@ class PlatformManagerWindows(object):
 			return (x1, y1, x2-x1, y2-y1)
 		return screen_details[screenId]["rect"]
 	def getScreenDetails(self):
-		""" Return list of attached monitors with `rect` representing each screen as positioned in virtual screen. """
+		""" Return list of attached monitors with `rect` representing each screen as positioned in virtual screen. 
+
+		List is returned in device order, with the first element (0) representing the primary monitor.
+		"""
 		monitors = self._getMonitorInfo()
+		primary_screen = None
 		screens = []
 		for monitor in monitors:
 			# Convert screen rect to Lackey-style rect (x,y,w,h) as position in virtual screen
-			screens.append({
+			screen = {
 				"rect": (
 					monitor["rect"][0],
 					monitor["rect"][1],
 					monitor["rect"][2] - monitor["rect"][0],
 					monitor["rect"][3] - monitor["rect"][1]
 				)
-			})
+			}
+			screens.append(screen)
 		return screens
 	def isPointVisible(self, x, y):
 		""" Checks if a point is visible on any monitor. """
@@ -556,6 +561,7 @@ class PlatformManagerWindows(object):
 	def _getMonitorInfo(self):
 		""" Returns info about the attached monitors, in device order
 
+		[0] is always the primary monitor
 		"""
 		monitors = []
 		CCHDEVICENAME = 32
@@ -584,7 +590,7 @@ class PlatformManagerWindows(object):
 		callback = MonitorEnumProc(_MonitorEnumProcCallback)
 		if self._user32.EnumDisplayMonitors(0,0,callback,0) == 0:
 			raise WindowsError("Unable to enumerate monitors")
-		monitors.sort(key=lambda x: x["name"]) # Sort by device ID - 0 is primary, 1 is next, etc.
+		monitors.sort(key=lambda x: (not (x["rect"][0] == 0 and x["rect"][1] == 0), x["name"])) # Sort by device ID - 0 is primary, 1 is next, etc.
 		return monitors
 	def _getVirtualScreenRect(self):
 		""" The virtual screen is the bounding box containing all monitors. 
