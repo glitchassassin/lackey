@@ -1,4 +1,4 @@
-# Lackey v0.01 #
+# Lackey v0.2.0a1 #
 ## A Graphical Python Automation Suite ##
 [![Documentation Status](https://readthedocs.org/projects/lackey/badge/?version=latest)](http://lackey.readthedocs.io/en/latest/?badge=latest)
 
@@ -65,10 +65,18 @@ Note that I *have* had to adjust some of my image search similarity settings in 
 
 ## Structure ##
 
-Each platform (Windows/OSX/Linux) needs its own [PlatformManager](https://github.com/glitchassassin/lackey/blob/master/docs/PlatformManager.md) to abstract OS-level functionality, like simulating mouse clicks or key presses. Ideally, these should be implemented with as few 3rd-party library dependencies as possible. If you'd like to contribute a PlatformManager for your OS, feel free to submit a pull request! 
+Each platform (Windows/OSX/Linux) needs its own PlatformManager (see documentation above) to abstract OS-level functionality, like simulating mouse clicks or key presses. Ideally, these should be implemented with as few 3rd-party library dependencies as possible. If you'd like to contribute a PlatformManager for your OS, feel free to submit a pull request! 
 
 Don't forget to update the unit tests and verify that they still run.
 
 ## Fair Warning ##
 
 This library is currently under development, and is missing many features needed for full Sikuli compatibility (and plenty of bugs). Fork at your own risk!
+
+## Build Instructions ##
+
+To build the wheel from source, run:
+
+    python setup.py bdist_wheel
+
+(Note that you may need to make sure `wheel` is installed)

@@ -114,6 +114,23 @@ class TestWindowMethods(unittest.TestCase):
 		self.assertGreater(region.getW(), 0)
 		self.assertGreater(region.getH(), 0)
 
+class TestScreenMethods(unittest.TestCase):
+	def setUp(self):
+		self.primaryScreen = lackey.Screen(0)
+
+	def testScreenInfo(self):
+		self.assertGreater(self.primaryScreen.getNumberScreens(), 0)
+		x,y,w,h = self.primaryScreen.getBounds()
+		self.assertEqual(x, 0) # Top left corner of primary screen should be 0,0
+		self.assertEqual(y, 0) # Top left corner of primary screen should be 0,0
+		self.assertGreater(w, 0) # Primary screen should be wider than 0
+		self.assertGreater(h, 0) # Primary screen should be taller than 0
+
+	def testCapture(self):
+		tpath = self.primaryScreen.capture()
+		self.assertIsInstance(tpath, basestring)
+		self.assertNotEqual(tpath, "")
+
 class TestComplexFeatures(unittest.TestCase):
 	def setUp(self):
 		if sys.platform.startswith("win"):
@@ -138,7 +155,18 @@ class TestComplexFeatures(unittest.TestCase):
 		self.r.type("^c") # Copy
 		self.assertEqual(self.r.getClipboard(), "This, on the other hand, is a +broken +record.")
 
+class TestRasterMethods(unittest.TestCase):
+	def setUp(self):
+		self.r = lackey.Screen(0)
 
+	def testRaster(self):
+		# This should preview the specified sections of the primary screen.
+		self.r.debugPreview("Full screen")
+		self.r.get(lackey.Region.NORTH).debugPreview("Top half")
+		self.r.get(lackey.Region.SOUTH).debugPreview("Bottom half")
+		self.r.get(lackey.Region.NORTH_WEST).debugPreview("Upper right corner")
+		self.r.get(522).debugPreview("Center (small)")
+		self.r.get(lackey.Region.MID_BIG).debugPreview("Center (half)")
 
 
 if __name__ == '__main__':
