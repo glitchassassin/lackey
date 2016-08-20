@@ -321,7 +321,7 @@ class PlatformManagerWindows(object):
 				if special_code in self._SPECIAL_KEYCODES.keys():
 					self._pressKeyCode(self._SPECIAL_KEYCODES[special_code])
 					self._releaseKeyCode(self._SPECIAL_KEYCODES[special_code])
-				elif special_code in self.UPPERCASE_SPECIAL_KEYCODES.keys():
+				elif special_code in self._UPPERCASE_SPECIAL_KEYCODES.keys():
 					self._pressKeyCode(self._SPECIAL_KEYCODES["SHIFT"])
 					self._pressKeyCode(self._SPECIAL_KEYCODES[special_code])
 					self._releaseKeyCode(self._SPECIAL_KEYCODES[special_code])
