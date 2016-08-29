@@ -481,8 +481,8 @@ class PlatformManagerWindows(object):
 		if hmon == 0:
 			return False
 		return True
-	def _captureScreen(self, hdc):
-		""" Captures a bitmap from the given monitor DC handle 
+	def _captureScreen(self, device_name):
+		""" Captures a bitmap from the given monitor device name
 		
 		Returns as a PIL Image (BGR rather than RGB, for compatibility with OpenCV)
 		"""
@@ -517,6 +517,7 @@ class PlatformManagerWindows(object):
 		DIB_RGB_COLORS = 0
 
 		## Begin logic
+		hdc = self._gdi32.CreateDCA(ctypes.c_char_p(device_name), 0, 0, 0)
 		if hdc == 0:
 			raise ValueError("Empty hdc provided")
 
@@ -557,7 +558,12 @@ class PlatformManagerWindows(object):
 		scanlines = self._gdi32.GetDIBits(hCaptureDC, hCaptureBmp, 0, screen_height, ctypes.byref(image_data), ctypes.byref(img_info), DIB_RGB_COLORS)
 		if scanlines != screen_height:
 			raise WindowsError("gdi:GetDIBits failed")
-		return ImageOps.flip(Image.frombuffer("RGBX", (screen_width, screen_height), image_data, "raw", "RGBX", 0, 1))
+		final_image = ImageOps.flip(Image.frombuffer("RGBX", (screen_width, screen_height), image_data, "raw", "RGBX", 0, 1))
+		# Destroy created device context & GDI bitmap
+		self._gdi32.DeleteObject(hdc)
+		self._gdi32.DeleteObject(hCaptureDC)
+		self._gdi32.DeleteObject(hCaptureBmp)
+		return final_image
 	def _getMonitorInfo(self):
 		""" Returns info about the attached monitors, in device order
 
@@ -575,10 +581,10 @@ class PlatformManagerWindows(object):
 			lpmi = MONITORINFOEX()
 			lpmi.cbSize = ctypes.sizeof(MONITORINFOEX)
 			self._user32.GetMonitorInfoW(hMonitor, ctypes.byref(lpmi))
-			hdc = self._gdi32.CreateDCA(ctypes.c_char_p(lpmi.szDevice), 0, 0, 0)
+			#hdc = self._gdi32.CreateDCA(ctypes.c_char_p(lpmi.szDevice), 0, 0, 0)
 			monitors.append({
 					"hmon": hMonitor,
-					"hdc":  hdc,
+					#"hdc":  hdc,
 					"rect": (lprcMonitor.contents.left,
 							lprcMonitor.contents.top,
 							lprcMonitor.contents.right,
@@ -590,6 +596,7 @@ class PlatformManagerWindows(object):
 		callback = MonitorEnumProc(_MonitorEnumProcCallback)
 		if self._user32.EnumDisplayMonitors(0,0,callback,0) == 0:
 			raise WindowsError("Unable to enumerate monitors")
+		# Clever magic to make the screen with origin of (0,0) [the primary monitor] the first in the list
 		monitors.sort(key=lambda x: (not (x["rect"][0] == 0 and x["rect"][1] == 0), x["name"])) # Sort by device ID - 0 is primary, 1 is next, etc.
 		return monitors
 	def _getVirtualScreenRect(self):
@@ -622,7 +629,7 @@ class PlatformManagerWindows(object):
 
 		# Capture images of each of the monitors and overlay on the virtual screen
 		for monitor_id in range(0, len(monitors)):
-			img = self._captureScreen(monitors[monitor_id]["hdc"])
+			img = self._captureScreen(monitors[monitor_id]["name"])
 			# Capture virtscreen coordinates of monitor
 			x1, y1, x2, y2 = monitors[monitor_id]["rect"]
 			# Convert to image-local coordinates
