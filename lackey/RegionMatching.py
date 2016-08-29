@@ -49,7 +49,7 @@ class Region(object):
 		self._lastMatches = []
 		self._lastMatchTime = 0
 		self.autoWaitTimeout = 3.0
-		self._defaultScanRate = 0.33
+		self._defaultScanRate = 0.1
 		self._defaultMouseSpeed = 1
 		self._defaultTypeSpeed = 0.05
 		self._raster = (0,0)
@@ -210,7 +210,7 @@ class Region(object):
 			x = self.x
 			y = self.y+self.h
 			w = self.w
-			h = self.screen.getBounds()[1][1] - y # Screen height
+			h = self.getScreen().getBounds()[1][1] - y # Screen height
 		else:
 			x = self.x
 			y = self.y + self.h
@@ -243,7 +243,7 @@ class Region(object):
 		if expand == None:
 			x = self.x+self.w
 			y = self.y
-			w = self.screen.getBounds()[1][0] - x
+			w = self.getScreen().getBounds()[1][0] - x
 			h = self.h
 		else:
 			x = self.x+self.w
@@ -351,7 +351,7 @@ class Region(object):
 			x, y, confidence = position
 			lastMatches.append(Match(confidence, pattern.offset, ((x+self.x, y+self.y), (needle_width, needle_height))))
 		self._lastMatches = iter(lastMatches)
-		print("Found {} match(es) for pattern '{}' at similarity ({})".format(len(self._lastMatches), pattern.path, pattern.similarity))
+		print("Found match(es) for pattern '{}' at similarity ({})".format(pattern.path, pattern.similarity))
 		self._lastMatchTime = (time.time() - find_time) * 1000 # Capture find time in milliseconds
 		return self._lastMatches
 	def wait(self, pattern, seconds=None):
@@ -713,8 +713,8 @@ class Region(object):
 			s_x, s_y, s_w, s_h = screen["rect"]
 			if (self.x+self.w < s_x or s_x+s_w < self.x or self.y+self.h < s_y or s_y+s_h < self.y):
 				# Rects overlap
-				return True
-		return False
+				return False
+			return True
 
 	def clipRegionToScreen(self):
 		""" Returns the part of the region that is visible on a screen (or the screen with the smallest ID, if the region is visible on multiple screens). 
@@ -731,13 +731,16 @@ class Region(object):
 				# Region completely inside screen
 				return self
 			elif (self.x+self.w < s_x or s_x+s_w < self.x or self.y+self.h < s_y or s_y+s_h < self.y):
-				containing_screen = screen
-				break
-		x = max(self.x, s_x)
-		y = max(self.y, s_y)
-		w = min(self.w, s_w)
-		h = min(self.h, s_h)
-		return Region(x,y,w,h)
+				# Region completely outside screen
+				continue
+			else:
+				# Region partially inside screen
+				x = max(self.x, s_x)
+				y = max(self.y, s_y)
+				w = min(self.w, s_w)
+				h = min(self.h, s_h)
+				return Region(x,y,w,h)
+		return None
 
 
 	# Partitioning constants
@@ -1147,7 +1150,7 @@ class App(Window):
 		 
 		Accessible as App.focus(). Also converts Sikuli wildcard search to Python regex.
 		"""
-		wildcard_regex = self._convert_sikuli_wildcards(wildcard)
+		wildcard_regex = cls._convert_sikuli_wildcards(wildcard)
 		app = cls(wildcard_regex)
 		return app.focus()
 
@@ -1160,7 +1163,8 @@ class App(Window):
 		PlatformManager.focusWindow(self._handle)
 		return self
 
-	def _convert_sikuli_wildcards(self, wildcard):
+	@classmethod
+	def _convert_sikuli_wildcards(cls, wildcard):
 		""" Converts Sikuli wildcards to Python-compatible regex.
 
 		TODO: Clean up this conversion routine. 
