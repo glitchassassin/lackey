@@ -1,5 +1,13 @@
 ## Changelog ##
 
+v0.2.1a1
+* Fixed #5 bad region validation
+* Fixed #7 findAll() listiterator error
+* Fixed #9 _convert_sikuli_wildcards should be a class method
+* Fixed #10 Region.below(), Region.right() getScreen error
+* Fixed #11 clipRegionToScreen() errors
+* Fixed #12 memory leak
+
 v0.2.0a1
 * Added multi-monitor support (Screen() class should be fully functional and Sikuli-compatible, except for interactive functions)
 * Moved `capture()` method to `Screen` class instead of `Region` (where it had incorrectly been placed)
