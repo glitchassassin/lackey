@@ -175,7 +175,7 @@ class Region(object):
 	def inside(self):
 		""" Returns the same object. Included for Sikuli compatibility. """
 		return self
-	def nearby(self, expand):
+	def nearby(self, expand=None):
 		""" Returns a new Region that includes the nearby neighbourhood of the the current region. 
 
 		The new region is defined by extending the current region's dimensions in 
@@ -183,7 +183,7 @@ class Region(object):
 		same. 
 		"""
 		return Region(self.x-expand, self.y-expand, self.w+(2*expand), self.h+(2*expand)).clipRegionToScreen()
-	def above(self, expand):
+	def above(self, expand=None):
 		""" Returns a new Region that is defined above the current region's top border with a height of range number of pixels. 
 
 		So it does not include the current region. If range is omitted, it reaches to the top of the screen. 
@@ -200,24 +200,26 @@ class Region(object):
 			w = self.w
 			h = expand
 		return Region(x, y, w, h).clipRegionToScreen()
-	def below(self, expand):
+	def below(self, expand=None):
 		""" Returns a new Region that is defined below the current region's bottom border with a height of range number of pixels. 
 
 		So it does not include the current region. If range is omitted, it reaches to the bottom of the screen. 
 		The new region has the same width and x-position as the current region. 
 		"""
+		print self.getScreen()
+		print self.getScreen().getBounds()
 		if expand == None:
 			x = self.x
 			y = self.y+self.h
 			w = self.w
-			h = self.getScreen().getBounds()[1][1] - y # Screen height
+			h = self.getScreen().getBounds()[3] - y # Screen height
 		else:
 			x = self.x
 			y = self.y + self.h
 			w = self.w
 			h = expand
 		return Region(x, y, w, h).clipRegionToScreen()
-	def left(self, expand):
+	def left(self, expand=None):
 		""" Returns a new Region that is defined left of the current region's left border with a width of range number of pixels. 
 
 		So it does not include the current region. If range is omitted, it reaches to the left border of the screen. 
@@ -234,7 +236,7 @@ class Region(object):
 			w = expand
 			h = self.h
 		return Region(x, y, w, h).clipRegionToScreen()
-	def right(self, expand):
+	def right(self, expand=None):
 		""" Returns a new Region that is defined right of the current region's right border with a width of range number of pixels. 
 
 		So it does not include the current region. If range is omitted, it reaches to the right border of the screen. 
@@ -243,7 +245,7 @@ class Region(object):
 		if expand == None:
 			x = self.x+self.w
 			y = self.y
-			w = self.getScreen().getBounds()[1][0] - x
+			w = self.getScreen().getBounds()[2] - x
 			h = self.h
 		else:
 			x = self.x+self.w
