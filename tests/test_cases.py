@@ -114,6 +114,29 @@ class TestWindowMethods(unittest.TestCase):
 		self.assertGreater(region.getW(), 0)
 		self.assertGreater(region.getH(), 0)
 
+class TestAppMethods(unittest.TestCase):
+	def setUp(self):
+		if sys.platform.startswith("win"):
+			self.subp = subprocess.Popen(["notepad.exe"])
+			time.sleep(1)
+		else:
+			raise NotImplementedError("Platforms supported include: Windows")
+		self.app = lackey.App("Untitled - Notepad")
+		self.app.focus()
+	def tearDown(self):
+		if sys.platform.startswith("win"):
+			self.app.close()
+		time.sleep(1)
+
+	def test_getters(self):
+		print self.app.getTitle()
+		self.assertEqual(self.app.getTitle(), "Untitled - Notepad")
+		self.assertNotEqual(self.app.getPID(), -1)
+		region = self.app.getRegion()
+		self.assertIsInstance(region, lackey.Region)
+		self.assertGreater(region.getW(), 0)
+		self.assertGreater(region.getH(), 0)
+
 class TestScreenMethods(unittest.TestCase):
 	def setUp(self):
 		self.primaryScreen = lackey.Screen(0)

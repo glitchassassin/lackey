@@ -2,6 +2,7 @@ import tempfile
 import platform
 import time
 import os
+import re
 
 import numpy
 import cv2
@@ -1143,32 +1144,35 @@ class App(Window):
 	application directly.
 	"""
 	def __init__(self, identifier=None):
-		super(App, self).__init__(identifier)
+		super(App, self).__init__(re.escape(identifier))
 		self.focus = self._focus_instance
+		self.close = self._close_instance
 
 	@classmethod
-	def focus(cls, wildcard):
-		""" Sikuli-compatible "bring window to front" function
-		 
-		Accessible as App.focus(). Also converts Sikuli wildcard search to Python regex.
+	def focus(cls, appName):
+		""" As a class method, accessible as `App.focus(appName)`. As an instance method, accessible as `app.focus()`.
+
+		Searches for exact text, case insensitive, anywhere in the window title. Brings the matching window to the foreground.
 		"""
-		wildcard_regex = cls._convert_sikuli_wildcards(wildcard)
-		app = cls(wildcard_regex)
+		app = cls(appName)
 		return app.focus()
 
-	def _focus_instance(self, wildcard=None):
+	def _focus_instance(self, appName=None):
 		""" For instances of App, the ``focus()`` classmethod is replaced with this instance method. """
-		if wildcard is not None:
-			self.initialize_wildcard(wildcard)
+		if appName is not None:
+			return App(appName).focus()
 		if self._handle is None:
 			return self
 		PlatformManager.focusWindow(self._handle)
 		return self
 
 	@classmethod
-	def _convert_sikuli_wildcards(cls, wildcard):
-		""" Converts Sikuli wildcards to Python-compatible regex.
+	def close(cls, appName):
+		""" As a class method, accessible as `App.class(appName)`. As an instance method, accessible as `app.close()`. 
 
-		TODO: Clean up this conversion routine. 
+		Closes the process associated with the specified app.
 		"""
-		return wildcard.replace("\\", "\\\\").replace(".", "\.").replace("*", ".*")
+		return cls(appName).close()
+
+	def _close_instance(self):
+		PlatformManager.killProcess(self.getPID())

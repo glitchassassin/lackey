@@ -15,8 +15,10 @@ class PlatformManagerWindows(object):
 	def __init__(self):
 		user32 = ctypes.WinDLL('user32', use_last_error=True)
 		gdi32 = ctypes.WinDLL('gdi32', use_last_error=True)
+		kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
 		self._user32 = user32
 		self._gdi32 = gdi32
+		self._kernel32 = kernel32
 		self._INPUT_MOUSE    = 0
 		self._INPUT_KEYBOARD = 1
 		self._INPUT_HARDWARE = 2
@@ -705,5 +707,12 @@ class PlatformManagerWindows(object):
 	def getWindowPID(self, hwnd):
 		""" Gets the process ID that the specified window belongs to """
 		pid = ctypes.c_long()
-		ctypes.windll.user32.GetWindowThreadProcessId(hwnd, pid)
+		ctypes.windll.user32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
 		return int(pid.value)
+	def killProcess(self, pid):
+		""" Kills the process with the specified PID (if possible) """
+		SYNCHRONIZE = 0x00100000L
+		PROCESS_TERMINATE = 0x0001
+		hProcess = self._kernel32.OpenProcess(SYNCHRONIZE|PROCESS_TERMINATE, True, pid)
+		result = self._kernel32.TerminateProcess(hProcess, 0)
+		self._kernel32.CloseHandle(hProcess)
