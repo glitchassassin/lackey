@@ -19,10 +19,10 @@ else:
 	
 class Pattern(object):
 	""" Defines a pattern based on a bitmap, similarity, and target offset """
-	def __init__(self, path, similarity=0.7, offset=None):
+	def __init__(self, path):
 		self.path = path
-		self.similarity = similarity
-		self.offset = offset or Location(0,0)
+		self.similarity = 0.7
+		self.offset = Location(0,0)
 
 	def similar(self, similarity):
 		""" Returns a new Pattern with the specified similarity threshold """
@@ -45,7 +45,18 @@ class Pattern(object):
 		return self.offset
 
 class Region(object):
-	def __init__(self, x, y, w, h):
+	def __init__(self, *args):
+		if len(args) == 4:
+			x,y,w,h = args
+		elif len(args) == 1:
+			if isinstance(args[0], Region):
+				x,y,w,h = args[0].getTuple()
+			elif isinstance(args[0], tuple):
+				x,y,w,h = args[0]
+			else:
+				raise TypeError("Unrecognized argument for Region()")
+		else:
+			raise TypeError("Unrecognized argument(s) for Region()")
 		self.setROI(x, y, w, h)
 		self._lastMatch = None
 		self._lastMatches = []
@@ -90,8 +101,19 @@ class Region(object):
 		self.y = location.y
 		return self
 
-	def setROI(self, x, y, w, h):
+	def setROI(self, *args):
 		""" Set Region of Interest (same as Region.setRect()) """
+		if len(args) == 4:
+			x,y,w,h = args
+		elif len(args) == 1:
+			if isinstance(args[0], Region):
+				x,y,w,h = args[0].getTuple()
+			elif isinstance(args[0], tuple):
+				x,y,w,h = args[0]
+			else:
+				raise TypeError("Unrecognized argument for Region()")
+		else:
+			raise TypeError("Unrecognized argument(s) for Region()")
 		self.setX(x)
 		self.setY(y)
 		self.setW(w)
@@ -158,8 +180,11 @@ class Region(object):
 		""" Get the current scan rate """
 		return 1/self._defaultScanRate
 
-	def offset(self, location):
+	def offset(self, location, dy=0):
 		""" Returns a new ``Region`` of the same width and height, but offset from this one by ``location`` """
+		if not isinstance(location, Location):
+			# Assume variables passed were dx,dy
+			location = Location(location, dy)
 		r = Region(self.x+location.x, self.y+location.y, self.w, self.h).clipRegionToScreen()
 		if r is None:
 			raise FindFailed("Specified region is not visible on any screen")
@@ -278,7 +303,7 @@ class Region(object):
 		cv2.imshow(title, haystack)
 		cv2.waitKey(0)
 		cv2.destroyAllWindows()
-	def highlight(self):
+	def highlight(self, seconds=1):
 		""" Temporarily using ``debugPreview()`` to show the region instead of highlighting it
 
 		Probably requires transparent GUI creation/manipulation. TODO
@@ -286,19 +311,19 @@ class Region(object):
 		return self.debugPreview()
 		#raise NotImplementedError("highlight not yet supported.")
 
-	def find(self, pattern, seconds=None):
+	def find(self, pattern):
 		""" Searches for an image pattern in the given region
 
 		Throws ``FindFailed`` exception if the image could not be found.
 		Sikuli supports OCR search with a text parameter. This does not (yet).
 		"""
-		match = self.exists(pattern, seconds)
+		match = self.exists(pattern)
 		if match is None:
 			path = pattern.path if isinstance(pattern, Pattern) else pattern
 			raise FindFailed("Could not find pattern '{}'".format(path))
 			return None
 		return match
-	def findAll(self, pattern, seconds=None):
+	def findAll(self, pattern):
 		""" Searches for an image pattern in the given region
 		
 		Returns ``Match`` object if ``pattern`` exists, empty array otherwise (does not throw exception)
@@ -309,8 +334,7 @@ class Region(object):
 		if r is None:
 			raise FindFailed("Region outside all visible screens")
 			return None
-		if seconds is None:
-			seconds = self.autoWaitTimeout
+		seconds = self.autoWaitTimeout
 		if isinstance(pattern, int):
 			time.sleep(pattern)
 			return
@@ -696,8 +720,12 @@ class Region(object):
 	def mouseUp(self, button):
 		""" Low-level mouse actions """
 		return PlatformManager.mouseButtonUp(button)
-	def mouseMove(self, PSRML):
+	def mouseMove(self, PSRML, dy=0):
 		""" Low-level mouse actions """
+		if isinstance(PSRML, int):
+			# Assume called as mouseMove(dx, dy)
+			offset = Location(PSRML, dy)
+			PSRML = Mouse().getPos().offset(offset)
 		Mouse().moveSpeed(PSRML)
 	def wheel(self, PSRML, direction, steps):
 		""" Clicks the wheel the specified number of ticks """
@@ -706,7 +734,7 @@ class Region(object):
 	def keyDown(self, keys):
 		""" Concatenate multiple keys to press them all down. """
 		return Keyboard().keyDown(keys)
-	def keyUp(self, *keys):
+	def keyUp(self, keys):
 		""" Concatenate multiple keys to up them all. """
 		return Keyboard().keyUp(keys)
 
@@ -778,35 +806,45 @@ class Region(object):
 			return self
 		self._raster = (rows,columns)
 		return self.getCell(0,0)
-	def getRow(self, row):
-		""" Returns the specified row of the region (if the raster is set) """
+	def getRow(self, row, numberRows=None):
+		""" Returns the specified row of the region (if the raster is set) 
+
+		If numberRows is provided, uses that instead of the raster
+		"""
 		row = int(row)
 		if self._raster[0] == 0 or self._raster[1] == 0:
 			return self
-		rowHeight = self.h / self._raster[0]
+		if numberRows is None or numberRows < 1 or numberRows > 9:
+			numberRows = self._raster[0]
+		rowHeight = self.h / numberRows
 		if row < 0:
 			# If row is negative, count backwards from the end
-			row = self._raster[0] - row
+			row = numberRows - row
 			if row < 0:
 				# Bad row index, return last row
 				return Region(self.x, self.y+self.h-rowHeight, self.w, rowHeight)
-		elif row > self._raster[0]:
+		elif row > numberRows:
 			# Bad row index, return first row
 			return Region(self.x, self.y, self.w, rowHeight)
 		return Region(self.x, self.y + (row * rowHeight), self.w, rowHeight)
-	def getCol(self, column):
-		""" Returns the specified column of the region (if the raster is set) """
+	def getCol(self, column, numberColumns=None):
+		""" Returns the specified column of the region (if the raster is set) 
+
+		If numberColumns is provided, uses that instead of the raster
+		"""
 		column = int(column)
 		if self._raster[0] == 0 or self._raster[1] == 0:
 			return self
-		columnWidth = self.w / self._raster[1]
+		if numberColumns is None or numberColumns < 1 or numberColumns > 9:
+			numberColumns = self._raster[1]
+		columnWidth = self.w / numberColumns
 		if column < 0:
 			# If column is negative, count backwards from the end
-			column = self._raster[1] - column
+			column = numberColumns - column
 			if column < 0:
 				# Bad column index, return last column
 				return Region(self.x+self.w-columnWidth, self.y, columnWidth, self.h)
-		elif column > self._raster[1]:
+		elif column > numberColumns:
 			# Bad column index, return first column
 			return Region(self.x, self.y, columnWidth, self.h)
 		return Region(self.x + (column * columnWidth), self.y, columnWidth, self.h)
@@ -883,15 +921,15 @@ class Region(object):
 			self._raster[0] = 1
 	def isRasterValid(self):
 		return self.getCols() > 0 and self.getRows() > 0
-	def getRows():
+	def getRows(self):
 		return self._raster[0]
-	def getCols():
+	def getCols(self):
 		return self._raster[1]
-	def getRowH():
+	def getRowH(self):
 		if self._raster[0] == 0:
 			return 0
 		return self.h / self._raster[0]
-	def getColW():
+	def getColW(self):
 		if self._raster[1] == 0:
 			return 0
 		return self.w / self._raster[1]
@@ -944,19 +982,23 @@ class Screen(Region):
 	def getBounds(self):
 		""" Returns bounds of screen as (x, y, w, h) """
 		return PlatformManager.getScreenBounds(self._screenId)
-	def capture(self, x=None, y=None, w=None, h=None):
+	def capture(self, *args): #x=None, y=None, w=None, h=None):
 		""" Captures the region as an image and saves to a temporary file (specified by TMPDIR, TEMP, or TMP environmental variable) """
-		if x is None:
+		if args[0] is None:
+			# Capture screen region
 			region = self
-		elif isinstance(x, Region):
-			region = x
-		elif isinstance(x, tuple):
-			region = Region(*x)
-		elif isinstance(x, basestring):
+		elif isinstance(args[0], Region):
+			# Capture specified region
+			region = args[0]
+		elif isinstance(args[0], tuple):
+			# Capture region defined by specified tuple
+			region = Region(*args[0])
+		elif isinstance(args[0], basestring):
 			# Interactive mode
 			raise NotImplementedError("Interactive capture mode not defined")
-		elif isinstance(x, int):
-			region = Region(x, y, w, h)
+		elif isinstance(args[0], int):
+			# Capture region defined by provided x,y,w,h
+			region = Region(*args)
 		bitmap = region.getBitmap()
 		tfile, tpath = tempfile.mkstemp(".png")
 		cv2.imwrite(tpath, bitmap)
@@ -1153,13 +1195,13 @@ class App(object):
 		"""
 		app = cls(appName)
 		return app.focus()
-	def _focus_instance(self, identifier=None):
+
+	def _focus_instance(self):
 		""" For instances of App, the ``focus()`` classmethod is replaced with this instance method. """
-		if identifier is not None:
-			return App(identifier).focus()
-		if self._pid is None:
-			return self
-		PlatformManager.focusWindow(PlatformManager.getWindowByPID(self._pid))
+		if self._search:
+			PlatformManager.focusWindow(PlatformManager.getWindowByTitle(self._search))
+		elif self._pid:
+			PlatformManager.focusWindow(PlatformManager.getWindowByPID(self._pid))
 		return self
 
 	@classmethod
@@ -1185,12 +1227,13 @@ class App(object):
 		to the generated PID. 
 		"""
 		return App(executable).open()
-	def _open_instance(self):
+	def _open_instance(self, waitTime=0):
 		args = [self._search]
 		if self._params != "":
 			args.append(self._params)
 		self._process = subprocess.Popen(args, shell=False)
 		self._pid = self._process.pid
+		time.sleep(waitTime)
 		return self
 
 	@classmethod
