@@ -26,15 +26,22 @@ class Pattern(object):
 
 	def similar(self, similarity):
 		""" Returns a new Pattern with the specified similarity threshold """
-		return Pattern(self.path, similarity)
+		pattern = Pattern(self.path)
+		pattern.similarity = similarity
+		return pattern
 
 	def exact(self):
 		""" Returns a new Pattern with a similarity threshold of 1.0 """
-		return Pattern(self.path, 1.0)
+		pattern = Pattern(self.path)
+		pattern.similarity = 1.0
+		return pattern
 
 	def targetOffset(self, dx, dy):
 		""" Returns a new Pattern with the given target offset """
-		return Pattern(self.path, self.similarity, Location(dx, dy))
+		pattern = Pattern(self.path)
+		pattern.similarity = self.similarity
+		pattern.offset = Location(dx, dy)
+		return pattern
 
 	def getFilename(self):
 		""" Returns the path to this Pattern's bitmap """
@@ -984,7 +991,7 @@ class Screen(Region):
 		return PlatformManager.getScreenBounds(self._screenId)
 	def capture(self, *args): #x=None, y=None, w=None, h=None):
 		""" Captures the region as an image and saves to a temporary file (specified by TMPDIR, TEMP, or TMP environmental variable) """
-		if args[0] is None:
+		if len(args) == 0:
 			# Capture screen region
 			region = self
 		elif isinstance(args[0], Region):

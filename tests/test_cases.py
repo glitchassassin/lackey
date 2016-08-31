@@ -323,15 +323,15 @@ class TestScreenMethods(unittest.TestCase):
 class TestComplexFeatures(unittest.TestCase):
 	def setUp(self):
 		if sys.platform.startswith("win"):
-			self.app = subprocess.Popen(["notepad.exe"])
+			self.app = lackey.App("notepad.exe").open()
 			time.sleep(1)
 		else:
 			raise NotImplementedError("Platforms supported include: Windows")
-		self.window = lackey.Window("Untitled - Notepad")
-		self.r = self.window.getRegion()
+		self.window = lackey.App("Untitled - Notepad")
+		self.r = self.window.window()
 	def tearDown(self):
 		if sys.platform.startswith("win"):
-			self.app.terminate()
+			self.app.close()
 
 	def testTypeCopyPaste(self):
 		self.r.type("This is a +test") # Type should translate "+" into shift modifier for capital first letters
