@@ -10,6 +10,7 @@ import cv2
 
 from .PlatformManagerWindows import PlatformManagerWindows
 from .Exceptions import FindFailed
+from .Settings import Settings, Debug
 
 if platform.system() == "Windows":
 	PlatformManager = PlatformManagerWindows() # No other input managers built yet
@@ -20,6 +21,13 @@ else:
 class Pattern(object):
 	""" Defines a pattern based on a bitmap, similarity, and target offset """
 	def __init__(self, path):
+		## Make sure all image paths are set
+		for path in [Settings.BundlePath] + Settings.ImagePath:
+			if path not in sys.path:
+				sys.path.append(path)
+		## Check if path is valid
+		if not os.path.exists(path):
+			raise FileNotFoundError(path)
 		self.path = path
 		self.similarity = 0.7
 		self.offset = Location(0,0)
@@ -69,8 +77,8 @@ class Region(object):
 		self._lastMatches = []
 		self._lastMatchTime = 0
 		self.autoWaitTimeout = 3.0
-		self._defaultScanRate = 0.1
-		self._defaultMouseSpeed = 1
+		self._defaultScanRate = 1/Settings.WaitScanRate # Converts searches per second to actual second interval
+		self._defaultMouseSpeed = Settings.MoveMouseDelay
 		self._defaultTypeSpeed = 0.05
 		self._raster = (0,0)
 
@@ -240,8 +248,6 @@ class Region(object):
 		So it does not include the current region. If range is omitted, it reaches to the bottom of the screen. 
 		The new region has the same width and x-position as the current region. 
 		"""
-		print self.getScreen()
-		print self.getScreen().getBounds()
 		if expand == None:
 			x = self.x
 			y = self.y+self.h
@@ -378,7 +384,7 @@ class Region(object):
 		lastMatches = []
 		
 		if len(positions) == 0:
-			print("Couldn't find '{}' with enough similarity.".format(pattern.path))
+			Debug.info("Couldn't find '{}' with enough similarity.".format(pattern.path))
 			return None
 		# Translate local position into global screen position
 		positions.sort(key=lambda x: (x[1], -x[0]))
@@ -386,7 +392,7 @@ class Region(object):
 			x, y, confidence = position
 			lastMatches.append(Match(confidence, pattern.offset, ((x+self.x, y+self.y), (needle_width, needle_height))))
 		self._lastMatches = iter(lastMatches)
-		print("Found match(es) for pattern '{}' at similarity ({})".format(pattern.path, pattern.similarity))
+		Debug.info("Found match(es) for pattern '{}' at similarity ({})".format(pattern.path, pattern.similarity))
 		self._lastMatchTime = (time.time() - find_time) * 1000 # Capture find time in milliseconds
 		return self._lastMatches
 	def wait(self, pattern, seconds=None):
@@ -492,13 +498,13 @@ class Region(object):
 					position = max_loc
 			time.sleep(self._defaultScanRate)
 		if not position:
-			print("Couldn't find '{}' with enough similarity. Best match {} at ({},{})".format(pattern.path, confidence, best_loc[0], best_loc[1]))
+			Debug.info("Couldn't find '{}' with enough similarity. Best match {} at ({},{})".format(pattern.path, confidence, best_loc[0], best_loc[1]))
 			return None
 		# Translate local position into global screen position
 		position = (position[0] + self.x, position[1] + self.y)
 		self._lastMatch = Match(confidence, pattern.offset, (position, (needle_width, needle_height)))
 		#self._lastMatch.debug_preview()
-		print("Found match for pattern '{}' at ({},{}) with confidence ({}). Target at ({},{})".format(pattern.path, self._lastMatch.getX(), self._lastMatch.getY(), self._lastMatch.getScore(), self._lastMatch.getTarget().x, self._lastMatch.getTarget().y))
+		Debug.info("Found match for pattern '{}' at ({},{}) with confidence ({}). Target at ({},{})".format(pattern.path, self._lastMatch.getX(), self._lastMatch.getY(), self._lastMatch.getScore(), self._lastMatch.getTarget().x, self._lastMatch.getTarget().y))
 		self._lastMatchTime = (time.time() - find_time) * 1000 # Capture find time in milliseconds
 		return self._lastMatch
 
@@ -524,11 +530,15 @@ class Region(object):
 			PlatformManager.pressKey(modifiers)
 
 		mouse.moveSpeed(target_location, self._defaultMouseSpeed)
+		if Settings.ClickDelay > 0:
+			time.sleep(min(1.0, Settings.ClickDelay))
+			Settings.ClickDelay = 0.0
 		mouse.click()
 		time.sleep(0.2)
 
 		if modifiers != 0:
 			PlatformManager.releaseKey(modifiers)
+		Debug.history("Clicked at {}".format(target_location))
 	def doubleClick(self, target, modifiers=0):
 		""" Moves the cursor to the target location and double-clicks the default mouse button. """
 		target_location = None
@@ -549,8 +559,14 @@ class Region(object):
 			PlatformManager.pressKey(modifiers)
 
 		mouse.moveSpeed(target_location, self._defaultMouseSpeed)
+		if Settings.ClickDelay > 0:
+			time.sleep(min(1.0, Settings.ClickDelay))
+			Settings.ClickDelay = 0.0
 		mouse.click()
 		time.sleep(0.1)
+		if Settings.ClickDelay > 0:
+			time.sleep(min(1.0, Settings.ClickDelay))
+			Settings.ClickDelay = 0.0
 		mouse.click()
 		time.sleep(0.2)
 
@@ -577,6 +593,9 @@ class Region(object):
 			PlatformManager.pressKey(modifiers)
 
 		mouse.moveSpeed(target_location, self._defaultMouseSpeed)
+		if Settings.ClickDelay > 0:
+			time.sleep(min(1.0, Settings.ClickDelay))
+			Settings.ClickDelay = 0.0
 		mouse.click(button=autopy.mouse.RIGHT_BUTTON)
 		time.sleep(0.2)
 
@@ -618,9 +637,10 @@ class Region(object):
 		else:
 			raise TypeError("drag expected dragFrom to be Pattern, String, Match, Region, or Location object")
 		mouse.moveSpeed(dragFromLocation, self._defaultMouseSpeed)
+		time.sleep(Settings.DelayBeforeMouseDown)
 		mouse.buttonDown()
-		return 1
-	def dropAt(self, dragTo, delay=0.2):
+		Debug.history("Began drag at {}".format(dragFromLocation))
+	def dropAt(self, dragTo, delay=None):
 		""" Moves the cursor to the target location, waits ``delay`` seconds, and releases the mouse button """
 		if isinstance(dragTo, Pattern):
 			dragToLocation = self.find(dragTo).getTarget()
@@ -636,9 +656,9 @@ class Region(object):
 			raise TypeError("dragDrop expected dragTo to be Pattern, String, Match, Region, or Location object")
 
 		mouse.moveSpeed(dragToLocation, self._defaultMouseSpeed)
-		time.sleep(delay)
+		time.sleep(delay if delay is not None else Settings.DelayBeforeDrop)
 		mouse.buttonUp()
-		return 1
+		Debug.history("Ended drag at {}".format(dragToLocation))
 	def dragDrop(self, dragFrom, dragTo, modifiers=""):
 		""" Holds down the mouse button on ``dragFrom``, moves the mouse to ``dragTo``, and releases the mouse button 
 		
@@ -648,7 +668,8 @@ class Region(object):
 			PlatformManager.pressKey(modifiers)
 		
 		drag(dragFrom)
-		dropAt(dragTo, 0.1)
+		time.sleep(Settings.DelayBeforeDrag)
+		dropAt(dragTo)
 		
 		if modifiers != "":
 			PlatformManager.releaseKey(modifiers)
@@ -686,11 +707,16 @@ class Region(object):
 		text = text.replace("{PGDN}", "{PAGE_DOWN}")
 		text = text.replace("{PGUP}", "{PAGE_UP}")
 
-		print("Typing '{}'".format(text))
+		Debug.history("Typing '{}'".format(text))
 		kb = Keyboard()
 		if modifiers:
 			kb.keyDown(modifiers)
-		kb.type(text, self._defaultTypeSpeed)
+		if Settings.TypeDelay > 0:
+			typeSpeed = min(1.0, Settings.TypeDelay)
+			Settings.TypeDelay = 0.0
+		else:
+			typeSpeed = self._defaultTypeSpeed
+		kb.type(text, typeSpeed)
 		if modifiers:
 			kb.keyUp(modifiers)
 		time.sleep(0.2)
@@ -905,7 +931,6 @@ class Region(object):
 		elif isinstance(part, int) and part >= 200 and part <= 999:
 			raster, row, column = str(part)
 			self.setRaster(raster,raster)
-			#print self._raster
 			if row == raster and column == raster:
 				return self
 			elif row == raster:

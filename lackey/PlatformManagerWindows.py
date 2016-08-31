@@ -760,8 +760,7 @@ class PlatformManagerWindows(object):
 			self._kernel32.CloseHandle(process)
 			return False
 		elif bool(ec.lpExitCode):
-			# print ec.lpExitCode.contents
-			# There is an exist code, it quit
+			# There is an exit code, it quit
 			self._kernel32.CloseHandle(process)
 			return False
 		# No exit code, it's running.

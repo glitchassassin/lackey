@@ -293,7 +293,6 @@ class TestAppMethods(unittest.TestCase):
 		time.sleep(1)		
 
 	def test_getters(self):
-		print str(self.app)
 		self.assertEqual(self.app.getName(), "notepad.exe")
 		self.assertTrue(self.app.isRunning())
 		self.assertEqual(self.app.getWindow(), "test_cases.py - Notepad")
@@ -384,7 +383,6 @@ class TestRasterMethods(unittest.TestCase):
 		self.r.get(lackey.Region.NORTH_WEST).debugPreview("Upper right corner")
 		self.r.get(522).debugPreview("Center (small)")
 		self.r.get(lackey.Region.MID_BIG).debugPreview("Center (half)")
-
 
 if __name__ == '__main__':
 	unittest.main()
