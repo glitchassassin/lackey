@@ -49,8 +49,12 @@ Methods
     * **getClipboard**():
         * Returns any text in the clipboard
 * **Window Functions**
-    * **getWindowByTitle**(wildcard):
-        * Returns the native window handle (as a Python object) for a window that matches the specified regex. If multiple windows with the regex exist, return one of them.
+    * **getWindowByTitle**(wildcard, windowNum=0):
+        * Returns the native window handle (as a Python object) for a window that matches the specified regex. If multiple windows with the regex exist, return the `windowNum`th of them (starting from 0).
+    * **getWindowByPID**(pid, windowNum=0):
+        * Returns the native window handle (as a Python object) for a window that is owned by the specified process. If multiple windows exist for the specified process, return the `windowNum`th of them (starting from 0).
+    * **getForegroundWindow**():
+        * Returns the native window handle (as a Python object) for the window currently in the foreground.
     * **getWindowPID**(handle):
         * Return the PID that owns the given native window handle (provided by a function like ``getWindowByTitle()``). Returns -1 if the process no longer exists.
     * **getWindowRect**(handle):
@@ -68,6 +72,13 @@ Methods
         * Returns a list of the screens attached to the system. Each screen object has one property, "rect", which is a tuple containing the rect ``(x,y,w,h)`` of the screen's area relative to the main monitor.
     * **isPointVisible**(x, y):
         * Checks if a point is visible (on any monitor).
+* **Process Functions**
+    * **isPIDValid**(pid):
+        * Returns ``True`` if there is a running process associated with the PID, ``False`` otherwise
+    * **killProcess**(pid):
+        * Tries to terminate the process associated with the specified PID.
+    * **getProcessName**(pid):
+        * Returns the module path (executable name) for the process associated with the specified PID.
 
 
 ### Supported Key Codes ###

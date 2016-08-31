@@ -228,6 +228,47 @@ class TestInterfaces(unittest.TestCase):
 		self.assertHasMethod(lackey.Screen, "capture", 1) 			# Uses *args
 		self.assertHasMethod(lackey.Screen, "selectRegion", 2)
 
+	def test_platform_manager_interface(self):
+		""" Checking Platform Manager interface methods """
+
+		## Keyboard input methods
+		self.assertHasMethod(lackey.PlatformManagerWindows, "pressKey", 2)
+		self.assertHasMethod(lackey.PlatformManagerWindows, "releaseKey", 2)
+		self.assertHasMethod(lackey.PlatformManagerWindows, "typeKeys", 3)
+
+		## Mouse input methods
+		self.assertHasMethod(lackey.PlatformManagerWindows, "setMousePos", 2)
+		self.assertHasMethod(lackey.PlatformManagerWindows, "getMousePos", 1)
+		self.assertHasMethod(lackey.PlatformManagerWindows, "mouseButtonDown", 2)
+		self.assertHasMethod(lackey.PlatformManagerWindows, "mouseButtonUp", 2)
+		self.assertHasMethod(lackey.PlatformManagerWindows, "clickMouse", 2)
+		self.assertHasMethod(lackey.PlatformManagerWindows, "mouseWheel", 3)
+
+		## Screen methods
+		self.assertHasMethod(lackey.PlatformManagerWindows, "getBitmapFromRect", 5)
+		self.assertHasMethod(lackey.PlatformManagerWindows, "getScreenBounds", 2)
+		self.assertHasMethod(lackey.PlatformManagerWindows, "getScreenDetails", 1)
+		self.assertHasMethod(lackey.PlatformManagerWindows, "isPointVisible", 3)
+
+		## Clipboard methods
+		self.assertHasMethod(lackey.PlatformManagerWindows, "getClipboard", 1)
+		self.assertHasMethod(lackey.PlatformManagerWindows, "setClipboard", 2)
+		self.assertHasMethod(lackey.PlatformManagerWindows, "osCopy", 1)
+		self.assertHasMethod(lackey.PlatformManagerWindows, "osPaste", 1)
+
+		## Window methods
+		self.assertHasMethod(lackey.PlatformManagerWindows, "getWindowByTitle", 3)
+		self.assertHasMethod(lackey.PlatformManagerWindows, "getWindowByPID", 3)
+		self.assertHasMethod(lackey.PlatformManagerWindows, "getWindowRect", 2)
+		self.assertHasMethod(lackey.PlatformManagerWindows, "focusWindow", 2)
+		self.assertHasMethod(lackey.PlatformManagerWindows, "getWindowTitle", 2)
+		self.assertHasMethod(lackey.PlatformManagerWindows, "getWindowPID", 2)
+		self.assertHasMethod(lackey.PlatformManagerWindows, "getForegroundWindow", 1)
+
+		## Process methods
+		self.assertHasMethod(lackey.PlatformManagerWindows, "isPIDValid", 2)
+		self.assertHasMethod(lackey.PlatformManagerWindows, "killProcess", 2)
+		self.assertHasMethod(lackey.PlatformManagerWindows, "getProcessName", 2)
 
 
 	def assertHasMethod(self, cls, mthd, args=0):

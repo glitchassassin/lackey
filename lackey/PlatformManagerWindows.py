@@ -774,7 +774,6 @@ class PlatformManagerWindows(object):
 		hProcess = self._kernel32.OpenProcess(SYNCHRONIZE|PROCESS_TERMINATE, True, pid)
 		result = self._kernel32.TerminateProcess(hProcess, 0)
 		self._kernel32.CloseHandle(hProcess)
-
 	def getProcessName(self, pid):
 		if pid <= 0:
 			return ""
