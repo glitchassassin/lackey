@@ -1,3 +1,4 @@
+import subprocess
 import tempfile
 import platform
 import time
@@ -1101,78 +1102,159 @@ class Keyboard(object):
 		""" Types ``text`` with ``delay`` seconds between keypresses """
 		return PlatformManager.typeKeys(text, delay)
 
-class Window(object):
-	""" Object to select (and perform basic manipulations on) a window. Stores platform-specific window handler """
-	def __init__(self, identifier=None):
-		self._handle = None
-		if identifier:
-			self.initialize_wildcard(identifier)
+class App(object):
+	""" Allows apps to be selected by title, PID, or by starting an
+	application directly. Can address individual windows tied to an
+	app.
 
-	def initialize_wildcard(self, wildcard):
-		""" Gets a window handle based on the wildcard. If there are multiple matches, it only returns one, in no particular order. """
-		self._handle = PlatformManager.getWindowByTitle(wildcard)
-		return self
-
-	def getRegion(self):
-		""" Returns a ``Region`` object corresponding to the window's shape and location. """
-		if self._handle is None:
-			return None
-		x1, y1, x2, y2 = PlatformManager.getWindowRect(self._handle)
-		return Region(x1, y1, x2-x1, y2-y1)
-
-	def focus(self, wildcard=None):
-		""" Brings the window to the foreground and gives it focus """
-		if self._handle is None:
-			return self
-		PlatformManager.focusWindow(self._handle)
-		return self
-
-	def getTitle(self):
-		""" Returns the window's title """
-		return PlatformManager.getWindowTitle(self._handle)
-
-	def getPID(self):
-		""" Returns the PID of the window's parent process """
-		if self._handle is None:
-			return -1
-		return PlatformManager.getWindowPID(self._handle)
-
-class App(Window):
-	""" Sikuli compatibility class
-
-	Eventually will allow windows to be selected by title, PID, or by starting an
-	application directly.
+	For more information, see [Sikuli's App documentation](http://sikulix-2014.readthedocs.io/en/latest/appclass.html#App)
 	"""
 	def __init__(self, identifier=None):
-		super(App, self).__init__(re.escape(identifier))
+		self._pid = None
+		self._search = ""
+		self._params = ""
+		self._process = None
+		self._defaultScanRate = 0.1
+		self.proc = None
+		
+		# Replace class methods with instance methods
 		self.focus = self._focus_instance
 		self.close = self._close_instance
+		self.open = self._open_instance
+
+		# Process `identifier`
+		if isinstance(identifier, int):
+			# `identifier` is a PID
+			self._pid = identifier
+		elif isinstance(identifier, basestring):
+			# `identifier` is either part of a window title
+			# or a command line to execute. Sikuli is ambiguous
+			# on this point: it treats the string as a window title
+			# unless explicitly told to open() the application.
+			self._search = identifier
+			self._pid = PlatformManager.getWindowPID(PlatformManager.getWindowByTitle(re.escape(self._search)))
+		else:
+			self._pid = -1 # Unrecognized identifier, setting to empty app
+
+		self._pid = self.getPID() # Confirm PID is an active process (sets to -1 otherwise)
+
+		if self._pid != -1:
+			self.focus()
+
+	@classmethod
+	def pause(cls, waitTime):
+		time.sleep(waitTime)
 
 	@classmethod
 	def focus(cls, appName):
-		""" As a class method, accessible as `App.focus(appName)`. As an instance method, accessible as `app.focus()`.
+		""" Searches for exact text, case insensitive, anywhere in the window title. Brings the matching window to the foreground.
 
-		Searches for exact text, case insensitive, anywhere in the window title. Brings the matching window to the foreground.
+		As a class method, accessible as `App.focus(appName)`. As an instance method, accessible as `App(appName).focus()`.
 		"""
 		app = cls(appName)
 		return app.focus()
-
-	def _focus_instance(self, appName=None):
+	def _focus_instance(self, identifier=None):
 		""" For instances of App, the ``focus()`` classmethod is replaced with this instance method. """
-		if appName is not None:
-			return App(appName).focus()
-		if self._handle is None:
+		if identifier is not None:
+			return App(identifier).focus()
+		if self._pid is None:
 			return self
-		PlatformManager.focusWindow(self._handle)
+		PlatformManager.focusWindow(PlatformManager.getWindowByPID(self._pid))
 		return self
 
 	@classmethod
 	def close(cls, appName):
-		""" As a class method, accessible as `App.class(appName)`. As an instance method, accessible as `app.close()`. 
+		""" Closes the process associated with the specified app.
 
-		Closes the process associated with the specified app.
+		As a class method, accessible as `App.class(appName)`. As an instance method, accessible as `App(appName).close()`. 
 		"""
 		return cls(appName).close()
-
 	def _close_instance(self):
-		PlatformManager.killProcess(self.getPID())
+		if self._process:
+			self._process.terminate()
+		else:
+			PlatformManager.killProcess(self.getPID())
+
+	@classmethod
+	def open(self, executable):
+		""" Runs the specified command and returns an App linked to the generated PID.
+
+		As a class method, accessible as `App.open(executable_path)`. As an instance method, accessible as `App(executable_path).open()`.
+
+		If run as an instance method, runs the specified command and links the instance
+		to the generated PID. 
+		"""
+		return App(executable).open()
+	def _open_instance(self):
+		args = [self._search]
+		if self._params != "":
+			args.append(self._params)
+		self._process = subprocess.Popen(args, shell=False)
+		self._pid = self._process.pid
+		return self
+
+	@classmethod
+	def focusedWindow(cls):
+		""" Returns a Region corresponding to whatever window is in the foreground """
+		x,y,w,h = PlatformManager.getWindowRect(PlatformManager.getForegroundWindow())
+		return Region(x,y,w,h)
+
+	def getWindow(self):
+		""" Returns the title of the main window of the app.
+		"""
+		if self._process:
+			# self._search is a path, not a window title
+			return PlatformManager.getWindowTitle(PlatformManager.getWindowByPID(self.getPID()))
+		elif self._search:
+			# self._search is (part of) a window title
+			return PlatformManager.getWindowTitle(PlatformManager.getWindowByTitle(re.escape(self._search)))
+		elif self._pid > 0:
+			# Search by PID
+			return PlatformManager.getWindowTitle(PlatformManager.getWindowByPID(self.getPID()))
+		else:
+			return ""
+	def getName(self):
+		""" Returns the short name of the app as shown in the process list """
+		return PlatformManager.getProcessName(self.getPID())
+	def getPID(self):
+		""" Returns the PID for the associated app (or -1, if no app is associated or the app is not running) """
+		if self._pid is not None:
+			if not PlatformManager.isPIDValid(self._pid):
+				self._pid = -1
+			return self._pid
+		return -1
+
+	def hasWindow(self):
+		""" Returns True if the process has a window associated, False otherwise """
+		return PlatformManager.getWindowByPID(self.getPID()) is not None
+
+	def window(self, windowNum=0):
+		""" Returns the region corresponding to the specified window of the app.
+
+		Defaults to the first window found for the corresponding PID.
+		"""
+		x,y,w,h = PlatformManager.getWindowRect(PlatformManager.getWindowByPID(self._pid, windowNum))
+		return Region(x,y,w,h)
+
+	def setUsing(self, params):
+		self._params = params
+
+	def __repr__(self):
+		""" Returns a string representation of the app """
+		return "[{pid}:{executable} ({windowtitle})] {searchtext}".format(pid=self._pid, executable=self.getName(), windowtitle=self.getWindow(), searchtext=self._search)
+
+	def isRunning(self, waitTime=0):
+		""" If PID isn't set yet, checks if there is a window with the specified title. """
+		waitUntil = time.time() + waitTime
+		while True:
+			if self.getPID() > 0:
+				return True
+			else:
+				self._pid = PlatformManager.getWindowPID(PlatformManager.getWindowByTitle(re.escape(self._search)))
+
+			# Check if we've waited long enough
+			if time.time() > waitUntil:
+				break
+			else:
+				time.sleep(self._defaultScanRate)
+		return self.getPID() > 0

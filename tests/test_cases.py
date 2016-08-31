@@ -93,35 +93,15 @@ class TestKeyboardMethods(unittest.TestCase):
 		# you run this test, the SHIFT, CTRL, or ALT keys might not have been released
 		# properly.
 
-class TestWindowMethods(unittest.TestCase):
-	def setUp(self):
-		if sys.platform.startswith("win"):
-			self.app = subprocess.Popen(["notepad.exe"])
-			time.sleep(1)
-		else:
-			raise NotImplementedError("Platforms supported include: Windows")
-		self.window = lackey.Window("Untitled - Notepad")
-	def tearDown(self):
-		if sys.platform.startswith("win"):
-			self.app.terminate()
-		time.sleep(1)
-
-	def test_getters(self):
-		self.assertEqual(self.window.getTitle(), "Untitled - Notepad")
-		self.assertNotEqual(self.window.getPID(), -1)
-		region = self.window.getRegion()
-		self.assertIsInstance(region, lackey.Region)
-		self.assertGreater(region.getW(), 0)
-		self.assertGreater(region.getH(), 0)
-
 class TestAppMethods(unittest.TestCase):
 	def setUp(self):
 		if sys.platform.startswith("win"):
-			self.subp = subprocess.Popen(["notepad.exe"])
+			self.app = lackey.App("notepad.exe")
+			self.app.setUsing("test_cases.py")
+			self.app.open()
 			time.sleep(1)
 		else:
 			raise NotImplementedError("Platforms supported include: Windows")
-		self.app = lackey.App("Untitled - Notepad")
 		self.app.focus()
 	def tearDown(self):
 		if sys.platform.startswith("win"):
@@ -129,10 +109,12 @@ class TestAppMethods(unittest.TestCase):
 		time.sleep(1)
 
 	def test_getters(self):
-		print self.app.getTitle()
-		self.assertEqual(self.app.getTitle(), "Untitled - Notepad")
+		print str(self.app)
+		self.assertEqual(self.app.getName(), "notepad.exe")
+		self.assertTrue(self.app.isRunning())
+		self.assertEqual(self.app.getWindow(), "test_cases.py - Notepad")
 		self.assertNotEqual(self.app.getPID(), -1)
-		region = self.app.getRegion()
+		region = self.app.window()
 		self.assertIsInstance(region, lackey.Region)
 		self.assertGreater(region.getW(), 0)
 		self.assertGreater(region.getH(), 0)
