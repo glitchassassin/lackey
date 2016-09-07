@@ -10,6 +10,7 @@ except ImportError:
 from ctypes import wintypes
 from PIL import Image
 from PIL import ImageOps
+from .Settings import Debug
 
 class PlatformManagerWindows(object):
 	""" Abstracts Windows-specific OS-level features like mouse/keyboard control """
@@ -718,6 +719,7 @@ class PlatformManagerWindows(object):
 		return None
 	def focusWindow(self, hwnd):
 		""" Brings specified window to the front """
+		Debug.log(3, "Focusing window: " + str(hwnd))
 		SW_RESTORE = 9
 		if ctypes.windll.user32.IsIconic(hwnd):
 			ctypes.windll.user32.ShowWindow(hwnd, SW_RESTORE)

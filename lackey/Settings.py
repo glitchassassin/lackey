@@ -153,5 +153,8 @@ class SettingsMaster(object):
 	ImagePaths = []
 	OcrDataPath = None 
 
+	## Popup settings
+	PopupLocation = None
+
 Debug = DebugMaster()
 Settings = SettingsMaster()

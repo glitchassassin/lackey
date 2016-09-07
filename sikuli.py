@@ -2,6 +2,8 @@ import os
 import time
 import requests
 from zipfile import ZipFile
+import tkMessageBox
+import Tkinter as tk
 from lackey import *
 ## Sikuli patching: Functions that map to the global Screen region
 ## Don't try this at home, kids!
@@ -13,6 +15,9 @@ for prop in dir(SCREEN):
 		globals()[prop] = getattr(SCREEN, prop, None)
 
 ## Sikuli Convenience Functions
+
+def sleep(seconds):
+	time.sleep(seconds)
 
 def exit(value):
 	sys.exit(value)
@@ -68,3 +73,51 @@ def unzip(fromFile, toFolder):
 #		for root, dirs, files in os.walk(fromFolder):
 #			for file in files:
 #				to_zip.write(os.path.join(root, file))
+
+
+## Popup/input dialogs
+
+def popat(*args):
+	if len(args) == 2 and isinstance(args[0], int) and isinstance(args[1], int):
+		# popat(x,y)
+		Settings.PopupLocation = Location(args[0],args[1])
+	elif len(args) == 1 and isinstance(args[0], Location):
+		# popat(location)
+		Settings.PopupLocation = args[0]
+	elif len(args) == 1 and isinstance(args[0], Region):
+		Settings.PopupLocation = args[0].getCenter()
+	elif len(args) == 0:
+		Settings.PopupLocation = SCREEN.getCenter()
+	else:
+		raise TypeError("Unrecognized parameter(s) for popat")
+
+def popup(text, title="Lackey Info"):
+	root = tk.Tk()
+	root.withdraw()
+	tkMessageBox.showinfo(title, text)
+def popError(text, title="Lackey Error"):
+	root = tk.Tk()
+	root.withdraw()
+	tkMessageBox.showerror(title, text)
+def popAsk(text, title="Lackey Decision"):
+	root = tk.Tk()
+	root.withdraw()
+	return tkMessageBox.askyesno(title, text)
+
+# Be aware this overwrites the Python input() command-line function.
+def input(msg="", default="", title="Lackey Input", hidden=False):
+	root = tk.Tk()
+	input_text = tk.StringVar()
+	input_text.set(default)
+	dialog = SikuliGui.PopupInput(root, msg, default, title, hidden, input_text)
+	root.focus_force()
+	root.mainloop()
+	return str(input_text.get())
+def inputText(message="", title="Lackey Input", lines=9, width=20, text=""):
+	root = tk.Tk()
+	input_text = tk.StringVar()
+	input_text.set(text)
+	dialog = SikuliGui.PopupTextarea(root, message, title, lines, width, text, input_text)
+	root.focus_force()
+	root.mainloop()
+	return str(input_text.get())

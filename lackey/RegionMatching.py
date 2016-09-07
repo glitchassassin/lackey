@@ -2,6 +2,7 @@ import subprocess
 import tempfile
 import platform
 import time
+import sys
 import os
 import re
 
@@ -22,9 +23,9 @@ class Pattern(object):
 	""" Defines a pattern based on a bitmap, similarity, and target offset """
 	def __init__(self, path):
 		## Make sure all image paths are set
-		for path in [Settings.BundlePath] + Settings.ImagePath:
-			if path not in sys.path:
-				sys.path.append(path)
+		for image_path in [Settings.BundlePath] + Settings.ImagePaths:
+			if image_path not in sys.path:
+				sys.path.append(image_path)
 		## Check if path is valid
 		if not os.path.exists(path):
 			raise FileNotFoundError(path)
@@ -401,7 +402,19 @@ class Region(object):
 		Functionally identical to find()
 		Sikuli supports OCR search with a text parameter. This does not (yet).
 		"""
-		return self.find(pattern, seconds)
+		if seconds:
+			timeout = time.time() + seconds
+		else:
+			timeout = time.time()
+		while True:
+			match = self.exists(pattern)
+			if match:
+				return match
+			if time.time() >= timeout:
+				break
+		path = pattern.path if isinstance(pattern, Pattern) else pattern
+		raise FindFailed("Could not find pattern '{}'".format(path))
+		return None
 	def waitVanish(self, pattern, seconds=None):
 		""" Waits until the specified pattern is not visible on screen. 
 
@@ -1199,12 +1212,14 @@ class App(object):
 		# Process `identifier`
 		if isinstance(identifier, int):
 			# `identifier` is a PID
+			Debug.log(3, "Creating App by PID ({})".format(identifier))
 			self._pid = identifier
 		elif isinstance(identifier, basestring):
 			# `identifier` is either part of a window title
 			# or a command line to execute. Sikuli is ambiguous
 			# on this point: it treats the string as a window title
 			# unless explicitly told to open() the application.
+			Debug.log(3, "Creating App by string ({})".format(identifier))
 			self._search = identifier
 			self._pid = PlatformManager.getWindowPID(PlatformManager.getWindowByTitle(re.escape(self._search)))
 		else:
@@ -1231,8 +1246,10 @@ class App(object):
 	def _focus_instance(self):
 		""" For instances of App, the ``focus()`` classmethod is replaced with this instance method. """
 		if self._search:
-			PlatformManager.focusWindow(PlatformManager.getWindowByTitle(self._search))
+			Debug.log(3, "Focusing app with title like ({})".format(self._search))
+			PlatformManager.focusWindow(PlatformManager.getWindowByTitle(re.escape(self._search)))
 		elif self._pid:
+			Debug.log(3, "Focusing app with pid ({})".format(self._pid))
 			PlatformManager.focusWindow(PlatformManager.getWindowByPID(self._pid))
 		return self
 
