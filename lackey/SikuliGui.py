@@ -1,4 +1,5 @@
 import Tkinter as tk
+import ttk
 from .Settings import Settings, Debug
 
 class PopupInput(tk.Frame):
@@ -29,6 +30,37 @@ class PopupInput(tk.Frame):
 		self.input_text.set("")
 		self.parent.destroy()
 	def ok_function(self, event=None):
+		self.parent.destroy()
+
+class PopupList(tk.Frame):
+	def __init__(self, parent, msg, title, options, default, text_variable):
+		tk.Frame.__init__(self, parent)
+		self.parent = parent
+		self.parent.protocol("WM_DELETE_WINDOW", self.cancel_function)
+		self.parent.bind('<Return>', self.ok_function)
+		self.parent.title(title)
+		self.input_text = text_variable
+		self.input_text.set(default)
+		if Settings.PopupLocation:
+			self.geometry("+{}+{}".format(Settings.PopupLocation.x, Settings.PopupLocation.y))
+		self.msg = tk.Message(self.parent, text=msg)
+		self.msg.grid(row=0, sticky="NSEW", padx=10, pady=10)
+		self.input_list = ttk.Combobox(self.parent, textvariable=self.input_text, state="readonly", values=options)
+		#self.input_list.activate(options.index(default))
+		self.input_list.grid(row=1, sticky="EW", padx=10)
+		self.button_frame = tk.Frame(self.parent)
+		self.button_frame.grid(row=2, sticky="E")
+		self.cancel = tk.Button(self.button_frame, text="Cancel", command=self.cancel_function, width=10)
+		self.cancel.grid(row=0, column=0, padx=10, pady=10)
+		self.ok = tk.Button(self.button_frame, text="Ok", command=self.ok_function, width=10)
+		self.ok.grid(row=0, column=1, padx=10, pady=10)
+		self.input_list.focus_set()
+
+	def cancel_function(self):
+		self.input_text.set("")
+		self.parent.destroy()
+	def ok_function(self, event=None):
+		#self.input_text.set(self.input_list.get(self.input_list.cur_selection()[0]))
 		self.parent.destroy()
 
 class PopupTextarea(tk.Frame):

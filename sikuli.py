@@ -4,6 +4,7 @@ import requests
 from zipfile import ZipFile
 import tkMessageBox
 import Tkinter as tk
+import tkFileDialog
 from lackey import *
 ## Sikuli patching: Functions that map to the global Screen region
 ## Don't try this at home, kids!
@@ -121,3 +122,21 @@ def inputText(message="", title="Lackey Input", lines=9, width=20, text=""):
 	root.focus_force()
 	root.mainloop()
 	return str(input_text.get())
+def select(message="", title="Lackey Input", options=[], default=None):
+	if len(options) == 0:
+		return ""
+	if default is None:
+		default = options[0]
+	if default not in options:
+		raise ValueError("<<default>> not in options[]")
+	root = tk.Tk()
+	input_text = tk.StringVar()
+	input_text.set(text)
+	dialog = SikuliGui.PopupList(root, message, title, options, default, input_text)
+	root.focus_force()
+	root.mainloop()
+	return str(input_text.get())
+def popFile(title="Lackey Open File"):
+	root = tk.Tk()
+	root.withdraw()
+	return str(tkFileDialog.askopenfilename())
