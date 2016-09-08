@@ -39,28 +39,28 @@ class TestLocationMethods(unittest.TestCase):
 
 class TestPatternMethods(unittest.TestCase):
 	def setUp(self):
-		self.pattern = lackey.Pattern("test_file.png")
+		self.pattern = lackey.Pattern("test_pattern.png")
 	
 	def test_defaults(self):
 		self.assertEqual(self.pattern.similarity, 0.7)
 		self.assertIsInstance(self.pattern.offset, lackey.Location)
 		self.assertEqual(self.pattern.offset.getTuple(), (0,0))
-		self.assertEqual(self.pattern.path, "test_file.png")
+		self.assertEqual(self.pattern.path, "test_pattern.png")
 
 	def test_setters(self):
 		test_pattern = self.pattern.similar(0.5)
 		self.assertEqual(test_pattern.similarity, 0.5)
-		self.assertEqual(test_pattern.path, "test_file.png")
+		self.assertEqual(test_pattern.path, "test_pattern.png")
 		test_pattern = self.pattern.exact()
 		self.assertEqual(test_pattern.similarity, 1.0)
-		self.assertEqual(test_pattern.path, "test_file.png")
+		self.assertEqual(test_pattern.path, "test_pattern.png")
 		test_pattern = self.pattern.targetOffset(3, 5)
 		self.assertEqual(test_pattern.similarity, 0.7)
-		self.assertEqual(test_pattern.path, "test_file.png")
+		self.assertEqual(test_pattern.path, "test_pattern.png")
 		self.assertEqual(test_pattern.offset.getTuple(), (3,5))
 
 	def test_getters(self):
-		self.assertEqual(self.pattern.getFilename(), "test_file.png")
+		self.assertEqual(self.pattern.getFilename(), "test_pattern.png")
 		self.assertEqual(self.pattern.getTargetOffset().getTuple(), (0,0))
 
 class TestMouseMethods(unittest.TestCase):

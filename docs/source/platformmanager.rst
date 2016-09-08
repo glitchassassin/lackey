@@ -72,6 +72,9 @@ Methods
         - Returns a list of the screens attached to the system. Each screen object has one property, "rect", which is a tuple containing the rect ``(x,y,w,h)`` of the screen's area relative to the main monitor.
     - **isPointVisible** (x, y):
         - Checks if a point is visible (on any monitor).
+- **Highlighting Functions**
+    - **highlight** (rect, seconds):
+        - Draws a red rectangle around the region defined by ``rect`` which disappears after ``seconds``.
 - **Process Functions**
     - **isPIDValid** (pid):
         - Returns ``True`` if there is a running process associated with the PID, ``False`` otherwise

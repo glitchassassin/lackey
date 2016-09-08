@@ -1,13 +1,15 @@
+from PIL import Image, ImageTk
+import Tkinter as tk
 import subprocess
 import tempfile
 import platform
+import numpy
 import time
+import cv2
 import sys
 import os
 import re
 
-import numpy
-import cv2
 
 from .PlatformManagerWindows import PlatformManagerWindows
 from .Exceptions import FindFailed
@@ -28,7 +30,7 @@ class Pattern(object):
 				sys.path.append(image_path)
 		## Check if path is valid
 		if not os.path.exists(path):
-			raise FileNotFoundError(path)
+			raise OSError("File not found: {}".format(path))
 		self.path = path
 		self.similarity = 0.7
 		self.offset = Location(0,0)
@@ -322,8 +324,7 @@ class Region(object):
 
 		Probably requires transparent GUI creation/manipulation. TODO
 		"""
-		return self.debugPreview()
-		#raise NotImplementedError("highlight not yet supported.")
+		PlatformManager.highlight((self.getX(), self.getY(), self.getW(), self.getH()), seconds)
 
 	def find(self, pattern):
 		""" Searches for an image pattern in the given region
@@ -1227,9 +1228,6 @@ class App(object):
 
 		self._pid = self.getPID() # Confirm PID is an active process (sets to -1 otherwise)
 
-		if self._pid != -1:
-			self.focus()
-
 	@classmethod
 	def pause(cls, waitTime):
 		time.sleep(waitTime)
@@ -1325,8 +1323,10 @@ class App(object):
 
 		Defaults to the first window found for the corresponding PID.
 		"""
+		if self._pid == -1:
+			raise FindFailed("Window not found for app \"{}\"".format(self._search))
 		x,y,w,h = PlatformManager.getWindowRect(PlatformManager.getWindowByPID(self._pid, windowNum))
-		return Region(x,y,w,h)
+		return Region(x,y,w,h).clipRegionToScreen()
 
 	def setUsing(self, params):
 		self._params = params
@@ -1350,3 +1350,4 @@ class App(object):
 			else:
 				time.sleep(self._defaultScanRate)
 		return self.getPID() > 0
+

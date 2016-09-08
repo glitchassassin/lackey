@@ -49,7 +49,7 @@ class DebugMaster(object):
 		"""
 		if Settings.InfoLogs:
 			self._write_log("info", Settings.LogTime, message)
-	def on(self, level=3):
+	def on(self, level):
 		""" Turns on all debugging messages up to the specified level 
 
 		0 = None; 1 = User; 
@@ -116,8 +116,6 @@ class DebugMaster(object):
 		else:
 			# Otherwise, print to STDOUT
 			print log_entry
-
-
 
 class SettingsMaster(object):
 	## Logging Settings

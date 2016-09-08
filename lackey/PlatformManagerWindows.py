@@ -4,17 +4,19 @@ import time
 import numpy
 import ctypes
 try:
-	from Tkinter import Tk
+	import Tkinter as tk
 except ImportError:
-	from tkinter import Tk
+	import tkinter as tk
 from ctypes import wintypes
-from PIL import Image
-from PIL import ImageOps
+from PIL import Image, ImageTk, ImageOps
 from .Settings import Debug
 
 class PlatformManagerWindows(object):
 	""" Abstracts Windows-specific OS-level features like mouse/keyboard control """
 	def __init__(self):
+		#self._root = tk.Tk()
+		#self._root.overrideredirect(1)
+		#self._root.withdraw()
 		user32 = ctypes.WinDLL('user32', use_last_error=True)
 		gdi32 = ctypes.WinDLL('gdi32', use_last_error=True)
 		kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
@@ -648,21 +650,41 @@ class PlatformManagerWindows(object):
 	## Clipboard functions
 
 	def getClipboard(self):
-		""" Uses Tkinter to fetch any text on the clipboard. """
-		r = Tk()
-		r.withdraw()
-		r.update()
-		to_return = str(r.clipboard_get())
-		r.destroy()
+		""" Uses Tkinter to fetch any text on the clipboard. 
+
+		If a Tkinter root window has already been created somewhere else,
+		uses that instead of creating a new one.
+		"""
+		if tk._default_root is None:
+			temporary_root = True
+			root = tk.Tk()
+			root.withdraw()
+		else:
+			temporary_root = False
+			root = tk._default_root
+		root.update()
+		to_return = str(root.clipboard_get())
+		if temporary_root:
+			root.destroy()
 		return to_return
 	def setClipboard(self, text):
-		""" Uses Tkinter to set the system clipboard """
-		r = Tk()
-		r.withdraw()
-		r.clipboard_clear()
-		r.clipboard_append(text)
-		r.update()
-		r.destroy()
+		""" Uses Tkinter to set the system clipboard.
+
+		If a Tkinter root window has already been created somewhere else,
+		uses that instead of creating a new one.
+		"""
+		if tk._default_root is None:
+			temporary_root = True
+			root = tk.Tk()
+			root.withdraw()
+		else:
+			temporary_root = False
+			root = tk._default_root
+		root.clipboard_clear()
+		root.clipboard_append(text)
+		root.update()
+		if temporary_root:
+			root.destroy()
 	def osCopy(self):
 		""" Triggers the OS "copy" keyboard shortcut """
 		self.typeKeys("^c")
@@ -680,7 +702,7 @@ class PlatformManagerWindows(object):
 				length = ctypes.windll.user32.GetWindowTextLengthW(hwnd)
 				buff = ctypes.create_unicode_buffer(length + 1)
 				ctypes.windll.user32.GetWindowTextW(hwnd, buff, length + 1)
-				if re.match(context["wildcard"], buff.value) != None and not context["handle"]:
+				if re.search(context["wildcard"], buff.value) != None and not context["handle"]:
 					if context["order"] > 0:
 						context["order"] -= 1
 					else:
@@ -739,6 +761,36 @@ class PlatformManagerWindows(object):
 		""" Returns a handle to the window in the foreground """
 		return self._user32.GetForegroundWindow()
 
+	## Highlighting functions
+
+	def highlight(self, rect, seconds=1):
+		""" Simulates a transparent rectangle over the specified ``rect`` on the screen. 
+
+		Actually takes a screenshot of the region and displays with a
+		rectangle border in a borderless window (due to Tkinter limitations)
+
+		If a Tkinter root window has already been created somewhere else,
+		uses that instead of creating a new one.
+		"""
+		if tk._default_root is None:
+			Debug.log(3, "Creating new temporary Tkinter root")
+			temporary_root = True
+			root = tk.Tk()
+			root.withdraw()
+		else:
+			Debug.log(3, "Borrowing existing Tkinter root")
+			temporary_root = False
+			root = tk._default_root
+		image_to_show = self.getBitmapFromRect(*rect)
+		app = highlightWindow(root, rect, image_to_show)
+		timeout = time.time()+seconds
+		while time.time() < timeout:
+			app.update_idletasks()
+			app.update()
+		app.destroy()
+		if temporary_root:
+			root.destroy()
+
 	## Process functions
 	def isPIDValid(self, pid):
 		""" Checks if a PID is associated with a running process """
@@ -786,3 +838,27 @@ class PlatformManagerWindows(object):
 		#self._psapi.GetProcessImageFileName.restype = ctypes.wintypes.DWORD
 		self._psapi.GetModuleFileNameExA(hProcess, 0, ctypes.byref(proc_name), MAX_PATH_LEN)
 		return os.path.basename(str(proc_name.value))
+
+## Helper class for highlighting
+
+class highlightWindow(tk.Toplevel):
+	def __init__(self, root, rect, screen_cap):
+		""" Accepts rect as (x,y,w,h) """
+		self.root = root
+		tk.Toplevel.__init__(self, self.root, bg="red", bd=0)
+
+		## Set toplevel geometry, remove borders, and push to the front
+		self.geometry("{2}x{3}+{0}+{1}".format(*rect))
+		self.overrideredirect(1)
+		self.attributes("-topmost", True)
+
+		## Create canvas and fill it with the provided image. Then draw rectangle outline
+		self.canvas = tk.Canvas(self, width=rect[2], height=rect[3], bd=0, bg="blue", highlightthickness=0)
+		self.tk_image = ImageTk.PhotoImage(Image.fromarray(screen_cap[...,[2,1,0]]))
+		self.canvas.create_image(0,0,image=self.tk_image,anchor=tk.NW)
+		self.canvas.create_rectangle(2,2,rect[2]-2,rect[3]-2, outline="red", width=4)#, outline="red", fill="")
+		self.canvas.pack(fill=tk.BOTH, expand=tk.YES)
+
+		## Lift to front if necessary and refresh.
+		self.lift()
+		self.update()
