@@ -1,5 +1,8 @@
 ## Changelog ##
 
+v0.2.2a1
+* Fixed #14 TypeError on doubleClick()
+
 v0.2.1a1
 * Fixed #5 bad region validation
 * Fixed #7 findAll() listiterator error

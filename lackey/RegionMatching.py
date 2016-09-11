@@ -496,7 +496,7 @@ class Region(object):
 
 		if modifiers != 0:
 			PlatformManager.releaseKey(modifiers)
-	def doubleClick(self, target, modifiers=0):
+	def doubleClick(self, target, modifiers=""):
 		""" Moves the cursor to the target location and double-clicks the default mouse button. """
 		target_location = None
 		mouse = Mouse()
@@ -522,8 +522,8 @@ class Region(object):
 		time.sleep(0.2)
 
 		if modifiers != 0:
-			key.toggle('', False, modifiers)
-	def rightClick(self, target, modifiers=0):
+			PlatformManager.releaseKey(modifiers)
+	def rightClick(self, target, modifiers=""):
 		""" Moves the cursor to the target location and clicks the right mouse button. """
 		target_location = None
 		mouse = Mouse()
@@ -544,7 +544,7 @@ class Region(object):
 			PlatformManager.pressKey(modifiers)
 
 		mouse.moveSpeed(target_location, self._defaultMouseSpeed)
-		mouse.click(button=autopy.mouse.RIGHT_BUTTON)
+		mouse.click(Mouse.RIGHT)
 		time.sleep(0.2)
 
 		if modifiers != "":

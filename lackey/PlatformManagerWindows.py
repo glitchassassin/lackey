@@ -256,6 +256,8 @@ class PlatformManagerWindows(object):
 	def pressKey(self, text):
 		""" Accepts a string of keys in typeKeys format (see below). Holds down all of them. """
 
+		if not isinstance(text, basestring):
+			raise TypeError("pressKey expected text to be a string")
 		in_special_code = False
 		special_code = ""
 		for i in range(0, len(text)):
