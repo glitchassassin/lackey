@@ -320,28 +320,43 @@ class TestScreenMethods(unittest.TestCase):
 		self.assertNotEqual(tpath, "")
 
 class TestComplexFeatures(unittest.TestCase):
-	def setUp(self):
+	def testTypeCopyPaste(self):
 		if sys.platform.startswith("win"):
-			self.app = lackey.App("notepad.exe").open()
+			app = lackey.App("notepad.exe").open()
 			time.sleep(1)
 		else:
 			raise NotImplementedError("Platforms supported include: Windows")
-		self.window = lackey.App("Untitled - Notepad")
-		self.r = self.window.window()
-	def tearDown(self):
-		if sys.platform.startswith("win"):
-			self.app.close()
+		window = lackey.App("Untitled - Notepad")
+		r = window.getRegion()
 
-	def testTypeCopyPaste(self):
-		self.r.type("This is a +test") # Type should translate "+" into shift modifier for capital first letters
-		self.r.type("^a") # Select all
-		self.r.type("^c") # Copy
-		self.assertEqual(self.r.getClipboard(), "This is a Test")
-		self.r.type("{DELETE}") # Clear the selected text
-		self.r.paste("This, on the other hand, is a +broken +record.") # Paste should ignore special characters and insert the string as is
-		self.r.type("^a") # Select all
-		self.r.type("^c") # Copy
-		self.assertEqual(self.r.getClipboard(), "This, on the other hand, is a +broken +record.")
+		r.type("This is a +test") # Type should translate "+" into shift modifier for capital first letters
+		r.type("^a") # Select all
+		r.type("^c") # Copy
+		self.assertEqual(r.getClipboard(), "This is a Test")
+		r.type("{DELETE}") # Clear the selected text
+		r.paste("This, on the other hand, is a +broken +record.") # Paste should ignore special characters and insert the string as is
+		r.type("^a") # Select all
+		r.type("^c") # Copy
+		self.assertEqual(r.getClipboard(), "This, on the other hand, is a +broken +record.")
+
+		if sys.platform.startswith("win"):
+			app.close()
+
+	def testOpenApp(self):
+		""" This looks for the specified Notepad icon on the desktop.
+
+		This test will probably fail if you don't have the same setup I do. 
+		"""
+		r = lackey.Screen(0)
+		r.doubleClick("notepad.png")
+		time.sleep(2)
+		r.type("This is a test")
+		r.rightClick("test_text.png")
+		r.click("select_all.png")
+		r.type("^c") # Copy
+		self.assertEqual(r.getClipboard(), "This is a test")
+		r.type("{DELETE}")
+		r.type("%{F4}")
 
 class TestRegionFeatures(unittest.TestCase):
 	def setUp(self):
