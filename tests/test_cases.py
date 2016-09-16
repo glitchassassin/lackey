@@ -326,8 +326,7 @@ class TestComplexFeatures(unittest.TestCase):
 			time.sleep(1)
 		else:
 			raise NotImplementedError("Platforms supported include: Windows")
-		window = lackey.App("Untitled - Notepad")
-		r = window.getRegion()
+		r = app.window()
 
 		r.type("This is a +test") # Type should translate "+" into shift modifier for capital first letters
 		r.type("^a") # Select all
@@ -351,7 +350,7 @@ class TestComplexFeatures(unittest.TestCase):
 		r.doubleClick("notepad.png")
 		time.sleep(2)
 		r.type("This is a test")
-		r.rightClick("test_text.png")
+		r.rightClick(lackey.Pattern("test_text.png").similar(0.6))
 		r.click("select_all.png")
 		r.type("^c") # Copy
 		self.assertEqual(r.getClipboard(), "This is a test")
