@@ -5,7 +5,7 @@ import time
 import sys
 import os
 sys.path.insert(0, os.path.abspath('..'))
-import lackey
+import .lackey
 
 class TestLocationMethods(unittest.TestCase):
 	def setUp(self):
