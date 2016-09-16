@@ -62,6 +62,12 @@ class Pattern(object):
 		""" Returns the target offset as a Location(dx, dy) """
 		return self.offset
 
+	def debugPreview(self, title="Debug"):
+		haystack = cv2.imread(self.path)
+		cv2.imshow(title, haystack)
+		cv2.waitKey(0)
+		cv2.destroyAllWindows()
+
 class Region(object):
 	def __init__(self, *args):
 		if len(args) == 4:
@@ -438,7 +444,6 @@ class Region(object):
 				raise TypeError("find expected a string [image path] or Pattern object")
 			pattern = Pattern(pattern)
 
-		tolerance = pattern.getTolerance()
 		needle = cv2.imread(pattern.path)
 		#needle = cv2.cvtColor(needle, cv2.COLOR_BGR2GRAY)
 		position = True
@@ -544,11 +549,12 @@ class Region(object):
 			PlatformManager.pressKey(modifiers)
 
 		mouse.moveSpeed(target_location, self._defaultMouseSpeed)
+		time.sleep(0.1) # For responsiveness
 		if Settings.ClickDelay > 0:
 			time.sleep(min(1.0, Settings.ClickDelay))
 			Settings.ClickDelay = 0.0
 		mouse.click()
-		time.sleep(0.2)
+		time.sleep(0.1)
 
 		if modifiers != 0:
 			PlatformManager.releaseKey(modifiers)
@@ -573,6 +579,7 @@ class Region(object):
 			PlatformManager.pressKey(modifiers)
 
 		mouse.moveSpeed(target_location, self._defaultMouseSpeed)
+		time.sleep(0.1)
 		if Settings.ClickDelay > 0:
 			time.sleep(min(1.0, Settings.ClickDelay))
 			Settings.ClickDelay = 0.0
@@ -582,7 +589,7 @@ class Region(object):
 			time.sleep(min(1.0, Settings.ClickDelay))
 			Settings.ClickDelay = 0.0
 		mouse.click()
-		time.sleep(0.2)
+		time.sleep(0.1)
 
 		if modifiers != 0:
 			PlatformManager.releaseKey(modifiers)
@@ -607,11 +614,12 @@ class Region(object):
 			PlatformManager.pressKey(modifiers)
 
 		mouse.moveSpeed(target_location, self._defaultMouseSpeed)
+		time.sleep(0.1)
 		if Settings.ClickDelay > 0:
 			time.sleep(min(1.0, Settings.ClickDelay))
 			Settings.ClickDelay = 0.0
 		mouse.click(Mouse.RIGHT)
-		time.sleep(0.2)
+		time.sleep(0.1)
 
 		if modifiers != "":
 			PlatformManager.releaseKey(modifiers)
@@ -1123,7 +1131,7 @@ class Mouse(object):
 		x, y = PlatformManager.getMousePos()
 		return Location(x, y)
 
-	def moveSpeed(self, location, seconds=1):
+	def moveSpeed(self, location, seconds=0.3):
 		""" Moves cursor to specified ``Location`` over ``seconds``. 
 
 		If ``seconds`` is 0, moves the cursor immediately. Used for smooth
@@ -1141,7 +1149,7 @@ class Mouse(object):
 			location.x = min(max(location.x, s_x), s_x+s_w)
 			location.y = min(max(location.y, s_y), s_y+s_h)
 
-		frames = int(seconds*0.1 / self._defaultScanRate)
+		frames = int(seconds / self._defaultScanRate)
 		while frames > 0:
 			mouse_pos = self.getPos()
 			deltax = int(round(float(location.x - mouse_pos.x) / frames))

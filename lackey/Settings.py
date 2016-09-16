@@ -136,12 +136,12 @@ class SettingsMaster(object):
 	OberveMinChangedPixels = 50 # Threshold to trigger onChange() (not implemented yet)
 
 	## Keyboard/Mouse Settings
-	MoveMouseDelay = 0.5 # Time to take moving mouse to target location
+	MoveMouseDelay = 0.3 # Time to take moving mouse to target location
 	DelayBeforeMouseDown = 0.3
 	DelayBeforeDrag = 0.3
 	DelayBeforeDrop = 0.3
-	ClickDelay = 0.0 # Reset to 0 after next click
-	TypeDelay = 0.0 # Reset to 0 after next keypress
+	ClickDelay = 0.0 # Resets to 0 after next click
+	TypeDelay = 0.0 # Resets to 0 after next keypress
 
 	## Action Settings
 	ShowActions = False

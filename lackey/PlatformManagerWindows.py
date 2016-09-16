@@ -48,7 +48,7 @@ class PlatformManagerWindows(object):
 			"ALT": 			0x12,
 			"PAUSE": 		0x13,
 			"CAPS_LOCK": 	0x14,
-			"ESCAPE": 		0x1b,
+			"ESC": 			0x1b,
 			"SPACE":		0x20,
 			"PAGE_UP":		0x21,
 			"PAGE_DOWN":	0x22,
