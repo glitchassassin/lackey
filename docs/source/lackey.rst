@@ -57,14 +57,6 @@ lackey.Keyboard class
     :undoc-members:
     :show-inheritance:
 
-lackey.Window class
-------------------------
-
-.. autoclass:: lackey.Window
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 lackey.App class
 ------------------------
 

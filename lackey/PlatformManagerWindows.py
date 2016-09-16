@@ -1,22 +1,30 @@
+import os
 import re
 import time
 import numpy
 import ctypes
 try:
-	from Tkinter import Tk
+	import Tkinter as tk
 except ImportError:
-	from tkinter import Tk
+	import tkinter as tk
 from ctypes import wintypes
-from PIL import Image
-from PIL import ImageOps
+from PIL import Image, ImageTk, ImageOps
+from .Settings import Debug
 
 class PlatformManagerWindows(object):
 	""" Abstracts Windows-specific OS-level features like mouse/keyboard control """
 	def __init__(self):
+		#self._root = tk.Tk()
+		#self._root.overrideredirect(1)
+		#self._root.withdraw()
 		user32 = ctypes.WinDLL('user32', use_last_error=True)
 		gdi32 = ctypes.WinDLL('gdi32', use_last_error=True)
+		kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
+		psapi = ctypes.WinDLL('psapi', use_last_error=True)
 		self._user32 = user32
 		self._gdi32 = gdi32
+		self._kernel32 = kernel32
+		self._psapi = psapi
 		self._INPUT_MOUSE    = 0
 		self._INPUT_KEYBOARD = 1
 		self._INPUT_HARDWARE = 2
@@ -40,7 +48,7 @@ class PlatformManagerWindows(object):
 			"ALT": 			0x12,
 			"PAUSE": 		0x13,
 			"CAPS_LOCK": 	0x14,
-			"ESCAPE": 		0x1b,
+			"ESC": 			0x1b,
 			"SPACE":		0x20,
 			"PAGE_UP":		0x21,
 			"PAGE_DOWN":	0x22,
@@ -430,17 +438,17 @@ class PlatformManagerWindows(object):
 	## Screen functions
 
 	def getBitmapFromRect(self, x, y, w, h):
-	 	""" Capture the specified area of the (virtual) screen. """
-	 	min_x, min_y, screen_width, screen_height = self._getVirtualScreenRect()
-	 	img = self._getVirtualScreenBitmap()
-	 	# Limit the coordinates to the virtual screen
-	 	# Then offset so 0,0 is the top left corner of the image
-	 	# (Top left of virtual screen could be negative)
-	 	x1 = min(max(min_x, x), min_x+screen_width) - min_x
-	 	y1 = min(max(min_y, y), min_y+screen_height) - min_y
-	 	x2 = min(max(min_x, x+w), min_x+screen_width) - min_x
-	 	y2 = min(max(min_y, y+h), min_y+screen_height) - min_y
-	 	return numpy.array(img.crop((x1, y1, x2, y2)))
+		""" Capture the specified area of the (virtual) screen. """
+		min_x, min_y, screen_width, screen_height = self._getVirtualScreenRect()
+		img = self._getVirtualScreenBitmap()
+		# Limit the coordinates to the virtual screen
+		# Then offset so 0,0 is the top left corner of the image
+		# (Top left of virtual screen could be negative)
+		x1 = min(max(min_x, x), min_x+screen_width) - min_x
+		y1 = min(max(min_y, y), min_y+screen_height) - min_y
+		x2 = min(max(min_x, x+w), min_x+screen_width) - min_x
+		y2 = min(max(min_y, y+h), min_y+screen_height) - min_y
+		return numpy.array(img.crop((x1, y1, x2, y2)))
 	def getScreenBounds(self, screenId):
 		""" Returns the screen size of the specified monitor (0 being the main monitor). """
 		screen_details = self.getScreenDetails()
@@ -644,21 +652,41 @@ class PlatformManagerWindows(object):
 	## Clipboard functions
 
 	def getClipboard(self):
-		""" Uses Tkinter to fetch any text on the clipboard. """
-		r = Tk()
-		r.withdraw()
-		r.update()
-		to_return = str(r.clipboard_get())
-		r.destroy()
+		""" Uses Tkinter to fetch any text on the clipboard. 
+
+		If a Tkinter root window has already been created somewhere else,
+		uses that instead of creating a new one.
+		"""
+		if tk._default_root is None:
+			temporary_root = True
+			root = tk.Tk()
+			root.withdraw()
+		else:
+			temporary_root = False
+			root = tk._default_root
+		root.update()
+		to_return = str(root.clipboard_get())
+		if temporary_root:
+			root.destroy()
 		return to_return
 	def setClipboard(self, text):
-		""" Uses Tkinter to set the system clipboard """
-		r = Tk()
-		r.withdraw()
-		r.clipboard_clear()
-		r.clipboard_append(text)
-		r.update()
-		r.destroy()
+		""" Uses Tkinter to set the system clipboard.
+
+		If a Tkinter root window has already been created somewhere else,
+		uses that instead of creating a new one.
+		"""
+		if tk._default_root is None:
+			temporary_root = True
+			root = tk.Tk()
+			root.withdraw()
+		else:
+			temporary_root = False
+			root = tk._default_root
+		root.clipboard_clear()
+		root.clipboard_append(text)
+		root.update()
+		if temporary_root:
+			root.destroy()
 	def osCopy(self):
 		""" Triggers the OS "copy" keyboard shortcut """
 		self.typeKeys("^c")
@@ -668,7 +696,7 @@ class PlatformManagerWindows(object):
 
 	## Window functions
 
-	def getWindowByTitle(self, wildcard):
+	def getWindowByTitle(self, wildcard, order=0):
 		""" Returns a platform-specific handle for the first window that matches the provided "wildcard" regex """
 		EnumWindowsProc = ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.POINTER(ctypes.c_int), ctypes.py_object)
 		def callback(hwnd, context):
@@ -676,24 +704,46 @@ class PlatformManagerWindows(object):
 				length = ctypes.windll.user32.GetWindowTextLengthW(hwnd)
 				buff = ctypes.create_unicode_buffer(length + 1)
 				ctypes.windll.user32.GetWindowTextW(hwnd, buff, length + 1)
-				if re.match(context["wildcard"], buff.value) != None:
-					context["handle"] = hwnd
+				if re.search(context["wildcard"], buff.value) != None and not context["handle"]:
+					if context["order"] > 0:
+						context["order"] -= 1
+					else:
+						context["handle"] = hwnd
 			return True
-		data = {"wildcard": wildcard, "handle": None}
+		data = {"wildcard": wildcard, "handle": None, "order": order}
+		ctypes.windll.user32.EnumWindows(EnumWindowsProc(callback), ctypes.py_object(data))
+		return data["handle"]
+	def getWindowByPID(self, pid, order=0):
+		""" Returns a platform-specific handle for the first window that matches the provided PID """
+		if pid <= 0:
+			return None
+		EnumWindowsProc = ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.POINTER(ctypes.c_int), ctypes.py_object)
+		def callback(hwnd, context):
+			if ctypes.windll.user32.IsWindowVisible(hwnd):
+				pid = ctypes.c_long()
+				ctypes.windll.user32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
+				if context["pid"] == int(pid.value) and not context["handle"]:
+					if context["order"] > 0:
+						context["order"] -= 1
+					else:
+						context["handle"] = hwnd
+			return True
+		data = {"pid": pid, "handle": None, "order": order}
 		ctypes.windll.user32.EnumWindows(EnumWindowsProc(callback), ctypes.py_object(data))
 		return data["handle"]
 	def getWindowRect(self, hwnd):
-		""" Returns a rect (x1,y1,x2,y2) for the specified window's area """
+		""" Returns a rect (x,y,w,h) for the specified window's area """
 		rect = ctypes.wintypes.RECT()
 		if ctypes.windll.user32.GetWindowRect(hwnd, ctypes.byref(rect)):
 			x1 = rect.left
 			y1 = rect.top
 			x2 = rect.right
 			y2 = rect.bottom
-			return (x1, y1, x2, y2)
+			return (x1, y1, x2-x1, y2-y1)
 		return None
 	def focusWindow(self, hwnd):
 		""" Brings specified window to the front """
+		Debug.log(3, "Focusing window: " + str(hwnd))
 		SW_RESTORE = 9
 		if ctypes.windll.user32.IsIconic(hwnd):
 			ctypes.windll.user32.ShowWindow(hwnd, SW_RESTORE)
@@ -707,5 +757,110 @@ class PlatformManagerWindows(object):
 	def getWindowPID(self, hwnd):
 		""" Gets the process ID that the specified window belongs to """
 		pid = ctypes.c_long()
-		ctypes.windll.user32.GetWindowThreadProcessId(hwnd, pid)
+		ctypes.windll.user32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
 		return int(pid.value)
+	def getForegroundWindow(self):
+		""" Returns a handle to the window in the foreground """
+		return self._user32.GetForegroundWindow()
+
+	## Highlighting functions
+
+	def highlight(self, rect, seconds=1):
+		""" Simulates a transparent rectangle over the specified ``rect`` on the screen. 
+
+		Actually takes a screenshot of the region and displays with a
+		rectangle border in a borderless window (due to Tkinter limitations)
+
+		If a Tkinter root window has already been created somewhere else,
+		uses that instead of creating a new one.
+		"""
+		if tk._default_root is None:
+			Debug.log(3, "Creating new temporary Tkinter root")
+			temporary_root = True
+			root = tk.Tk()
+			root.withdraw()
+		else:
+			Debug.log(3, "Borrowing existing Tkinter root")
+			temporary_root = False
+			root = tk._default_root
+		image_to_show = self.getBitmapFromRect(*rect)
+		app = highlightWindow(root, rect, image_to_show)
+		timeout = time.time()+seconds
+		while time.time() < timeout:
+			app.update_idletasks()
+			app.update()
+		app.destroy()
+		if temporary_root:
+			root.destroy()
+
+	## Process functions
+	def isPIDValid(self, pid):
+		""" Checks if a PID is associated with a running process """
+		## Slightly copied wholesale from http://stackoverflow.com/questions/568271/how-to-check-if-there-exists-a-process-with-a-given-pid
+		## Thanks to http://stackoverflow.com/users/1777162/ntrrgc and http://stackoverflow.com/users/234270/speedplane
+		class ExitCodeProcess(ctypes.Structure):
+			_fields_ = [ ('hProcess', ctypes.c_void_p),
+				('lpExitCode', ctypes.POINTER(ctypes.c_ulong))]
+		SYNCHRONIZE = 0x100000
+		PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
+		process = self._kernel32.OpenProcess(SYNCHRONIZE|PROCESS_QUERY_LIMITED_INFORMATION, 0, pid)
+		if not process:
+			return False
+		ec = ExitCodeProcess()
+		out = self._kernel32.GetExitCodeProcess(process, ctypes.byref(ec))
+		if not out:
+			err = self._kernel32.GetLastError()
+			if self._kernel32.GetLastError() == 5:
+				# Access is denied.
+				logging.warning("Access is denied to get pid info.")
+			self._kernel32.CloseHandle(process)
+			return False
+		elif bool(ec.lpExitCode):
+			# There is an exit code, it quit
+			self._kernel32.CloseHandle(process)
+			return False
+		# No exit code, it's running.
+		self._kernel32.CloseHandle(process)
+		return True
+	def killProcess(self, pid):
+		""" Kills the process with the specified PID (if possible) """
+		SYNCHRONIZE = 0x00100000L
+		PROCESS_TERMINATE = 0x0001
+		hProcess = self._kernel32.OpenProcess(SYNCHRONIZE|PROCESS_TERMINATE, True, pid)
+		result = self._kernel32.TerminateProcess(hProcess, 0)
+		self._kernel32.CloseHandle(hProcess)
+	def getProcessName(self, pid):
+		if pid <= 0:
+			return ""
+		MAX_PATH_LEN = 2048
+		proc_name = ctypes.create_string_buffer(MAX_PATH_LEN)
+		PROCESS_VM_READ = 0x0010
+		PROCESS_QUERY_INFORMATION = 0x0400
+		hProcess = self._kernel32.OpenProcess(PROCESS_VM_READ|PROCESS_QUERY_INFORMATION, 0, pid)
+		#self._psapi.GetProcessImageFileName.restype = ctypes.wintypes.DWORD
+		self._psapi.GetModuleFileNameExA(hProcess, 0, ctypes.byref(proc_name), MAX_PATH_LEN)
+		return os.path.basename(str(proc_name.value))
+
+## Helper class for highlighting
+
+class highlightWindow(tk.Toplevel):
+	def __init__(self, root, rect, screen_cap):
+		""" Accepts rect as (x,y,w,h) """
+		self.root = root
+		tk.Toplevel.__init__(self, self.root, bg="red", bd=0)
+
+		## Set toplevel geometry, remove borders, and push to the front
+		self.geometry("{2}x{3}+{0}+{1}".format(*rect))
+		self.overrideredirect(1)
+		self.attributes("-topmost", True)
+
+		## Create canvas and fill it with the provided image. Then draw rectangle outline
+		self.canvas = tk.Canvas(self, width=rect[2], height=rect[3], bd=0, bg="blue", highlightthickness=0)
+		self.tk_image = ImageTk.PhotoImage(Image.fromarray(screen_cap[...,[2,1,0]]))
+		self.canvas.create_image(0,0,image=self.tk_image,anchor=tk.NW)
+		self.canvas.create_rectangle(2,2,rect[2]-2,rect[3]-2, outline="red", width=4)#, outline="red", fill="")
+		self.canvas.pack(fill=tk.BOTH, expand=tk.YES)
+
+		## Lift to front if necessary and refresh.
+		self.lift()
+		self.update()

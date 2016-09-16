@@ -4,8 +4,10 @@ import platform
 
 from .PlatformManagerWindows import PlatformManagerWindows
 from .KeyCodes import Button, Key, KeyModifier
-from .RegionMatching import Pattern, Region, Match, Screen, Location, Mouse, Keyboard, Window, App
+from .RegionMatching import Pattern, Region, Match, Screen, Location, Mouse, Keyboard, App
 from .Exceptions import FindFailed
+from .Settings import Debug, Settings
+import SikuliGui
 
 #if platform.system() == "Windows":
 #	PlatformManager = PlatformManagerWindows() # No other input managers built yet
