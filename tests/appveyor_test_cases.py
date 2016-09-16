@@ -39,7 +39,7 @@ class TestLocationMethods(unittest.TestCase):
 
 class TestPatternMethods(unittest.TestCase):
 	def setUp(self):
-		self.pattern = lackey.Pattern("test_pattern.png")
+		self.pattern = lackey.Pattern("tests\\test_pattern.png")
 	
 	def test_defaults(self):
 		self.assertEqual(self.pattern.similarity, 0.7)
