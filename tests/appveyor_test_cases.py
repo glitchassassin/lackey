@@ -95,7 +95,6 @@ class TestPatternMethods(unittest.TestCase):
 
 class TestInterfaces(unittest.TestCase):
 	""" This class tests Sikuli interface compatibility on a surface level.
-
 	Makes sure the class has the correct methods, and that the methods have the
 	expected number of arguments.
 	"""
