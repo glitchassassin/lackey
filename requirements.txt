@@ -4,3 +4,4 @@
 ###### Requirements without Version Specifiers ######
 numpy
 pillow
+opencv-python
