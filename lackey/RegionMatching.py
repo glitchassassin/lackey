@@ -63,6 +63,7 @@ class Pattern(object):
 		return self.offset
 
 	def debugPreview(self, title="Debug"):
+		""" Loads and displays the image at ``Pattern.path`` """
 		haystack = cv2.imread(self.path)
 		cv2.imshow(title, haystack)
 		cv2.waitKey(0)
