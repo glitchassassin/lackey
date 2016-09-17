@@ -1,38 +1,58 @@
+from PIL import Image, ImageTk
+import Tkinter as tk
+import subprocess
 import tempfile
 import platform
-import time
-import os
-
 import numpy
+import time
 import cv2
+import sys
+import os
+import re
+
 
 from .PlatformManagerWindows import PlatformManagerWindows
 from .Exceptions import FindFailed
+from .Settings import Settings, Debug
 
 if platform.system() == "Windows":
 	PlatformManager = PlatformManagerWindows() # No other input managers built yet
 else:
 	if not (os.environ.get('READTHEDOCS') == 'True'): # Avoid throwing an error if it's just being imported for documentation purposes
-		raise NotImplementedError("Lackey v0.1.0a is currently only compatible with Windows.")
+		raise NotImplementedError("Lackey is currently only compatible with Windows.")
 	
 class Pattern(object):
 	""" Defines a pattern based on a bitmap, similarity, and target offset """
-	def __init__(self, path, similarity=0.7, offset=None):
+	def __init__(self, path):
+		## Make sure all image paths are set
+		for image_path in [Settings.BundlePath] + Settings.ImagePaths:
+			if image_path not in sys.path:
+				sys.path.append(image_path)
+		## Check if path is valid
+		if not os.path.exists(path):
+			raise OSError("File not found: {}".format(path))
 		self.path = path
-		self.similarity = similarity
-		self.offset = offset or Location(0,0)
+		self.similarity = 0.7
+		self.offset = Location(0,0)
 
 	def similar(self, similarity):
 		""" Returns a new Pattern with the specified similarity threshold """
-		return Pattern(self.path, similarity)
+		pattern = Pattern(self.path)
+		pattern.similarity = similarity
+		return pattern
 
 	def exact(self):
 		""" Returns a new Pattern with a similarity threshold of 1.0 """
-		return Pattern(self.path, 1.0)
+		pattern = Pattern(self.path)
+		pattern.similarity = 1.0
+		return pattern
 
 	def targetOffset(self, dx, dy):
 		""" Returns a new Pattern with the given target offset """
-		return Pattern(self.path, self.similarity, Location(dx, dy))
+		pattern = Pattern(self.path)
+		pattern.similarity = self.similarity
+		pattern.offset = Location(dx, dy)
+		return pattern
 
 	def getFilename(self):
 		""" Returns the path to this Pattern's bitmap """
@@ -42,15 +62,33 @@ class Pattern(object):
 		""" Returns the target offset as a Location(dx, dy) """
 		return self.offset
 
+	def debugPreview(self, title="Debug"):
+		""" Loads and displays the image at ``Pattern.path`` """
+		haystack = cv2.imread(self.path)
+		cv2.imshow(title, haystack)
+		cv2.waitKey(0)
+		cv2.destroyAllWindows()
+
 class Region(object):
-	def __init__(self, x, y, w, h):
+	def __init__(self, *args):
+		if len(args) == 4:
+			x,y,w,h = args
+		elif len(args) == 1:
+			if isinstance(args[0], Region):
+				x,y,w,h = args[0].getTuple()
+			elif isinstance(args[0], tuple):
+				x,y,w,h = args[0]
+			else:
+				raise TypeError("Unrecognized argument for Region()")
+		else:
+			raise TypeError("Unrecognized argument(s) for Region()")
 		self.setROI(x, y, w, h)
 		self._lastMatch = None
 		self._lastMatches = []
 		self._lastMatchTime = 0
 		self.autoWaitTimeout = 3.0
-		self._defaultScanRate = 0.1
-		self._defaultMouseSpeed = 1
+		self._defaultScanRate = 1/Settings.WaitScanRate # Converts searches per second to actual second interval
+		self._defaultMouseSpeed = Settings.MoveMouseDelay
 		self._defaultTypeSpeed = 0.05
 		self._raster = (0,0)
 
@@ -88,8 +126,19 @@ class Region(object):
 		self.y = location.y
 		return self
 
-	def setROI(self, x, y, w, h):
+	def setROI(self, *args):
 		""" Set Region of Interest (same as Region.setRect()) """
+		if len(args) == 4:
+			x,y,w,h = args
+		elif len(args) == 1:
+			if isinstance(args[0], Region):
+				x,y,w,h = args[0].getTuple()
+			elif isinstance(args[0], tuple):
+				x,y,w,h = args[0]
+			else:
+				raise TypeError("Unrecognized argument for Region()")
+		else:
+			raise TypeError("Unrecognized argument(s) for Region()")
 		self.setX(x)
 		self.setY(y)
 		self.setW(w)
@@ -156,8 +205,11 @@ class Region(object):
 		""" Get the current scan rate """
 		return 1/self._defaultScanRate
 
-	def offset(self, location):
+	def offset(self, location, dy=0):
 		""" Returns a new ``Region`` of the same width and height, but offset from this one by ``location`` """
+		if not isinstance(location, Location):
+			# Assume variables passed were dx,dy
+			location = Location(location, dy)
 		r = Region(self.x+location.x, self.y+location.y, self.w, self.h).clipRegionToScreen()
 		if r is None:
 			raise FindFailed("Specified region is not visible on any screen")
@@ -206,8 +258,6 @@ class Region(object):
 		So it does not include the current region. If range is omitted, it reaches to the bottom of the screen. 
 		The new region has the same width and x-position as the current region. 
 		"""
-		print self.getScreen()
-		print self.getScreen().getBounds()
 		if expand == None:
 			x = self.x
 			y = self.y+self.h
@@ -276,27 +326,26 @@ class Region(object):
 		cv2.imshow(title, haystack)
 		cv2.waitKey(0)
 		cv2.destroyAllWindows()
-	def highlight(self):
+	def highlight(self, seconds=1):
 		""" Temporarily using ``debugPreview()`` to show the region instead of highlighting it
 
 		Probably requires transparent GUI creation/manipulation. TODO
 		"""
-		return self.debugPreview()
-		#raise NotImplementedError("highlight not yet supported.")
+		PlatformManager.highlight((self.getX(), self.getY(), self.getW(), self.getH()), seconds)
 
-	def find(self, pattern, seconds=None):
+	def find(self, pattern):
 		""" Searches for an image pattern in the given region
 
 		Throws ``FindFailed`` exception if the image could not be found.
 		Sikuli supports OCR search with a text parameter. This does not (yet).
 		"""
-		match = self.exists(pattern, seconds)
+		match = self.exists(pattern)
 		if match is None:
 			path = pattern.path if isinstance(pattern, Pattern) else pattern
 			raise FindFailed("Could not find pattern '{}'".format(path))
 			return None
 		return match
-	def findAll(self, pattern, seconds=None):
+	def findAll(self, pattern):
 		""" Searches for an image pattern in the given region
 		
 		Returns ``Match`` object if ``pattern`` exists, empty array otherwise (does not throw exception)
@@ -307,8 +356,7 @@ class Region(object):
 		if r is None:
 			raise FindFailed("Region outside all visible screens")
 			return None
-		if seconds is None:
-			seconds = self.autoWaitTimeout
+		seconds = self.autoWaitTimeout
 		if isinstance(pattern, int):
 			time.sleep(pattern)
 			return
@@ -345,7 +393,7 @@ class Region(object):
 		lastMatches = []
 		
 		if len(positions) == 0:
-			print("Couldn't find '{}' with enough similarity.".format(pattern.path))
+			Debug.info("Couldn't find '{}' with enough similarity.".format(pattern.path))
 			return None
 		# Translate local position into global screen position
 		positions.sort(key=lambda x: (x[1], -x[0]))
@@ -353,7 +401,7 @@ class Region(object):
 			x, y, confidence = position
 			lastMatches.append(Match(confidence, pattern.offset, ((x+self.x, y+self.y), (needle_width, needle_height))))
 		self._lastMatches = iter(lastMatches)
-		print("Found match(es) for pattern '{}' at similarity ({})".format(pattern.path, pattern.similarity))
+		Debug.info("Found match(es) for pattern '{}' at similarity ({})".format(pattern.path, pattern.similarity))
 		self._lastMatchTime = (time.time() - find_time) * 1000 # Capture find time in milliseconds
 		return self._lastMatches
 	def wait(self, pattern, seconds=None):
@@ -362,7 +410,19 @@ class Region(object):
 		Functionally identical to find()
 		Sikuli supports OCR search with a text parameter. This does not (yet).
 		"""
-		return self.find(pattern, seconds)
+		if seconds:
+			timeout = time.time() + seconds
+		else:
+			timeout = time.time()
+		while True:
+			match = self.exists(pattern)
+			if match:
+				return match
+			if time.time() >= timeout:
+				break
+		path = pattern.path if isinstance(pattern, Pattern) else pattern
+		raise FindFailed("Could not find pattern '{}'".format(path))
+		return None
 	def waitVanish(self, pattern, seconds=None):
 		""" Waits until the specified pattern is not visible on screen. 
 
@@ -385,7 +445,6 @@ class Region(object):
 				raise TypeError("find expected a string [image path] or Pattern object")
 			pattern = Pattern(pattern)
 
-		tolerance = pattern.getTolerance()
 		needle = cv2.imread(pattern.path)
 		#needle = cv2.cvtColor(needle, cv2.COLOR_BGR2GRAY)
 		position = True
@@ -459,13 +518,13 @@ class Region(object):
 					position = max_loc
 			time.sleep(self._defaultScanRate)
 		if not position:
-			print("Couldn't find '{}' with enough similarity. Best match {} at ({},{})".format(pattern.path, confidence, best_loc[0], best_loc[1]))
+			Debug.info("Couldn't find '{}' with enough similarity. Best match {} at ({},{})".format(pattern.path, confidence, best_loc[0], best_loc[1]))
 			return None
 		# Translate local position into global screen position
 		position = (position[0] + self.x, position[1] + self.y)
 		self._lastMatch = Match(confidence, pattern.offset, (position, (needle_width, needle_height)))
 		#self._lastMatch.debug_preview()
-		print("Found match for pattern '{}' at ({},{}) with confidence ({}). Target at ({},{})".format(pattern.path, self._lastMatch.getX(), self._lastMatch.getY(), self._lastMatch.getScore(), self._lastMatch.getTarget().x, self._lastMatch.getTarget().y))
+		Debug.info("Found match for pattern '{}' at ({},{}) with confidence ({}). Target at ({},{})".format(pattern.path, self._lastMatch.getX(), self._lastMatch.getY(), self._lastMatch.getScore(), self._lastMatch.getTarget().x, self._lastMatch.getTarget().y))
 		self._lastMatchTime = (time.time() - find_time) * 1000 # Capture find time in milliseconds
 		return self._lastMatch
 
@@ -491,11 +550,16 @@ class Region(object):
 			PlatformManager.pressKey(modifiers)
 
 		mouse.moveSpeed(target_location, self._defaultMouseSpeed)
+		time.sleep(0.1) # For responsiveness
+		if Settings.ClickDelay > 0:
+			time.sleep(min(1.0, Settings.ClickDelay))
+			Settings.ClickDelay = 0.0
 		mouse.click()
-		time.sleep(0.2)
+		time.sleep(0.1)
 
 		if modifiers != 0:
 			PlatformManager.releaseKey(modifiers)
+		Debug.history("Clicked at {}".format(target_location))
 	def doubleClick(self, target, modifiers=""):
 		""" Moves the cursor to the target location and double-clicks the default mouse button. """
 		target_location = None
@@ -516,10 +580,17 @@ class Region(object):
 			PlatformManager.pressKey(modifiers)
 
 		mouse.moveSpeed(target_location, self._defaultMouseSpeed)
+		time.sleep(0.1)
+		if Settings.ClickDelay > 0:
+			time.sleep(min(1.0, Settings.ClickDelay))
+			Settings.ClickDelay = 0.0
 		mouse.click()
 		time.sleep(0.1)
+		if Settings.ClickDelay > 0:
+			time.sleep(min(1.0, Settings.ClickDelay))
+			Settings.ClickDelay = 0.0
 		mouse.click()
-		time.sleep(0.2)
+		time.sleep(0.1)
 
 		if modifiers != 0:
 			PlatformManager.releaseKey(modifiers)
@@ -544,8 +615,12 @@ class Region(object):
 			PlatformManager.pressKey(modifiers)
 
 		mouse.moveSpeed(target_location, self._defaultMouseSpeed)
+		time.sleep(0.1)
+		if Settings.ClickDelay > 0:
+			time.sleep(min(1.0, Settings.ClickDelay))
+			Settings.ClickDelay = 0.0
 		mouse.click(Mouse.RIGHT)
-		time.sleep(0.2)
+		time.sleep(0.1)
 
 		if modifiers != "":
 			PlatformManager.releaseKey(modifiers)
@@ -585,9 +660,10 @@ class Region(object):
 		else:
 			raise TypeError("drag expected dragFrom to be Pattern, String, Match, Region, or Location object")
 		mouse.moveSpeed(dragFromLocation, self._defaultMouseSpeed)
+		time.sleep(Settings.DelayBeforeMouseDown)
 		mouse.buttonDown()
-		return 1
-	def dropAt(self, dragTo, delay=0.2):
+		Debug.history("Began drag at {}".format(dragFromLocation))
+	def dropAt(self, dragTo, delay=None):
 		""" Moves the cursor to the target location, waits ``delay`` seconds, and releases the mouse button """
 		if isinstance(dragTo, Pattern):
 			dragToLocation = self.find(dragTo).getTarget()
@@ -603,9 +679,9 @@ class Region(object):
 			raise TypeError("dragDrop expected dragTo to be Pattern, String, Match, Region, or Location object")
 
 		mouse.moveSpeed(dragToLocation, self._defaultMouseSpeed)
-		time.sleep(delay)
+		time.sleep(delay if delay is not None else Settings.DelayBeforeDrop)
 		mouse.buttonUp()
-		return 1
+		Debug.history("Ended drag at {}".format(dragToLocation))
 	def dragDrop(self, dragFrom, dragTo, modifiers=""):
 		""" Holds down the mouse button on ``dragFrom``, moves the mouse to ``dragTo``, and releases the mouse button 
 		
@@ -615,7 +691,8 @@ class Region(object):
 			PlatformManager.pressKey(modifiers)
 		
 		drag(dragFrom)
-		dropAt(dragTo, 0.1)
+		time.sleep(Settings.DelayBeforeDrag)
+		dropAt(dragTo)
 		
 		if modifiers != "":
 			PlatformManager.releaseKey(modifiers)
@@ -653,11 +730,16 @@ class Region(object):
 		text = text.replace("{PGDN}", "{PAGE_DOWN}")
 		text = text.replace("{PGUP}", "{PAGE_UP}")
 
-		print("Typing '{}'".format(text))
+		Debug.history("Typing '{}'".format(text))
 		kb = Keyboard()
 		if modifiers:
 			kb.keyDown(modifiers)
-		kb.type(text, self._defaultTypeSpeed)
+		if Settings.TypeDelay > 0:
+			typeSpeed = min(1.0, Settings.TypeDelay)
+			Settings.TypeDelay = 0.0
+		else:
+			typeSpeed = self._defaultTypeSpeed
+		kb.type(text, typeSpeed)
 		if modifiers:
 			kb.keyUp(modifiers)
 		time.sleep(0.2)
@@ -694,8 +776,12 @@ class Region(object):
 	def mouseUp(self, button):
 		""" Low-level mouse actions """
 		return PlatformManager.mouseButtonUp(button)
-	def mouseMove(self, PSRML):
+	def mouseMove(self, PSRML, dy=0):
 		""" Low-level mouse actions """
+		if isinstance(PSRML, int):
+			# Assume called as mouseMove(dx, dy)
+			offset = Location(PSRML, dy)
+			PSRML = Mouse().getPos().offset(offset)
 		Mouse().moveSpeed(PSRML)
 	def wheel(self, PSRML, direction, steps):
 		""" Clicks the wheel the specified number of ticks """
@@ -704,7 +790,7 @@ class Region(object):
 	def keyDown(self, keys):
 		""" Concatenate multiple keys to press them all down. """
 		return Keyboard().keyDown(keys)
-	def keyUp(self, *keys):
+	def keyUp(self, keys):
 		""" Concatenate multiple keys to up them all. """
 		return Keyboard().keyUp(keys)
 
@@ -776,35 +862,45 @@ class Region(object):
 			return self
 		self._raster = (rows,columns)
 		return self.getCell(0,0)
-	def getRow(self, row):
-		""" Returns the specified row of the region (if the raster is set) """
+	def getRow(self, row, numberRows=None):
+		""" Returns the specified row of the region (if the raster is set) 
+
+		If numberRows is provided, uses that instead of the raster
+		"""
 		row = int(row)
 		if self._raster[0] == 0 or self._raster[1] == 0:
 			return self
-		rowHeight = self.h / self._raster[0]
+		if numberRows is None or numberRows < 1 or numberRows > 9:
+			numberRows = self._raster[0]
+		rowHeight = self.h / numberRows
 		if row < 0:
 			# If row is negative, count backwards from the end
-			row = self._raster[0] - row
+			row = numberRows - row
 			if row < 0:
 				# Bad row index, return last row
 				return Region(self.x, self.y+self.h-rowHeight, self.w, rowHeight)
-		elif row > self._raster[0]:
+		elif row > numberRows:
 			# Bad row index, return first row
 			return Region(self.x, self.y, self.w, rowHeight)
 		return Region(self.x, self.y + (row * rowHeight), self.w, rowHeight)
-	def getCol(self, column):
-		""" Returns the specified column of the region (if the raster is set) """
+	def getCol(self, column, numberColumns=None):
+		""" Returns the specified column of the region (if the raster is set) 
+
+		If numberColumns is provided, uses that instead of the raster
+		"""
 		column = int(column)
 		if self._raster[0] == 0 or self._raster[1] == 0:
 			return self
-		columnWidth = self.w / self._raster[1]
+		if numberColumns is None or numberColumns < 1 or numberColumns > 9:
+			numberColumns = self._raster[1]
+		columnWidth = self.w / numberColumns
 		if column < 0:
 			# If column is negative, count backwards from the end
-			column = self._raster[1] - column
+			column = numberColumns - column
 			if column < 0:
 				# Bad column index, return last column
 				return Region(self.x+self.w-columnWidth, self.y, columnWidth, self.h)
-		elif column > self._raster[1]:
+		elif column > numberColumns:
 			# Bad column index, return first column
 			return Region(self.x, self.y, columnWidth, self.h)
 		return Region(self.x + (column * columnWidth), self.y, columnWidth, self.h)
@@ -858,7 +954,6 @@ class Region(object):
 		elif isinstance(part, int) and part >= 200 and part <= 999:
 			raster, row, column = str(part)
 			self.setRaster(raster,raster)
-			#print self._raster
 			if row == raster and column == raster:
 				return self
 			elif row == raster:
@@ -881,15 +976,15 @@ class Region(object):
 			self._raster[0] = 1
 	def isRasterValid(self):
 		return self.getCols() > 0 and self.getRows() > 0
-	def getRows():
+	def getRows(self):
 		return self._raster[0]
-	def getCols():
+	def getCols(self):
 		return self._raster[1]
-	def getRowH():
+	def getRowH(self):
 		if self._raster[0] == 0:
 			return 0
 		return self.h / self._raster[0]
-	def getColW():
+	def getColW(self):
 		if self._raster[1] == 0:
 			return 0
 		return self.w / self._raster[1]
@@ -942,19 +1037,23 @@ class Screen(Region):
 	def getBounds(self):
 		""" Returns bounds of screen as (x, y, w, h) """
 		return PlatformManager.getScreenBounds(self._screenId)
-	def capture(self, x=None, y=None, w=None, h=None):
+	def capture(self, *args): #x=None, y=None, w=None, h=None):
 		""" Captures the region as an image and saves to a temporary file (specified by TMPDIR, TEMP, or TMP environmental variable) """
-		if x is None:
+		if len(args) == 0:
+			# Capture screen region
 			region = self
-		elif isinstance(x, Region):
-			region = x
-		elif isinstance(x, tuple):
-			region = Region(*x)
-		elif isinstance(x, basestring):
+		elif isinstance(args[0], Region):
+			# Capture specified region
+			region = args[0]
+		elif isinstance(args[0], tuple):
+			# Capture region defined by specified tuple
+			region = Region(*args[0])
+		elif isinstance(args[0], basestring):
 			# Interactive mode
 			raise NotImplementedError("Interactive capture mode not defined")
-		elif isinstance(x, int):
-			region = Region(x, y, w, h)
+		elif isinstance(args[0], int):
+			# Capture region defined by provided x,y,w,h
+			region = Region(*args)
 		bitmap = region.getBitmap()
 		tfile, tpath = tempfile.mkstemp(".png")
 		cv2.imwrite(tpath, bitmap)
@@ -1033,7 +1132,7 @@ class Mouse(object):
 		x, y = PlatformManager.getMousePos()
 		return Location(x, y)
 
-	def moveSpeed(self, location, seconds=1):
+	def moveSpeed(self, location, seconds=0.3):
 		""" Moves cursor to specified ``Location`` over ``seconds``. 
 
 		If ``seconds`` is 0, moves the cursor immediately. Used for smooth
@@ -1051,7 +1150,7 @@ class Mouse(object):
 			location.x = min(max(location.x, s_x), s_x+s_w)
 			location.y = min(max(location.y, s_y), s_y+s_h)
 
-		frames = int(seconds*0.1 / self._defaultScanRate)
+		frames = int(seconds / self._defaultScanRate)
 		while frames > 0:
 			mouse_pos = self.getPos()
 			deltax = int(round(float(location.x - mouse_pos.x) / frames))
@@ -1100,75 +1199,164 @@ class Keyboard(object):
 		""" Types ``text`` with ``delay`` seconds between keypresses """
 		return PlatformManager.typeKeys(text, delay)
 
-class Window(object):
-	""" Object to select (and perform basic manipulations on) a window. Stores platform-specific window handler """
-	def __init__(self, identifier=None):
-		self._handle = None
-		if identifier:
-			self.initialize_wildcard(identifier)
+class App(object):
+	""" Allows apps to be selected by title, PID, or by starting an
+	application directly. Can address individual windows tied to an
+	app.
 
-	def initialize_wildcard(self, wildcard):
-		""" Gets a window handle based on the wildcard. If there are multiple matches, it only returns one, in no particular order. """
-		self._handle = PlatformManager.getWindowByTitle(wildcard)
-		return self
-
-	def getRegion(self):
-		""" Returns a ``Region`` object corresponding to the window's shape and location. """
-		if self._handle is None:
-			return None
-		x1, y1, x2, y2 = PlatformManager.getWindowRect(self._handle)
-		return Region(x1, y1, x2-x1, y2-y1)
-
-	def focus(self, wildcard=None):
-		""" Brings the window to the foreground and gives it focus """
-		if self._handle is None:
-			return self
-		PlatformManager.focusWindow(self._handle)
-		return self
-
-	def getTitle(self):
-		""" Returns the window's title """
-		return PlatformManager.getWindowTitle(self._handle)
-
-	def getPID(self):
-		""" Returns the PID of the window's parent process """
-		if self._handle is None:
-			return -1
-		return PlatformManager.getWindowPID(self._handle)
-
-class App(Window):
-	""" Sikuli compatibility class
-
-	Eventually will allow windows to be selected by title, PID, or by starting an
-	application directly.
+	For more information, see [Sikuli's App documentation](http://sikulix-2014.readthedocs.io/en/latest/appclass.html#App)
 	"""
 	def __init__(self, identifier=None):
-		super(App, self).__init__(identifier)
+		self._pid = None
+		self._search = ""
+		self._params = ""
+		self._process = None
+		self._defaultScanRate = 0.1
+		self.proc = None
+		
+		# Replace class methods with instance methods
 		self.focus = self._focus_instance
+		self.close = self._close_instance
+		self.open = self._open_instance
+
+		# Process `identifier`
+		if isinstance(identifier, int):
+			# `identifier` is a PID
+			Debug.log(3, "Creating App by PID ({})".format(identifier))
+			self._pid = identifier
+		elif isinstance(identifier, basestring):
+			# `identifier` is either part of a window title
+			# or a command line to execute. Sikuli is ambiguous
+			# on this point: it treats the string as a window title
+			# unless explicitly told to open() the application.
+			Debug.log(3, "Creating App by string ({})".format(identifier))
+			self._search = identifier
+			self._pid = PlatformManager.getWindowPID(PlatformManager.getWindowByTitle(re.escape(self._search)))
+		else:
+			self._pid = -1 # Unrecognized identifier, setting to empty app
+
+		self._pid = self.getPID() # Confirm PID is an active process (sets to -1 otherwise)
 
 	@classmethod
-	def focus(cls, wildcard):
-		""" Sikuli-compatible "bring window to front" function
-		 
-		Accessible as App.focus(). Also converts Sikuli wildcard search to Python regex.
+	def pause(cls, waitTime):
+		time.sleep(waitTime)
+
+	@classmethod
+	def focus(cls, appName):
+		""" Searches for exact text, case insensitive, anywhere in the window title. Brings the matching window to the foreground.
+
+		As a class method, accessible as `App.focus(appName)`. As an instance method, accessible as `App(appName).focus()`.
 		"""
-		wildcard_regex = cls._convert_sikuli_wildcards(wildcard)
-		app = cls(wildcard_regex)
+		app = cls(appName)
 		return app.focus()
 
-	def _focus_instance(self, wildcard=None):
+	def _focus_instance(self):
 		""" For instances of App, the ``focus()`` classmethod is replaced with this instance method. """
-		if wildcard is not None:
-			self.initialize_wildcard(wildcard)
-		if self._handle is None:
-			return self
-		PlatformManager.focusWindow(self._handle)
+		if self._search:
+			Debug.log(3, "Focusing app with title like ({})".format(self._search))
+			PlatformManager.focusWindow(PlatformManager.getWindowByTitle(re.escape(self._search)))
+		elif self._pid:
+			Debug.log(3, "Focusing app with pid ({})".format(self._pid))
+			PlatformManager.focusWindow(PlatformManager.getWindowByPID(self._pid))
 		return self
 
 	@classmethod
-	def _convert_sikuli_wildcards(cls, wildcard):
-		""" Converts Sikuli wildcards to Python-compatible regex.
+	def close(cls, appName):
+		""" Closes the process associated with the specified app.
 
-		TODO: Clean up this conversion routine. 
+		As a class method, accessible as `App.class(appName)`. As an instance method, accessible as `App(appName).close()`. 
 		"""
-		return wildcard.replace("\\", "\\\\").replace(".", "\.").replace("*", ".*")
+		return cls(appName).close()
+	def _close_instance(self):
+		if self._process:
+			self._process.terminate()
+		else:
+			PlatformManager.killProcess(self.getPID())
+
+	@classmethod
+	def open(self, executable):
+		""" Runs the specified command and returns an App linked to the generated PID.
+
+		As a class method, accessible as `App.open(executable_path)`. As an instance method, accessible as `App(executable_path).open()`.
+
+		If run as an instance method, runs the specified command and links the instance
+		to the generated PID. 
+		"""
+		return App(executable).open()
+	def _open_instance(self, waitTime=0):
+		args = [self._search]
+		if self._params != "":
+			args.append(self._params)
+		self._process = subprocess.Popen(args, shell=False)
+		self._pid = self._process.pid
+		time.sleep(waitTime)
+		return self
+
+	@classmethod
+	def focusedWindow(cls):
+		""" Returns a Region corresponding to whatever window is in the foreground """
+		x,y,w,h = PlatformManager.getWindowRect(PlatformManager.getForegroundWindow())
+		return Region(x,y,w,h)
+
+	def getWindow(self):
+		""" Returns the title of the main window of the app.
+		"""
+		if self._process:
+			# self._search is a path, not a window title
+			return PlatformManager.getWindowTitle(PlatformManager.getWindowByPID(self.getPID()))
+		elif self._search:
+			# self._search is (part of) a window title
+			return PlatformManager.getWindowTitle(PlatformManager.getWindowByTitle(re.escape(self._search)))
+		elif self._pid > 0:
+			# Search by PID
+			return PlatformManager.getWindowTitle(PlatformManager.getWindowByPID(self.getPID()))
+		else:
+			return ""
+	def getName(self):
+		""" Returns the short name of the app as shown in the process list """
+		return PlatformManager.getProcessName(self.getPID())
+	def getPID(self):
+		""" Returns the PID for the associated app (or -1, if no app is associated or the app is not running) """
+		if self._pid is not None:
+			if not PlatformManager.isPIDValid(self._pid):
+				self._pid = -1
+			return self._pid
+		return -1
+
+	def hasWindow(self):
+		""" Returns True if the process has a window associated, False otherwise """
+		return PlatformManager.getWindowByPID(self.getPID()) is not None
+
+	def window(self, windowNum=0):
+		""" Returns the region corresponding to the specified window of the app.
+
+		Defaults to the first window found for the corresponding PID.
+		"""
+		if self._pid == -1:
+			raise FindFailed("Window not found for app \"{}\"".format(self._search))
+		x,y,w,h = PlatformManager.getWindowRect(PlatformManager.getWindowByPID(self._pid, windowNum))
+		return Region(x,y,w,h).clipRegionToScreen()
+
+	def setUsing(self, params):
+		self._params = params
+
+	def __repr__(self):
+		""" Returns a string representation of the app """
+		return "[{pid}:{executable} ({windowtitle})] {searchtext}".format(pid=self._pid, executable=self.getName(), windowtitle=self.getWindow(), searchtext=self._search)
+
+	def isRunning(self, waitTime=0):
+		""" If PID isn't set yet, checks if there is a window with the specified title. """
+		waitUntil = time.time() + waitTime
+		while True:
+			if self.getPID() > 0:
+				return True
+			else:
+				self._pid = PlatformManager.getWindowPID(PlatformManager.getWindowByTitle(re.escape(self._search)))
+
+			# Check if we've waited long enough
+			if time.time() > waitUntil:
+				break
+			else:
+				time.sleep(self._defaultScanRate)
+		return self.getPID() > 0
+

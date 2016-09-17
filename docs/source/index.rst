@@ -12,6 +12,7 @@ Contents:
    :maxdepth: 2
    
    lackey.rst
+   platformmanager.rst
    sikuli.rst
 
 

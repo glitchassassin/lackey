@@ -29,10 +29,7 @@ setup(
 	],
 	keywords="automation testing sikuli",
 	packages=find_packages(exclude=['docs', 'tests']),
-	install_requires=['pillow', 'numpy'],
-	package_data={
-		'': ['cv2.pyd']
-	},
+	install_requires=['pillow', 'numpy', 'opencv-python'],
 	include_package_data=True,
 	distclass=BinaryDistribution
 )
