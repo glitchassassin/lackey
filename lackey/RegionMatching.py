@@ -14,7 +14,7 @@ import re
 from .PlatformManagerWindows import PlatformManagerWindows
 from .Exceptions import FindFailed
 from .Settings import Settings, Debug
-from .TemplateMatchers import NaiveTemplateMatcher as TemplateMatcher 
+from .TemplateMatchers import PyramidTemplateMatcher as TemplateMatcher 
 
 if platform.system() == "Windows":
 	PlatformManager = PlatformManagerWindows() # No other input managers built yet

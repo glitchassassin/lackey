@@ -1,4 +1,5 @@
 from PIL import Image
+import itertools
 import numpy
 import cv2
 
@@ -6,10 +7,6 @@ import cv2
 
 class NaiveTemplateMatcher(object):
 	def __init__(self, haystack):
-		self.haystack = haystack
-
-	def updateHaystack(self, haystack):
-		""" Update the ``haystack`` image """
 		self.haystack = haystack
 
 	def findBestMatch(self, needle, similarity):
@@ -71,3 +68,109 @@ class NaiveTemplateMatcher(object):
 			x, y, confidence = position
 			lastMatches.append(Match(confidence, pattern.offset, ((x+self.x, y+self.y), (needle_width, needle_height))))
 		return lastMatches
+
+class PyramidTemplateMatcher(object):
+	def __init__(self, haystack):
+		self.haystack = haystack
+		self._iterations = 3 # Number of times to downsample
+
+	def findBestMatch(self, needle, similarity):
+		""" Finds the best match using a search pyramid to improve efficiency
+
+		Pyramid implementation unashamedly stolen from https://github.com/stb-tester/stb-tester
+		"""
+		levels = 3
+		haystackPyr = self._build_pyramid(self.haystack, levels)
+		needlePyr = self._build_pyramid(needle, levels)
+		roi_mask = None
+		method = cv2.TM_CCOEFF_NORMED
+
+		
+		
+		# Run through each level in the pyramid, refining found ROIs
+		for level in range(len(haystackPyr)):
+			# Populate the heatmap with ones or zeroes depending on the appropriate method
+			lvl_haystack = haystackPyr[level]
+			lvl_needle = needlePyr[level]
+			matches_heatmap = ((numpy.ones if method == cv2.TM_SQDIFF_NORMED else numpy.zeros)((lvl_haystack.shape[0] - lvl_needle.shape[0] + 1,lvl_haystack.shape[1] - lvl_needle.shape[1] + 1),dtype=numpy.float32))
+
+			# Scale up region of interest for the next level in the pyramid
+			# (if it's been set and is a valid size)
+			if roi_mask is not None:
+				if any(x < 3 for x in roi_mask.shape):
+					roi_mask = None
+				else:
+					roi_mask = cv2.pyrUp(roi_mask)
+			
+			# If roi_mask is set, only search the best candidates in haystack
+			# for the needle:
+
+			if roi_mask is None:
+				# Initialize mask to the whole image
+				rois = [(0, 0, matches_heatmap.shape[1], matches_heatmap.shape[0])]
+			else:
+				im2, contours, hierarchy = cv2.findContours( roi_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+				# Expand contour rect by 1px on all sides with some tuple magic
+				rois = [tuple(sum(y) for y in zip(cv2.boundingRect(x), (-1,-1,2,2))) for x in contours]
+
+
+			for roi in rois:
+				# Add needle dimensions to roi
+				x, y, w, h = roi
+				roi = (x, y, w+lvl_needle.shape[1]-1, h+lvl_needle.shape[0]-1)
+				roi_slice = (slice(roi[1], roi[1]+roi[3]), slice(roi[0], roi[0]+roi[2])) # numpy 2D slice
+				r_slice = (slice(y, y+h), slice(x, x+w)) # numpy 2D slice
+
+				# Search the region of interest for needle (and update heatmap)
+				matches_heatmap[r_slice] = cv2.matchTemplate(lvl_haystack[roi_slice],lvl_needle,method)
+							
+			min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(matches_heatmap)
+			# Reduce similarity to allow for scaling distortion (unless we are on the original image)
+			pyr_similarity = max(0, similarity - (0.2 if level < len(haystackPyr)-1 else 0))
+			position = None
+			confidence = None
+			# Check for a match
+			if method == cv2.TM_SQDIFF_NORMED:
+				confidence = min_val
+				best_loc = min_loc
+				if min_val <= 1-pyr_similarity:
+					# Confidence checks out
+					position = min_loc
+			else:
+				confidence = max_val
+				best_loc = max_loc
+				if max_val >= pyr_similarity:
+					# Confidence checks out
+					position = max_loc
+
+			if not position:
+				break
+
+			# Find the best regions of interest
+			ret, roi_mask = cv2.threshold(
+							matches_heatmap, # Source image
+							((1-pyr_similarity) if method == cv2.TM_SQDIFF_NORMED else pyr_similarity), # Confidence threshold
+							255, # Max value
+							(cv2.THRESH_BINARY_INV if method == cv2.TM_SQDIFF_NORMED else cv2.THRESH_BINARY)) # Thresholding style
+			roi_mask = roi_mask.astype(numpy.uint8)
+
+		# Whew! Let's see if there's a match after all that.
+
+		if not position:
+			return None
+		
+		# There was a match!
+		return (position, confidence)
+
+	def findAllMatches(self, needle, similarity):
+
+		pass
+
+	def _build_pyramid(self, image, levels):
+		""" Returns a list of reduced-size images, from smallest to original size """
+		pyramid = [image]
+		for l in range(levels-1):
+			if any(x < 20 for x in pyramid[-1].shape[:2]):
+				break
+			pyramid.append(cv2.pyrDown(pyramid[-1]))
+		return list(reversed(pyramid))
