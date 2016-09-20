@@ -14,6 +14,7 @@ import re
 from .PlatformManagerWindows import PlatformManagerWindows
 from .Exceptions import FindFailed
 from .Settings import Settings, Debug
+from .TemplateMatchers import NaiveTemplateMatcher as TemplateMatcher 
 
 if platform.system() == "Windows":
 	PlatformManager = PlatformManagerWindows() # No other input managers built yet
@@ -372,33 +373,23 @@ class Region(object):
 		needle_height, needle_width, needle_channels = needle.shape
 		positions = []
 		timeout = time.time() + seconds
-		method = cv2.TM_CCOEFF_NORMED
-		while time.time() < timeout:
-			haystack = r.getBitmap()
-			match = cv2.matchTemplate(haystack,needle,method)
-			indices = (-match).argpartition(100, axis=None)[:100] # Review the 100 top matches
-			unraveled_indices = numpy.array(numpy.unravel_index(indices, match.shape)).T
-			for location in unraveled_indices:
-				y, x = location
-				confidence = match[y][x]
-				if method == cv2.TM_SQDIFF_NORMED or method == cv2.TM_SQDIFF:
-					if confidence <= 1-pattern.similarity:
-						positions.append((x,y,confidence))
-				else:
-					if confidence >= pattern.similarity:
-						positions.append((x,y,confidence))
+
+		# Check TemplateMatcher for valid matches
+		matches = []
+		while time.time() < timeout and len(matches) == 0:
+			matcher = TemplateMatcher(r.getBitmap())
+			matches = matcher.findAllMatches(needle,pattern.similarity)
 			time.sleep(self._defaultScanRate)
-			if len(positions) > 0:
-				break
-		lastMatches = []
 		
-		if len(positions) == 0:
+		if len(matches) == 0:
 			Debug.info("Couldn't find '{}' with enough similarity.".format(pattern.path))
 			return None
-		# Translate local position into global screen position
-		positions.sort(key=lambda x: (x[1], -x[0]))
-		for position in positions:
-			x, y, confidence = position
+
+		# Matches found! Turn them into Match objects
+		lastMatches = []
+		for match in matches:
+			position, confidence = match
+			x, y = position
 			lastMatches.append(Match(confidence, pattern.offset, ((x+self.x, y+self.y), (needle_width, needle_height))))
 		self._lastMatches = iter(lastMatches)
 		Debug.info("Found match(es) for pattern '{}' at similarity ({})".format(pattern.path, pattern.similarity))
@@ -446,28 +437,14 @@ class Region(object):
 			pattern = Pattern(pattern)
 
 		needle = cv2.imread(pattern.path)
-		#needle = cv2.cvtColor(needle, cv2.COLOR_BGR2GRAY)
-		position = True
+		match = True
 		timeout = time.time() + seconds
-		method = cv2.TM_CCOEFF_NORMED
-		while not position and time.time() < timeout:
-			haystack = r.getBitmap()
-			match = cv2.matchTemplate(haystack,needle,method)
-			min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(match)
-			if method == cv2.TM_SQDIFF_NORMED or method == cv2.TM_SQDIFF:
-				confidence = min_val
-				best_loc = min_loc
-				if min_val <= 1-pattern.similarity:
-					# Confidence checks out
-					position = min_loc
-			else:
-				confidence = max_val
-				best_loc = max_loc
-				if max_val >= pattern.similarity:
-					# Confidence checks out
-					position = max_loc
+
+		while match and time.time() < timeout:
+			matcher = TemplateMatcher(r.getBitmap())
+			match = matcher.findBestMatch(needle, pattern.similarity) # When needle disappears, matcher returns None
 			time.sleep(self._defaultScanRate)
-		if position:
+		if match:
 			return False
 			#self._findFailedHandler(FindFailed("Pattern '{}' did not vanish".format(pattern.path)))
 	def exists(self, pattern, seconds=None):
@@ -497,30 +474,21 @@ class Region(object):
 		if needle is None:
 			raise ValueError("Unable to load image '{}'".format(pattern.path))
 		needle_height, needle_width, needle_channels = needle.shape
-		position = None
+		match = None
 		timeout = time.time() + seconds
-		method = cv2.TM_CCOEFF_NORMED
-		while not position and time.time() < timeout:
-			haystack = r.getBitmap()
-			match = cv2.matchTemplate(haystack,needle,method)
-			min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(match)
-			if method == cv2.TM_SQDIFF_NORMED or method == cv2.TM_SQDIFF:
-				confidence = min_val
-				best_loc = min_loc
-				if min_val <= 1-pattern.similarity:
-					# Confidence checks out
-					position = min_loc
-			else:
-				confidence = max_val
-				best_loc = max_loc
-				if max_val >= pattern.similarity:
-					# Confidence checks out
-					position = max_loc
+
+		# Consult TemplateMatcher to find needle
+		while not match and time.time() < timeout:
+			matcher = TemplateMatcher(r.getBitmap())
+			match = matcher.findBestMatch(needle,pattern.similarity)
 			time.sleep(self._defaultScanRate)
-		if not position:
-			Debug.info("Couldn't find '{}' with enough similarity. Best match {} at ({},{})".format(pattern.path, confidence, best_loc[0], best_loc[1]))
+
+		if match is None:
+			Debug.info("Couldn't find '{}' with enough similarity.".format(pattern.path))
 			return None
+
 		# Translate local position into global screen position
+		position, confidence = match
 		position = (position[0] + self.x, position[1] + self.y)
 		self._lastMatch = Match(confidence, pattern.offset, (position, (needle_width, needle_height)))
 		#self._lastMatch.debug_preview()

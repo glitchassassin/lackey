@@ -70,7 +70,7 @@ class TestMouseMethods(unittest.TestCase):
 	def test_movement(self):
 		self.mouse.move(lackey.Location(10,10))
 		self.assertEqual(self.mouse.getPos().getTuple(), (10,10))
-		self.mouse.moveSpeed(lackey.Location(100,200), 1)
+		self.mouse.moveSpeed(lackey.Location(100,200), 0.5)
 		self.assertEqual(self.mouse.getPos().getTuple(), (100,200))
 		
 	def test_clicks(self):
