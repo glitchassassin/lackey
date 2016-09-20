@@ -17,10 +17,10 @@
 ## Implement ##
 
 * Overall
-	* [ ] Verbosity levels for console logging
+	* [X] Verbosity levels for console logging
 	* [ ] Event handling
 * Region
-	* [ ] highlight()
+	* [X] highlight()
 	* [ ] text() (OCR functionality)
 	* [X] Low-level mouse/keyboard functions (should map to PlatformManager)
 	* [X] Raster functions
@@ -28,4 +28,5 @@
 * Screen
 	* [X] Implement multi-monitor support
 * App
-	* [ ] focus(): Cleanup translation of Sikuli wildcards into regex
+	* [X] focus(): Cleanup translation of Sikuli wildcards into regex
+	* [X] Implement App according to Sikuli specs
