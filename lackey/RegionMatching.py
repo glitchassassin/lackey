@@ -383,7 +383,7 @@ class Region(object):
 		
 		if len(matches) == 0:
 			Debug.info("Couldn't find '{}' with enough similarity.".format(pattern.path))
-			return None
+			return iter([])
 
 		# Matches found! Turn them into Match objects
 		lastMatches = []
@@ -395,6 +395,7 @@ class Region(object):
 		Debug.info("Found match(es) for pattern '{}' at similarity ({})".format(pattern.path, pattern.similarity))
 		self._lastMatchTime = (time.time() - find_time) * 1000 # Capture find time in milliseconds
 		return self._lastMatches
+
 	def wait(self, pattern, seconds=None):
 		""" Searches for an image pattern in the given region, given a specified timeout period
 
