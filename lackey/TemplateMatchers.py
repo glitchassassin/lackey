@@ -3,7 +3,7 @@ import itertools
 import numpy
 import cv2
 
-#from .Settings import Debug
+from .Settings import Debug
 
 class NaiveTemplateMatcher(object):
 	def __init__(self, haystack):
@@ -64,7 +64,7 @@ class NaiveTemplateMatcher(object):
 
 class PyramidTemplateMatcher(object):
 	def __init__(self, haystack):
-		self.haystack = haystack
+		self.haystack = cv2.cvtColor(haystack, cv2.COLOR_BGR2GRAY) # Convert to grayscale
 		self._iterations = 3 # Number of times to downsample
 
 	def findBestMatch(self, needle, similarity):
@@ -72,9 +72,13 @@ class PyramidTemplateMatcher(object):
 
 		Pyramid implementation unashamedly stolen from https://github.com/stb-tester/stb-tester
 		"""
+		needle = cv2.cvtColor(needle, cv2.COLOR_BGR2GRAY) # Convert to grayscale
+
 		levels = 3
-		haystackPyr = self._build_pyramid(self.haystack, levels)
 		needlePyr = self._build_pyramid(needle, levels)
+		# Needle will be smaller than haystack, so may not be able to create ``levels`` smaller versions
+		# of itself. If not, create only as many levels for haystack as we could for needle.
+		haystackPyr = self._build_pyramid(self.haystack, min(levels, len(needlePyr))) 
 		roi_mask = None
 		method = cv2.TM_CCOEFF_NORMED
 
@@ -102,7 +106,13 @@ class PyramidTemplateMatcher(object):
 				# Initialize mask to the whole image
 				rois = [(0, 0, matches_heatmap.shape[1], matches_heatmap.shape[0])]
 			else:
-				im2, contours, hierarchy = cv2.findContours( roi_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+				# Depending on version of OpenCV, findContours returns either a three-tuple
+				# or a two-tuple. Unsure why the install is different (possibly linked to
+				# OS version).
+				try:
+					im2, contours, hierarchy = cv2.findContours( roi_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+				except ValueError:
+					contours, hierarchy = cv2.findContours( roi_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
 				# Expand contour rect by 1px on all sides with some tuple magic
 				rois = [tuple(sum(y) for y in zip(cv2.boundingRect(x), (-1,-1,2,2))) for x in contours]
 
@@ -150,6 +160,7 @@ class PyramidTemplateMatcher(object):
 		# Whew! Let's see if there's a match after all that.
 
 		if not position:
+			Debug.log(3, "Best match: {} at {}".format(max_val, max_loc))
 			return None
 		
 		# There was a match!
@@ -160,6 +171,8 @@ class PyramidTemplateMatcher(object):
 
 		Pyramid implementation unashamedly stolen from https://github.com/stb-tester/stb-tester
 		"""
+		needle = cv2.cvtColor(needle, cv2.COLOR_BGR2GRAY) # Convert to grayscale
+
 		levels = 3
 		needlePyr = self._build_pyramid(needle, levels)
 		# Needle will be smaller than haystack, so may not be able to create ``levels`` smaller versions
@@ -191,7 +204,13 @@ class PyramidTemplateMatcher(object):
 				# Initialize mask to the whole image
 				rois = [(0, 0, matches_heatmap.shape[1], matches_heatmap.shape[0])]
 			else:
-				im2, contours, hierarchy = cv2.findContours( roi_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+				# Depending on version of OpenCV, findContours returns either a three-tuple
+				# or a two-tuple. Unsure why the install is different (possibly linked to
+				# OS version).
+				try:
+					im2, contours, hierarchy = cv2.findContours( roi_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+				except ValueError:
+					contours, hierarchy = cv2.findContours( roi_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
 				# Expand contour rect by 1px on all sides with some tuple magic
 				rois = [tuple(sum(y) for y in zip(cv2.boundingRect(x), (-10,-10,20,20))) for x in contours]
 
@@ -199,8 +218,14 @@ class PyramidTemplateMatcher(object):
 			for roi in rois:
 				# Add needle dimensions to roi
 				x, y, w, h = roi
+				# Contour coordinates may be negative, which will mess up the slices.
+				# Snap to zero if they are.
+				x = max(0,x)
+				y = max(0,y)
+				
 				roi = (x, y, w+lvl_needle.shape[1]-1, h+lvl_needle.shape[0]-1)
 				roi_slice = (slice(roi[1], roi[1]+roi[3]), slice(roi[0], roi[0]+roi[2])) # numpy 2D slice
+				
 				r_slice = (slice(y, y+h), slice(x, x+w)) # numpy 2D slice
 
 				# Search the region of interest for needle (and update heatmap)
@@ -208,12 +233,7 @@ class PyramidTemplateMatcher(object):
 							
 			min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(matches_heatmap)
 			# Reduce similarity to allow for scaling distortion (unless we are on the original image)
-			print("Best match: {} at {}".format(max_val, max_loc))
-			#cv2.imshow("image", lvl_haystack)
-			#cv2.waitKey(0)
-			#cv2.imshow("heatmap", matches_heatmap)
-			#cv2.waitKey(0)
-			#cv2.destroyAllWindows()
+			Debug.log(3, "Best match: {} at {}".format(max_val, max_loc))
 			pyr_similarity = max(0, similarity - (0.2 if level < len(haystackPyr)-1 else 0))
 			positions = []
 			confidence = None
