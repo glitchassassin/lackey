@@ -1,5 +1,11 @@
 ## Changelog ##
 
+v0.3.1a1
+* Implemented pyramid matcher to improve image search efficiency
+
+v0.3.0a1
+* Implemented the rest of the main Sikuli classes, including `App`, `Settings`, and `Debug`
+
 v0.2.2a1
 * Fixed #14 TypeError on doubleClick()
 
