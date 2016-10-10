@@ -1,5 +1,8 @@
 ## Changelog ##
 
+v0.4.0a1
+* Merged Sikuli shim into Lackey main code
+
 v0.3.1a1
 * Implemented pyramid matcher to improve image search efficiency
 
