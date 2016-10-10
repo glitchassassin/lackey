@@ -7,9 +7,9 @@ class BinaryDistribution(Distribution):
 
 setup(
 	name="Lackey",
-	version="0.3.0a1",
-	description="A graphical automation framework for Python",
-	long_description="Lackey is a flexible automation framework using image recognition to reliably control complex and non-OS-standard business applications. Potential applications include automating tedious workflows, routine user interface testing, etc. Lackey can also run Sikuli scripts with the help of a shim.",
+	version="0.4.0a1",
+	description="A Sikuli script implementation in Python",
+	long_description="Lackey is an implementation of Sikuli script, using image recognition to control complex and non-OS-standard business applications. Potential applications include automating tedious workflows, routine user interface testing, etc.",
 	url="https://github.com/glitchassassin/lackey",
 	author="Jon Winsley",
 	author_email="jon.winsley@gmail.com",

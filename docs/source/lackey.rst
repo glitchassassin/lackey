@@ -104,3 +104,29 @@ lackey.FindFailed class
     :members:
     :undoc-members:
     :show-inheritance:
+
+Sikuli Convenience Functions
+-----------------------------
+
+.. autofunction:: lackey.sleep
+.. autofunction:: lackey.exit
+.. autofunction:: lackey.setShowActions
+.. autofunction:: lackey.getBundlePath
+.. autofunction:: lackey.getBundleFolder
+.. autofunction:: lackey.setBundlePath
+.. autofunction:: lackey.getImagePath
+.. autofunction:: lackey.addImagePath
+.. autofunction:: lackey.addHTTPImagePath
+.. autofunction:: lackey.getParentPath
+.. autofunction:: lackey.getParentFolder
+.. autofunction:: lackey.makePath
+.. autofunction:: lackey.makeFolder
+.. autofunction:: lackey.unzip
+.. autofunction:: lackey.popat
+.. autofunction:: lackey.popup
+.. autofunction:: lackey.popError
+.. autofunction:: lackey.popAsk
+.. autofunction:: lackey.input
+.. autofunction:: lackey.inputText
+.. autofunction:: lackey.select
+.. autofunction:: lackey.popFile
