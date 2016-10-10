@@ -13,6 +13,3 @@ Contents:
    
    lackey.rst
    platformmanager.rst
-   sikuli.rst
-
-
