@@ -398,5 +398,36 @@ class TestRasterMethods(unittest.TestCase):
 		self.r.get(522).debugPreview("Center (small)")
 		self.r.get(lackey.Region.MID_BIG).debugPreview("Center (half)")
 
+class TestConvenienceFunctions(unittest.TestCase):
+	def test_function_defs(self):
+		self.assertHasMethod(lackey, "sleep", 1)
+		self.assertHasMethod(lackey, "exit", 1)
+		self.assertHasMethod(lackey, "setShowActions", 1)
+		self.assertHasMethod(lackey, "getBundlePath", 0)
+		self.assertHasMethod(lackey, "getBundleFolder", 0)
+		self.assertHasMethod(lackey, "setBundlePath", 1)
+		self.assertHasMethod(lackey, "getImagePath", 0)
+		self.assertHasMethod(lackey, "addImagePath", 1)
+		self.assertHasMethod(lackey, "addHTTPImagePath", 1)
+		self.assertHasMethod(lackey, "getParentPath", 0)
+		self.assertHasMethod(lackey, "getParentFolder", 0)
+		self.assertHasMethod(lackey, "makePath", 0) # Uses *args
+		self.assertHasMethod(lackey, "makeFolder", 0) # Uses *args
+		self.assertHasMethod(lackey, "unzip", 2)
+		self.assertHasMethod(lackey, "popat", 0) # Uses *args
+		self.assertHasMethod(lackey, "popup", 2)
+		self.assertHasMethod(lackey, "popError", 2)
+		self.assertHasMethod(lackey, "popAsk", 2)
+		self.assertHasMethod(lackey, "input", 4)
+		self.assertHasMethod(lackey, "inputText", 5)
+		self.assertHasMethod(lackey, "select", 4)
+		self.assertHasMethod(lackey, "popFile", 1)
+
+	def assertHasMethod(self, cls, mthd, args=0):
+		""" Custom test to make sure a class has the specified method (and that it takes `args` parameters) """
+		self.assertTrue(callable(getattr(cls, mthd, None)))
+		if args > 0:
+			self.assertEqual(len(inspect.getargspec(getattr(cls, mthd))[0]), args)
+
 if __name__ == '__main__':
 	unittest.main()
