@@ -52,13 +52,13 @@ def setShowActions(value):
 	Settings.ShowActions = bool(value)
 
 def getBundlePath():
-	""" Convenience function. Returns the path of the *.sikuli bundle. """
+	""" Convenience function. Returns the path of the \*.sikuli bundle. """
 	return Settings.BundlePath
 def getBundleFolder():
 	""" Convenience function. Same as `getBundlePath()` plus the OS default path separator. """
 	return getBundlePath() + os.path.sep
 def setBundlePath(path):
-	""" Convenience function. Changes the path of the *.sikuli bundle. """
+	""" Convenience function. Changes the path of the \*.sikuli bundle. """
 	if os.path.exists(path):
 		Settings.BundlePath = path
 	else:
@@ -84,7 +84,7 @@ def addHTTPImagePath(new_path):
 	addImagePath(new_path)
 
 def getParentPath():
-	""" Convenience function. Returns the parent folder of the *.sikuli bundle. """
+	""" Convenience function. Returns the parent folder of the \*.sikuli bundle. """
 	return os.path.dirname(Settings.BundlePath)
 def getParentFolder():
 	""" Convenience function. Same as `getParentPath()` plus the OS default path separator. """
