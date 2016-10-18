@@ -16,9 +16,7 @@ from .Exceptions import FindFailed
 from .Settings import Debug, Settings
 import SikuliGui
 
-if platform.system() == "Windows":
-	PlatformManager = PlatformManagerWindows() # No other input managers built yet
-
+VALID_PLATFORMS = ["Windows"]
 
 ## Sikuli patching: Functions that map to the global Screen region
 ## Don't try this at home, kids!
@@ -28,13 +26,6 @@ if platform.system() == "Windows":
 _type = type
 _input = input
 #_zip = zip
-
-if PlatformManager:
-	SCREEN = Screen(0)
-	for prop in dir(SCREEN):
-		if callable(getattr(SCREEN, prop, None)) and prop[0] != "_":
-			# Property is a method, and is not private. Dump it into the global namespace.
-			globals()[prop] = getattr(SCREEN, prop, None)
 
 ## Sikuli Convenience Functions
 
@@ -183,3 +174,12 @@ def popFile(title="Lackey Open File"):
 	root = tk.Tk()
 	root.withdraw()
 	return str(tkFileDialog.askopenfilename())
+
+# If this is a valid platform, set up initial Screen object. Otherwise, might be ReadTheDocs
+if platform.system() in VALID_PLATFORMS:
+	SCREEN = Screen(0)
+	for prop in dir(SCREEN):
+		if callable(getattr(SCREEN, prop, None)) and prop[0] != "_":
+			# Property is a method, and is not private. Dump it into the global namespace.
+			globals()[prop] = getattr(SCREEN, prop, None)
+			
