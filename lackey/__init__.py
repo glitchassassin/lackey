@@ -16,10 +16,8 @@ from .Exceptions import FindFailed
 from .Settings import Debug, Settings
 import SikuliGui
 
-#if platform.system() == "Windows":
-#	PlatformManager = PlatformManagerWindows() # No other input managers built yet
-#else:
-#	raise NotImplementedError("Pykuli v0.01 is currently only compatible with Windows.")
+if platform.system() == "Windows":
+	PlatformManager = PlatformManagerWindows() # No other input managers built yet
 
 
 ## Sikuli patching: Functions that map to the global Screen region
@@ -31,11 +29,12 @@ _type = type
 _input = input
 #_zip = zip
 
-SCREEN = Screen(0)
-for prop in dir(SCREEN):
-	if callable(getattr(SCREEN, prop, None)) and prop[0] != "_":
-		# Property is a method, and is not private. Dump it into the global namespace.
-		globals()[prop] = getattr(SCREEN, prop, None)
+if PlatformManager:
+	SCREEN = Screen(0)
+	for prop in dir(SCREEN):
+		if callable(getattr(SCREEN, prop, None)) and prop[0] != "_":
+			# Property is a method, and is not private. Dump it into the global namespace.
+			globals()[prop] = getattr(SCREEN, prop, None)
 
 ## Sikuli Convenience Functions
 
