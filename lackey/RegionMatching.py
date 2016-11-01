@@ -396,7 +396,7 @@ class Region(object):
 		self._lastMatchTime = (time.time() - find_time) * 1000 # Capture find time in milliseconds
 		return self._lastMatches
 
-	def wait(self, pattern, seconds=None):
+	def wait(self, pattern, seconds=3):
 		""" Searches for an image pattern in the given region, given a specified timeout period
 
 		Functionally identical to find()
