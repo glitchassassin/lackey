@@ -16,11 +16,7 @@ from .Exceptions import FindFailed
 from .Settings import Debug, Settings
 import SikuliGui
 
-#if platform.system() == "Windows":
-#	PlatformManager = PlatformManagerWindows() # No other input managers built yet
-#else:
-#	raise NotImplementedError("Pykuli v0.01 is currently only compatible with Windows.")
-
+VALID_PLATFORMS = ["Windows"]
 
 ## Sikuli patching: Functions that map to the global Screen region
 ## Don't try this at home, kids!
@@ -30,12 +26,6 @@ import SikuliGui
 _type = type
 _input = input
 #_zip = zip
-
-SCREEN = Screen(0)
-for prop in dir(SCREEN):
-	if callable(getattr(SCREEN, prop, None)) and prop[0] != "_":
-		# Property is a method, and is not private. Dump it into the global namespace.
-		globals()[prop] = getattr(SCREEN, prop, None)
 
 ## Sikuli Convenience Functions
 
@@ -52,13 +42,13 @@ def setShowActions(value):
 	Settings.ShowActions = bool(value)
 
 def getBundlePath():
-	""" Convenience function. Returns the path of the *.sikuli bundle. """
+	""" Convenience function. Returns the path of the \*.sikuli bundle. """
 	return Settings.BundlePath
 def getBundleFolder():
 	""" Convenience function. Same as `getBundlePath()` plus the OS default path separator. """
 	return getBundlePath() + os.path.sep
 def setBundlePath(path):
-	""" Convenience function. Changes the path of the *.sikuli bundle. """
+	""" Convenience function. Changes the path of the \*.sikuli bundle. """
 	if os.path.exists(path):
 		Settings.BundlePath = path
 	else:
@@ -84,7 +74,7 @@ def addHTTPImagePath(new_path):
 	addImagePath(new_path)
 
 def getParentPath():
-	""" Convenience function. Returns the parent folder of the *.sikuli bundle. """
+	""" Convenience function. Returns the parent folder of the \*.sikuli bundle. """
 	return os.path.dirname(Settings.BundlePath)
 def getParentFolder():
 	""" Convenience function. Same as `getParentPath()` plus the OS default path separator. """
@@ -184,3 +174,12 @@ def popFile(title="Lackey Open File"):
 	root = tk.Tk()
 	root.withdraw()
 	return str(tkFileDialog.askopenfilename())
+
+# If this is a valid platform, set up initial Screen object. Otherwise, might be ReadTheDocs
+if platform.system() in VALID_PLATFORMS:
+	SCREEN = Screen(0)
+	for prop in dir(SCREEN):
+		if callable(getattr(SCREEN, prop, None)) and prop[0] != "_":
+			# Property is a method, and is not private. Dump it into the global namespace.
+			globals()[prop] = getattr(SCREEN, prop, None)
+			
