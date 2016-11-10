@@ -670,7 +670,21 @@ class Region(object):
 		""" Usage: type([PSMRL], text, [modifiers])
 		
 		If a pattern is specified, the pattern is clicked first. Doesn't support text paths.
-		``modifiers`` may be a typeKeys() compatible string. The specified keys will be held during the drag-drop operation.
+		
+		This implementation varies slightly from Sikuli by allowing a SendKeys variant format.
+		The following special characters are available as modifiers:
+
+		* ``^`` - Ctrl
+		* ``+`` - Shift
+		* ``%`` - Alt
+		* ``@`` - Win/Meta/Cmd
+		* ``~`` - Enter/Return
+
+		They can be used to modify a single following character. ``^c`` will type Ctrl+C. 
+		If you need to modify multiple characters, use parentheses: ``+(abc)`` will hold down 
+		Shift and type "ABC".
+
+		To enter these characters as literals, enclose them in brackets: ``{@}``
 		"""
 		pattern = None
 		text = None
@@ -976,7 +990,7 @@ class Match(Region):
 		return self.getCenter().offset(self._target.x, self._target.y)
 
 	def __repr__(self):
-		return "Match[{},{} {}x{}] score={.2f}, target={}".format(self.x, self.y, self.w, self.h, self._score, self.target.getTuple())
+		return "Match[{},{} {}x{}] score={.2f}, target={}".format(self.x, self.y, self.w, self.h, self._score, self._target.getTuple())
 
 class Screen(Region):
 	""" Individual screen objects can be created for each monitor in a multi-monitor system. 

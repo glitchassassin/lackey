@@ -68,6 +68,26 @@ Be aware that **some Sikuli-script methods actually overwrite Python-native func
 
     username = _input("Enter your username: ")
 
+### Differences ###
+
+Lackey's implementation of `type()` varies slightly from Sikuli in that it expects a SendKeys-like format.
+
+The following special characters are available as modifiers:
+
+* ``^`` - Ctrl
+* ``+`` - Shift
+* ``%`` - Alt
+* ``@`` - Win/Meta/Cmd
+* ``~`` - Enter/Return
+
+They can be used to modify a single following character. ``^c`` will type Ctrl+C. 
+If you need to modify multiple characters, use parentheses: ``+(abc)`` will hold down 
+Shift and type "ABC".
+
+To enter these characters (including parentheses) as literals, enclose them in brackets: ``{@}``
+
+Otherwise, this should function identically to Sikuli's type() method.
+
 ## Structure ##
 
 Each platform (Windows/OSX/Linux) needs its own PlatformManager (see documentation above) to abstract OS-level functionality, like simulating mouse clicks or key presses. Ideally, these should be implemented with as few 3rd-party library dependencies as possible. If you'd like to contribute a PlatformManager for your OS, feel free to submit a pull request! 
