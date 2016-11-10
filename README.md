@@ -84,7 +84,7 @@ They can be used to modify a single following character. ``^c`` will type Ctrl+C
 If you need to modify multiple characters, use parentheses: ``+(abc)`` will hold down 
 Shift and type "ABC".
 
-To enter these characters (including parentheses) as literals, enclose them in brackets: ``{@}``
+To enter these characters (including parentheses) as literals, enclose each character in brackets: ``{@}``
 
 Otherwise, this should function identically to Sikuli's type() method.
 
