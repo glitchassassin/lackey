@@ -357,6 +357,16 @@ class TestComplexFeatures(unittest.TestCase):
 		r.type("{DELETE}")
 		r.type("%{F4}")
 
+	def testDragDrop(self):
+		""" This relies on two specific icons on the desktop.
+
+		This test will probably fail if you don't have the same setup I do.
+		"""
+		r = lackey.Screen(0)
+		r.dragDrop("test_file_txt.png", "notepad.png")
+		self.assertTrue(r.exists("test_file_text.png"))
+		r.type("%{F4}")
+
 class TestRegionFeatures(unittest.TestCase):
 	def setUp(self):
 		self.r = lackey.Screen(0)

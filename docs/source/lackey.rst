@@ -97,6 +97,22 @@ lackey.PlatformManagerWindows class
     :undoc-members:
     :show-inheritance:
 
+lackey.Debug class
+------------------------
+
+.. autoclass:: lackey.DebugMaster
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+lackey.Settings class
+------------------------
+
+.. autoclass:: lackey.SettingsMaster
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 lackey.FindFailed class
 ------------------------
 
