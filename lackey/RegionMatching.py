@@ -1272,9 +1272,10 @@ class App(object):
 		"""
 		return App(executable).open()
 	def _open_instance(self, waitTime=0):
-		args = [self._search]
+		args = self._search
 		if self._params != "":
-			args.append(self._params)
+			args += " " + self._params
+		print args
 		self._process = subprocess.Popen(args, shell=False)
 		self._pid = self._process.pid
 		time.sleep(waitTime)
