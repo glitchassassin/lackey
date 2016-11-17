@@ -45,22 +45,22 @@ class TestPatternMethods(unittest.TestCase):
 		self.assertEqual(self.pattern.similarity, 0.7)
 		self.assertIsInstance(self.pattern.offset, lackey.Location)
 		self.assertEqual(self.pattern.offset.getTuple(), (0,0))
-		self.assertEqual(self.pattern.path, "test_pattern.png")
+		self.assertEqual(self.pattern.path[-len("test_pattern.png"):], "test_pattern.png")
 
 	def test_setters(self):
 		test_pattern = self.pattern.similar(0.5)
 		self.assertEqual(test_pattern.similarity, 0.5)
-		self.assertEqual(test_pattern.path, "test_pattern.png")
+		self.assertEqual(self.pattern.path[-len("test_pattern.png"):], "test_pattern.png")
 		test_pattern = self.pattern.exact()
 		self.assertEqual(test_pattern.similarity, 1.0)
-		self.assertEqual(test_pattern.path, "test_pattern.png")
+		self.assertEqual(self.pattern.path[-len("test_pattern.png"):], "test_pattern.png")
 		test_pattern = self.pattern.targetOffset(3, 5)
 		self.assertEqual(test_pattern.similarity, 0.7)
-		self.assertEqual(test_pattern.path, "test_pattern.png")
+		self.assertEqual(self.pattern.path[-len("test_pattern.png"):], "test_pattern.png")
 		self.assertEqual(test_pattern.offset.getTuple(), (3,5))
 
 	def test_getters(self):
-		self.assertEqual(self.pattern.getFilename(), "test_pattern.png")
+		self.assertEqual(self.pattern.getFilename()[-len("test_pattern.png"):], "test_pattern.png")
 		self.assertEqual(self.pattern.getTargetOffset().getTuple(), (0,0))
 
 class TestMouseMethods(unittest.TestCase):
@@ -355,6 +355,16 @@ class TestComplexFeatures(unittest.TestCase):
 		r.type("^c") # Copy
 		self.assertEqual(r.getClipboard(), "This is a test")
 		r.type("{DELETE}")
+		r.type("%{F4}")
+
+	def testDragDrop(self):
+		""" This relies on two specific icons on the desktop.
+
+		This test will probably fail if you don't have the same setup I do.
+		"""
+		r = lackey.Screen(0)
+		r.dragDrop("test_file_txt.png", "notepad.png")
+		self.assertTrue(r.exists("test_file_text.png"))
 		r.type("%{F4}")
 
 class TestRegionFeatures(unittest.TestCase):

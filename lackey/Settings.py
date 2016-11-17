@@ -95,6 +95,7 @@ class DebugMaster(object):
 		""" Sends debug messages to ``logger.[mthd]()`` for handling """
 		_logger_methods["debug"] = mthd
 	def setLogFile(self, filepath):
+		""" Defines the file to which output log messages should be sent """
 		parsed_path = os.abspath(filepath)
 		# Checks if the provided log filename is in a real directory, and that
 		# the filename itself is not a directory.
@@ -118,6 +119,7 @@ class DebugMaster(object):
 			print log_entry
 
 class SettingsMaster(object):
+	""" Global settings that Lackey refers to by default """
 	## Logging Settings
 	ActionLogs = True # Message prefix: [log]
 	InfoLogs = True # Message prefix: [info]

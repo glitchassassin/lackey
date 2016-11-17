@@ -13,7 +13,7 @@ from .PlatformManagerWindows import PlatformManagerWindows
 from .KeyCodes import Button, Key, KeyModifier
 from .RegionMatching import Pattern, Region, Match, Screen, Location, Mouse, Keyboard, App
 from .Exceptions import FindFailed
-from .Settings import Debug, Settings
+from .Settings import Debug, Settings, DebugMaster, SettingsMaster
 import SikuliGui
 
 VALID_PLATFORMS = ["Windows"]

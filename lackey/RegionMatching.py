@@ -25,14 +25,18 @@ else:
 class Pattern(object):
 	""" Defines a pattern based on a bitmap, similarity, and target offset """
 	def __init__(self, path):
-		## Make sure all image paths are set
+		## Loop through image paths to find the image
+		found = False
 		for image_path in [Settings.BundlePath] + Settings.ImagePaths:
-			if image_path not in sys.path:
-				sys.path.append(image_path)
+			full_path = os.path.join(image_path, path)
+			if os.path.exists(full_path):
+				# Image file not found
+				found = True
+				break
 		## Check if path is valid
-		if not os.path.exists(path):
+		if not found:
 			raise OSError("File not found: {}".format(path))
-		self.path = path
+		self.path = full_path
 		self.similarity = 0.7
 		self.offset = Location(0,0)
 
@@ -634,6 +638,7 @@ class Region(object):
 		Debug.history("Began drag at {}".format(dragFromLocation))
 	def dropAt(self, dragTo, delay=None):
 		""" Moves the cursor to the target location, waits ``delay`` seconds, and releases the mouse button """
+		mouse = Mouse()
 		if isinstance(dragTo, Pattern):
 			dragToLocation = self.find(dragTo).getTarget()
 		elif isinstance(dragTo, basestring):
@@ -659,9 +664,9 @@ class Region(object):
 		if modifiers != "":
 			PlatformManager.pressKey(modifiers)
 		
-		drag(dragFrom)
+		self.drag(dragFrom)
 		time.sleep(Settings.DelayBeforeDrag)
-		dropAt(dragTo)
+		self.dropAt(dragTo)
 		
 		if modifiers != "":
 			PlatformManager.releaseKey(modifiers)
