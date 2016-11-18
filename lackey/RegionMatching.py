@@ -27,7 +27,7 @@ class Pattern(object):
 	def __init__(self, path):
 		## Loop through image paths to find the image
 		found = False
-		for image_path in [Settings.BundlePath] + Settings.ImagePaths:
+		for image_path in [Settings.BundlePath, os.getcwd()] + Settings.ImagePaths:
 			full_path = os.path.join(image_path, path)
 			if os.path.exists(full_path):
 				# Image file not found
