@@ -995,7 +995,7 @@ class Match(Region):
 		return self.getCenter().offset(self._target.x, self._target.y)
 
 	def __repr__(self):
-		return "Match[{},{} {}x{}] score={.2f}, target={}".format(self.x, self.y, self.w, self.h, self._score, self._target.getTuple())
+		return "Match[{},{} {}x{}] score={:2f}, target={}".format(self.x, self.y, self.w, self.h, self._score, self._target.getTuple())
 
 class Screen(Region):
 	""" Individual screen objects can be created for each monitor in a multi-monitor system. 
