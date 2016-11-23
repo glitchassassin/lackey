@@ -37,7 +37,7 @@ class Pattern(object):
 		if not found:
 			raise OSError("File not found: {}".format(path))
 		self.path = full_path
-		self.similarity = 0.7
+		self.similarity = Settings.MinSimilarity
 		self.offset = Location(0,0)
 
 	def similar(self, similarity):
