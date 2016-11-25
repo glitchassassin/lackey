@@ -1196,7 +1196,9 @@ class App(object):
 	"""
 	def __init__(self, identifier=None):
 		self._pid = None
-		self._search = ""
+		self._search = identifier
+		self._title = ""
+		self._exec = ""
 		self._params = ""
 		self._process = None
 		self._defaultScanRate = 0.1
@@ -1214,16 +1216,62 @@ class App(object):
 			self._pid = identifier
 		elif isinstance(identifier, basestring):
 			# `identifier` is either part of a window title
-			# or a command line to execute. Sikuli is ambiguous
-			# on this point: it treats the string as a window title
-			# unless explicitly told to open() the application.
+			# or a command line to execute. If it starts with a "+",
+			# launch it immediately. Otherwise, store it until open() is called.
 			Debug.log(3, "Creating App by string ({})".format(identifier))
-			self._search = identifier
-			self._pid = PlatformManager.getWindowPID(PlatformManager.getWindowByTitle(re.escape(self._search)))
+			launchNow = False
+			if identifier.startswith("+"):
+				# Should launch immediately - strip the `+` sign and continue
+				launchNow = True
+				identifier = identifier[1:]
+			# Check if `identifier` is an executable commmand
+			# Possible formats:
+			# Case 1: notepad.exe C:\sample.txt
+			# Case 2: "C:\Program Files\someprogram.exe" -flag
+
+			# Extract hypothetical executable name
+			if identifier.startswith('"'):
+				executable = identifier[1:].split('"')[0]
+				params = identifier[len(executable)+2:].split(" ") if len(identifier) > len(executable) + 2 else []
+			else:
+				executable = identifier.split(" ")[0]
+				params = identifier[len(executable)+1:].split(" ") if len(identifier) > len(executable) + 1 else []
+
+			# Check if hypothetical executable exists
+			if self._which(executable) is not None:
+				# Found the referenced executable
+				print executable
+				print params
+				self._exec = executable
+				self._params = params
+			else:
+				# No executable found - treat as a title instead
+				self._title = identifier
 		else:
 			self._pid = -1 # Unrecognized identifier, setting to empty app
 
 		self._pid = self.getPID() # Confirm PID is an active process (sets to -1 otherwise)
+
+	def _which(self, program):
+		""" Private method to check if an executable exists
+
+		Shamelessly stolen from http://stackoverflow.com/questions/377017/test-if-executable-exists-in-python
+		"""
+		def is_exe(fpath):
+			return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
+
+		fpath, fname = os.path.split(program)
+		if fpath:
+			if is_exe(program):
+				return program
+		else:
+			for path in os.environ["PATH"].split(os.pathsep):
+				path = path.strip('"')
+				exe_file = os.path.join(path, program)
+				if is_exe(exe_file):
+					return exe_file
+
+		return None
 
 	@classmethod
 	def pause(cls, waitTime):
@@ -1237,12 +1285,11 @@ class App(object):
 		"""
 		app = cls(appName)
 		return app.focus()
-
 	def _focus_instance(self):
 		""" For instances of App, the ``focus()`` classmethod is replaced with this instance method. """
-		if self._search:
-			Debug.log(3, "Focusing app with title like ({})".format(self._search))
-			PlatformManager.focusWindow(PlatformManager.getWindowByTitle(re.escape(self._search)))
+		if self._title:
+			Debug.log(3, "Focusing app with title like ({})".format(self._title))
+			PlatformManager.focusWindow(PlatformManager.getWindowByTitle(re.escape(self._title)))
 		elif self._pid:
 			Debug.log(3, "Focusing app with pid ({})".format(self._pid))
 			PlatformManager.focusWindow(PlatformManager.getWindowByPID(self._pid))
@@ -1258,7 +1305,7 @@ class App(object):
 	def _close_instance(self):
 		if self._process:
 			self._process.terminate()
-		else:
+		elif self.getPID() != -1:
 			PlatformManager.killProcess(self.getPID())
 
 	@classmethod
@@ -1266,18 +1313,16 @@ class App(object):
 		""" Runs the specified command and returns an App linked to the generated PID.
 
 		As a class method, accessible as `App.open(executable_path)`. As an instance method, accessible as `App(executable_path).open()`.
-
-		If run as an instance method, runs the specified command and links the instance
-		to the generated PID. 
 		"""
 		return App(executable).open()
 	def _open_instance(self, waitTime=0):
-		args = self._search
-		if self._params != "":
-			args += " " + self._params
-		print args
-		self._process = subprocess.Popen(args, shell=False)
-		self._pid = self._process.pid
+		if self._exec != "":
+			# Open from an executable + parameters
+			self._process = subprocess.Popen([self._exec] + self._params, shell=False)
+			self._pid = self._process.pid
+		elif self._title != "":
+			# Capture an existing window that matches self._title
+			self._pid = PlatformManager.getWindowPID(PlatformManager.getWindowByTitle(re.escape(self._title)))
 		time.sleep(waitTime)
 		return self
 
@@ -1288,16 +1333,11 @@ class App(object):
 		return Region(x,y,w,h)
 
 	def getWindow(self):
-		""" Returns the title of the main window of the app.
+		""" Returns the title of the main window of the currently open app.
+
+		Returns an empty string if no match could be found.
 		"""
-		if self._process:
-			# self._search is a path, not a window title
-			return PlatformManager.getWindowTitle(PlatformManager.getWindowByPID(self.getPID()))
-		elif self._search:
-			# self._search is (part of) a window title
-			return PlatformManager.getWindowTitle(PlatformManager.getWindowByTitle(re.escape(self._search)))
-		elif self._pid > 0:
-			# Search by PID
+		if self.getPID() != -1:
 			return PlatformManager.getWindowTitle(PlatformManager.getWindowByPID(self.getPID()))
 		else:
 			return ""
@@ -1322,12 +1362,12 @@ class App(object):
 		Defaults to the first window found for the corresponding PID.
 		"""
 		if self._pid == -1:
-			raise FindFailed("Window not found for app \"{}\"".format(self._search))
+			raise FindFailed("Window not found for app \"{}\"".format(self))
 		x,y,w,h = PlatformManager.getWindowRect(PlatformManager.getWindowByPID(self._pid, windowNum))
 		return Region(x,y,w,h).clipRegionToScreen()
 
 	def setUsing(self, params):
-		self._params = params
+		self._params = params.split(" ")
 
 	def __repr__(self):
 		""" Returns a string representation of the app """
@@ -1340,7 +1380,7 @@ class App(object):
 			if self.getPID() > 0:
 				return True
 			else:
-				self._pid = PlatformManager.getWindowPID(PlatformManager.getWindowByTitle(re.escape(self._search)))
+				self._pid = PlatformManager.getWindowPID(PlatformManager.getWindowByTitle(re.escape(self._title)))
 
 			# Check if we've waited long enough
 			if time.time() > waitUntil:

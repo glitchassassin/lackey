@@ -280,8 +280,8 @@ class TestInterfaces(unittest.TestCase):
 class TestAppMethods(unittest.TestCase):
 	def setUp(self):
 		if sys.platform.startswith("win"):
-			self.app = lackey.App("notepad.exe")
-			self.app.setUsing("test_cases.py")
+			self.app = lackey.App("notepad.exe test_cases.py")
+			#self.app.setUsing("test_cases.py")
 			self.app.open()
 			time.sleep(1)
 		else:
@@ -301,6 +301,16 @@ class TestAppMethods(unittest.TestCase):
 		self.assertIsInstance(region, lackey.Region)
 		self.assertGreater(region.getW(), 0)
 		self.assertGreater(region.getH(), 0)
+
+	def test_launchers(self):
+		app = lackey.App("notepad.exe")
+		app.setUsing("test_cases.py")
+		app.open()
+		self.assertEqual(app.getName(), "notepad.exe")
+		self.assertTrue(app.isRunning())
+		self.assertEqual(app.getWindow(), "test_cases.py - Notepad")
+		self.assertNotEqual(app.getPID(), -1)
+		app.close()
 
 class TestScreenMethods(unittest.TestCase):
 	def setUp(self):
