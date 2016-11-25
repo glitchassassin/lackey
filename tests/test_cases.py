@@ -278,39 +278,40 @@ class TestInterfaces(unittest.TestCase):
 			self.assertEqual(len(inspect.getargspec(getattr(cls, mthd))[0]), args)
 
 class TestAppMethods(unittest.TestCase):
-	def setUp(self):
+	def test_getters(self):
 		if sys.platform.startswith("win"):
-			self.app = lackey.App("notepad.exe test_cases.py")
-			#self.app.setUsing("test_cases.py")
-			self.app.open()
+			app = lackey.App("notepad.exe test_cases.py")
+			#app.setUsing("test_cases.py")
+			app.open()
 			time.sleep(1)
 		else:
 			raise NotImplementedError("Platforms supported include: Windows")
-		self.app.focus()
-	def tearDown(self):
-		if sys.platform.startswith("win"):
-			self.app.close()
-		time.sleep(1)		
+		app.focus()
 
-	def test_getters(self):
-		self.assertEqual(self.app.getName(), "notepad.exe")
-		self.assertTrue(self.app.isRunning())
-		self.assertEqual(self.app.getWindow(), "test_cases.py - Notepad")
-		self.assertNotEqual(self.app.getPID(), -1)
-		region = self.app.window()
+		self.assertEqual(app.getName(), "notepad.exe")
+		self.assertTrue(app.isRunning())
+		self.assertEqual(app.getWindow(), "test_cases.py - Notepad")
+		self.assertNotEqual(app.getPID(), -1)
+		region = app.window()
 		self.assertIsInstance(region, lackey.Region)
 		self.assertGreater(region.getW(), 0)
 		self.assertGreater(region.getH(), 0)
+
+		if sys.platform.startswith("win"):
+			app.close()
+		time.sleep(1)		
 
 	def test_launchers(self):
 		app = lackey.App("notepad.exe")
 		app.setUsing("test_cases.py")
 		app.open()
+		time.sleep(1)
 		self.assertEqual(app.getName(), "notepad.exe")
 		self.assertTrue(app.isRunning())
 		self.assertEqual(app.getWindow(), "test_cases.py - Notepad")
 		self.assertNotEqual(app.getPID(), -1)
 		app.close()
+		time.sleep(1)
 
 class TestScreenMethods(unittest.TestCase):
 	def setUp(self):

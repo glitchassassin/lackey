@@ -1240,13 +1240,16 @@ class App(object):
 			# Check if hypothetical executable exists
 			if self._which(executable) is not None:
 				# Found the referenced executable
-				print executable
-				print params
 				self._exec = executable
 				self._params = params
+				# If the command was keyed to execute immediately, do so.
+				if launchNow:
+					self.open()
 			else:
-				# No executable found - treat as a title instead
+				# No executable found - treat as a title instead. Try to capture window.
 				self._title = identifier
+				self.open
+			
 		else:
 			self._pid = -1 # Unrecognized identifier, setting to empty app
 
@@ -1270,7 +1273,6 @@ class App(object):
 				exe_file = os.path.join(path, program)
 				if is_exe(exe_file):
 					return exe_file
-
 		return None
 
 	@classmethod
