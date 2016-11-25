@@ -89,6 +89,8 @@ class PyramidTemplateMatcher(object):
 			# Populate the heatmap with ones or zeroes depending on the appropriate method
 			lvl_haystack = haystackPyr[level]
 			lvl_needle = needlePyr[level]
+			if (lvl_needle.shape[0] > lvl_haystack.shape[0]) or (lvl_needle.shape[1] > lvl_haystack.shape[1]):
+				raise ValueError("Image to find is larger than search area")
 			matches_heatmap = ((numpy.ones if method == cv2.TM_SQDIFF_NORMED else numpy.zeros)((lvl_haystack.shape[0] - lvl_needle.shape[0] + 1,lvl_haystack.shape[1] - lvl_needle.shape[1] + 1),dtype=numpy.float32))
 
 			# Scale up region of interest for the next level in the pyramid

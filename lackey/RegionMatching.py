@@ -232,7 +232,7 @@ class Region(object):
 	def inside(self):
 		""" Returns the same object. Included for Sikuli compatibility. """
 		return self
-	def nearby(self, expand=None):
+	def nearby(self, expand=50):
 		""" Returns a new Region that includes the nearby neighbourhood of the the current region. 
 
 		The new region is defined by extending the current region's dimensions in 
