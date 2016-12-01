@@ -1292,7 +1292,9 @@ class App(object):
 		if self._title:
 			Debug.log(3, "Focusing app with title like ({})".format(self._title))
 			PlatformManager.focusWindow(PlatformManager.getWindowByTitle(re.escape(self._title)))
-		elif self._pid:
+			if self.getPID() == -1:
+				self.open()
+		elif self._pid and self._pid != -1:
 			Debug.log(3, "Focusing app with pid ({})".format(self._pid))
 			PlatformManager.focusWindow(PlatformManager.getWindowByPID(self._pid))
 		return self
