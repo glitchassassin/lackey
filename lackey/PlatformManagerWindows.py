@@ -333,8 +333,8 @@ class PlatformManagerWindows(object):
 					self._releaseKeyCode(self._SPECIAL_KEYCODES[special_code])
 				elif special_code in self._UPPERCASE_SPECIAL_KEYCODES.keys():
 					self._pressKeyCode(self._SPECIAL_KEYCODES["SHIFT"])
-					self._pressKeyCode(self._SPECIAL_KEYCODES[special_code])
-					self._releaseKeyCode(self._SPECIAL_KEYCODES[special_code])
+					self._pressKeyCode(self._UPPERCASE_SPECIAL_KEYCODES[special_code])
+					self._releaseKeyCode(self._UPPERCASE_SPECIAL_KEYCODES[special_code])
 					self._releaseKeyCode(self._SPECIAL_KEYCODES["SHIFT"])
 				else:
 					raise ValueError("Unrecognized special code {{{}}}".format(special_code))
