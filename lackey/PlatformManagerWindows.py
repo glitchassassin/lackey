@@ -1,3 +1,5 @@
+""" Platform-specific code for Windows is encapsulated in this module. """
+
 import os
 import re
 import time
@@ -32,10 +34,10 @@ class PlatformManagerWindows(object):
         self._KEYEVENTF_KEYUP       = 0x0002
         self._KEYEVENTF_UNICODE     = 0x0004
         self._KEYEVENTF_SCANCODE    = 0x0008
-        KEYEVENTF_EXTENDEDKEY = 0x0001
-        KEYEVENTF_KEYUP       = 0x0002
+        #KEYEVENTF_EXTENDEDKEY = 0x0001
+        #KEYEVENTF_KEYUP       = 0x0002
         KEYEVENTF_UNICODE     = 0x0004
-        KEYEVENTF_SCANCODE    = 0x0008
+        #KEYEVENTF_SCANCODE    = 0x0008
         MAPVK_VK_TO_VSC = 0
 
         self._SPECIAL_KEYCODES = {
@@ -201,10 +203,11 @@ class PlatformManagerWindows(object):
             "|":			0xdc,
             "\"":			0xde,
         }
-        
+
         # __init__ internal classes
-        
+
         class MOUSEINPUT(ctypes.Structure):
+            """ ctypes equivalent for Win32 MOUSEINPUT struct """
             _fields_ = (("dx",          wintypes.LONG),
                         ("dy",          wintypes.LONG),
                         ("mouseData",   wintypes.DWORD),
@@ -214,6 +217,7 @@ class PlatformManagerWindows(object):
         self._MOUSEINPUT = MOUSEINPUT
 
         class KEYBDINPUT(ctypes.Structure):
+            """ ctypes equivalent for Win32 KEYBDINPUT struct """
             _fields_ = (("wVk",         wintypes.WORD),
                         ("wScan",       wintypes.WORD),
                         ("dwFlags",     wintypes.DWORD),
@@ -228,12 +232,14 @@ class PlatformManagerWindows(object):
         self._KEYBDINPUT = KEYBDINPUT
 
         class HARDWAREINPUT(ctypes.Structure):
+            """ ctypes equivalent for Win32 HARDWAREINPUT struct """
             _fields_ = (("uMsg",    wintypes.DWORD),
                         ("wParamL", wintypes.WORD),
                         ("wParamH", wintypes.WORD))
         self._HARDWAREINPUT = HARDWAREINPUT
 
         class INPUT(ctypes.Structure):
+            """ ctypes equivalent for Win32 INPUT struct """
             class _INPUT(ctypes.Union):
                 _fields_ = (("ki", KEYBDINPUT),
                             ("mi", MOUSEINPUT),
@@ -246,10 +252,11 @@ class PlatformManagerWindows(object):
         LPINPUT = ctypes.POINTER(INPUT)
         user32.SendInput.errcheck = self._check_count
         user32.SendInput.argtypes = (wintypes.UINT, # nInputs
-                                          LPINPUT,       # pInputs
-                                          ctypes.c_int)  # cbSize
+                                     LPINPUT,       # pInputs
+                                     ctypes.c_int)  # cbSize
 
     def _check_count(self, result, func, args):
+        #pylint: disable=unused-argument
         """ Private function to return ctypes errors cleanly """
         if result == 0:
             raise ctypes.WinError(ctypes.get_last_error())
@@ -257,10 +264,10 @@ class PlatformManagerWindows(object):
 
     ## Keyboard input methods ##
 
-    def _pressKeyCode(self, hexKeyCode):
+    def _press_key_code(self, hex_key_code):
         """ Set key state to down for the specified hex key code """
-        x = self._INPUT(type=self._INPUT_KEYBOARD, ki=self._KEYBDINPUT(wVk=hexKeyCode))
-        self._user32.SendInput(1, ctypes.byref(x), ctypes.sizeof(x))
+        key_msg = self._INPUT(type=self._INPUT_KEYBOARD, ki=self._KEYBDINPUT(wVk=hex_key_code))
+        self._user32.SendInput(1, ctypes.byref(key_msg), ctypes.sizeof(key_msg))
     def pressKey(self, text):
         """ Accepts a string of keys in typeKeys format (see below). Holds down all of them. """
 
@@ -274,7 +281,7 @@ class PlatformManagerWindows(object):
             elif text[i] == "}":
                 in_special_code = False
                 if special_code in self._SPECIAL_KEYCODES.keys():
-                    self._pressKeyCode(self._SPECIAL_KEYCODES[special_code])
+                    self._press_key_code(self._SPECIAL_KEYCODES[special_code])
                 else:
                     raise ValueError("Unsupported special code {{{}}}".format(special_code))
                 continue
@@ -282,16 +289,20 @@ class PlatformManagerWindows(object):
                 special_code += text[i]
                 continue
             elif text[i] in self._MODIFIER_KEYCODES.keys():
-                self._pressKeyCode(self._MODIFIER_KEYCODES[text[i]])
+                self._press_key_code(self._MODIFIER_KEYCODES[text[i]])
             elif text[i] in self._REGULAR_KEYCODES.keys():
-                self._pressKeyCode(self._REGULAR_KEYCODES[text[i]])
-    def _releaseKeyCode(self, hexKeyCode):
+                self._press_key_code(self._REGULAR_KEYCODES[text[i]])
+    def _release_key_code(self, hex_key_code):
         """ Set key state to up for the specified hex key code  """
-        x = self._INPUT(type=self._INPUT_KEYBOARD, ki=self._KEYBDINPUT(wVk=hexKeyCode, dwFlags=self._KEYEVENTF_KEYUP))
-        self._user32.SendInput(1, ctypes.byref(x), ctypes.sizeof(x))
+        key_msg = self._INPUT(
+            type=self._INPUT_KEYBOARD,
+            ki=self._KEYBDINPUT(
+                wVk=hex_key_code,
+                dwFlags=self._KEYEVENTF_KEYUP))
+        self._user32.SendInput(1, ctypes.byref(key_msg), ctypes.sizeof(key_msg))
     def releaseKey(self, text):
         """ Accepts a string of keys in typeKeys format (see below). Releases all of them. """
-        
+
         in_special_code = False
         special_code = ""
         for i in range(0, len(text)):
@@ -300,7 +311,7 @@ class PlatformManagerWindows(object):
             elif text[i] == "}":
                 in_special_code = False
                 if special_code in self._SPECIAL_KEYCODES.keys():
-                    self._releaseKeyCode(self._SPECIAL_KEYCODES[special_code])
+                    self._release_key_code(self._SPECIAL_KEYCODES[special_code])
                 else:
                     raise ValueError("Unsupported special code {{{}}}".format(special_code))
                 continue
@@ -308,9 +319,9 @@ class PlatformManagerWindows(object):
                 special_code += text[i]
                 continue
             elif text[i] in self._MODIFIER_KEYCODES.keys():
-                self._releaseKeyCode(self._MODIFIER_KEYCODES[text[i]])
+                self._release_key_code(self._MODIFIER_KEYCODES[text[i]])
             elif text[i] in self._REGULAR_KEYCODES.keys():
-                self._releaseKeyCode(self._REGULAR_KEYCODES[text[i]])
+                self._release_key_code(self._REGULAR_KEYCODES[text[i]])
     def typeKeys(self, text, delay=0.1):
         """ Translates a string (with modifiers) into a series of keystrokes.
 
@@ -329,13 +340,13 @@ class PlatformManagerWindows(object):
             elif text[i] == "}":
                 in_special_code = False
                 if special_code in self._SPECIAL_KEYCODES.keys():
-                    self._pressKeyCode(self._SPECIAL_KEYCODES[special_code])
-                    self._releaseKeyCode(self._SPECIAL_KEYCODES[special_code])
+                    self._press_key_code(self._SPECIAL_KEYCODES[special_code])
+                    self._release_key_code(self._SPECIAL_KEYCODES[special_code])
                 elif special_code in self._UPPERCASE_SPECIAL_KEYCODES.keys():
-                    self._pressKeyCode(self._SPECIAL_KEYCODES["SHIFT"])
-                    self._pressKeyCode(self._UPPERCASE_SPECIAL_KEYCODES[special_code])
-                    self._releaseKeyCode(self._UPPERCASE_SPECIAL_KEYCODES[special_code])
-                    self._releaseKeyCode(self._SPECIAL_KEYCODES["SHIFT"])
+                    self._press_key_code(self._SPECIAL_KEYCODES["SHIFT"])
+                    self._press_key_code(self._UPPERCASE_SPECIAL_KEYCODES[special_code])
+                    self._release_key_code(self._UPPERCASE_SPECIAL_KEYCODES[special_code])
+                    self._release_key_code(self._SPECIAL_KEYCODES["SHIFT"])
                 else:
                     raise ValueError("Unrecognized special code {{{}}}".format(special_code))
                 continue
@@ -349,37 +360,37 @@ class PlatformManagerWindows(object):
             elif text[i] == ")":
                 modifier_stuck = False
                 for x in modifier_codes:
-                    self._releaseKeyCode(x)
+                    self._release_key_code(x)
                 modifier_codes = []
                 continue
             elif text[i] in self._MODIFIER_KEYCODES.keys():
                 modifier_codes.append(self._MODIFIER_KEYCODES[text[i]])
-                self._pressKeyCode(self._MODIFIER_KEYCODES[text[i]])
+                self._press_key_code(self._MODIFIER_KEYCODES[text[i]])
                 modifier_held = True
             elif text[i] in self._REGULAR_KEYCODES.keys():
-                self._pressKeyCode(self._REGULAR_KEYCODES[text[i]])
-                self._releaseKeyCode(self._REGULAR_KEYCODES[text[i]])
+                self._press_key_code(self._REGULAR_KEYCODES[text[i]])
+                self._release_key_code(self._REGULAR_KEYCODES[text[i]])
                 if modifier_held:
                     modifier_held = False
                     for x in modifier_codes:
-                        self._releaseKeyCode(x)
+                        self._release_key_code(x)
                     modifier_codes = []
             elif text[i] in self._UPPERCASE_KEYCODES.keys():
-                self._pressKeyCode(self._SPECIAL_KEYCODES["SHIFT"])
-                self._pressKeyCode(self._UPPERCASE_KEYCODES[text[i]])
-                self._releaseKeyCode(self._UPPERCASE_KEYCODES[text[i]])
-                self._releaseKeyCode(self._SPECIAL_KEYCODES["SHIFT"])
+                self._press_key_code(self._SPECIAL_KEYCODES["SHIFT"])
+                self._press_key_code(self._UPPERCASE_KEYCODES[text[i]])
+                self._release_key_code(self._UPPERCASE_KEYCODES[text[i]])
+                self._release_key_code(self._SPECIAL_KEYCODES["SHIFT"])
                 if modifier_held:
                     modifier_held = False
                     for x in modifier_codes:
-                        self._releaseKeyCode(x)
+                        self._release_key_code(x)
                     modifier_codes = []
             if delay:
                 time.sleep(delay)
 
         if modifier_stuck or modifier_held:
             for modifier in modifier_codes:
-                self._releaseKeyCode(modifier)
+                self._release_key_code(modifier)
 
     ## Mouse input methods
 
@@ -389,27 +400,30 @@ class PlatformManagerWindows(object):
         if self.isPointVisible(x, y):
             self._user32.SetCursorPos(x, y)
     def getMousePos(self):
-        """ Returns the current mouse position as a tuple (x,y) 
+        """ Returns the current mouse position as a tuple (x,y)
 
         Relative to origin of main screen top left (0,0). May be negative.
         """
         class POINT(ctypes.Structure):
+            """ ctypes version of Win32 POINT struct """
             _fields_ = [("x", ctypes.c_long), ("y", ctypes.c_long)]
-        pt = POINT()
-        self._user32.GetCursorPos(ctypes.byref(pt))
-        return (pt.x, pt.y)
+        mouse_pos = POINT()
+        self._user32.GetCursorPos(ctypes.byref(mouse_pos))
+        return (mouse_pos.x, mouse_pos.y)
     def mouseButtonDown(self, button=0):
         """ Translates the button (0=LEFT, 1=MIDDLE, 2=RIGHT) and sends a mousedown to the OS """
         click_down_code = [0x0002, 0x0020, 0x0008][button]
-        x = self._INPUT(type=self._INPUT_MOUSE, mi=self._MOUSEINPUT(dwFlags=click_down_code))
-        self._user32.SendInput(1, ctypes.byref(x), ctypes.sizeof(x))
+        mouse_msg = self._INPUT(
+            type=self._INPUT_MOUSE,
+            mi=self._MOUSEINPUT(dwFlags=click_down_code))
+        self._user32.SendInput(1, ctypes.byref(mouse_msg), ctypes.sizeof(mouse_msg))
     def mouseButtonUp(self, button=0):
         """ Translates the button (0=LEFT, 1=MIDDLE, 2=RIGHT) and sends a mouseup to the OS """
         click_up_code = [0x0004, 0x0040, 0x0010][button]
-        x = self._INPUT(type=self._INPUT_MOUSE, mi=self._MOUSEINPUT(dwFlags=click_up_code))
-        self._user32.SendInput(1, ctypes.byref(x), ctypes.sizeof(x))
+        mouse_msg = self._INPUT(type=self._INPUT_MOUSE, mi=self._MOUSEINPUT(dwFlags=click_up_code))
+        self._user32.SendInput(1, ctypes.byref(mouse_msg), ctypes.sizeof(mouse_msg))
     def clickMouse(self, button=0):
-        """ Abstracts the clicking function 
+        """ Abstracts the clicking function
 
         Button codes are (0=LEFT, 1=MIDDLE, 2=RIGHT) and should be provided as constants
         by the Mouse class
@@ -421,7 +435,7 @@ class PlatformManagerWindows(object):
         self.mouseButtonUp(button)
     def mouseWheel(self, direction, steps):
         """ Clicks the mouse wheel the specified number of steps in the given direction
-        
+
         Valid directions are 0 (for down) and 1 (for up). These should be provided
         as constants by the Mouse class.
         """
@@ -432,8 +446,12 @@ class PlatformManagerWindows(object):
             wheel_moved = -120*steps
         else:
             raise ValueError("Expected direction to be 1 or 0")
-        x = self._INPUT(type=self._INPUT_MOUSE, mi=self._MOUSEINPUT(dwFlags=MOUSEEVENTF_WHEEL, mouseData=wheel_moved))
-        self._user32.SendInput(1, ctypes.byref(x), ctypes.sizeof(x))
+        mouse_msg = self._INPUT(
+            type=self._INPUT_MOUSE,
+            mi=self._MOUSEINPUT(
+                dwFlags=MOUSEEVENTF_WHEEL,
+                mouseData=wheel_moved))
+        self._user32.SendInput(1, ctypes.byref(mouse_msg), ctypes.sizeof(mouse_msg))
 
     ## Screen functions
 
@@ -460,9 +478,11 @@ class PlatformManagerWindows(object):
             return (x1, y1, x2-x1, y2-y1)
         return screen_details[screenId]["rect"]
     def getScreenDetails(self):
-        """ Return list of attached monitors with `rect` representing each screen as positioned in virtual screen. 
+        """ Return list of attached monitors
 
-        List is returned in device order, with the first element (0) representing the primary monitor.
+        For each monitor (as dict), ``monitor["rect"]`` represents the screen as positioned
+        in virtual screen. List is returned in device order, with the first element (0)
+        representing the primary monitor.
         """
         monitors = self._getMonitorInfo()
         primary_screen = None
@@ -493,7 +513,7 @@ class PlatformManagerWindows(object):
         return True
     def _captureScreen(self, device_name):
         """ Captures a bitmap from the given monitor device name
-        
+
         Returns as a PIL Image (BGR rather than RGB, for compatibility with OpenCV)
         """
 
@@ -565,10 +585,25 @@ class PlatformManagerWindows(object):
         buffer_length = screen_width * 4 * screen_height
         image_data = ctypes.create_string_buffer(buffer_length)
 
-        scanlines = self._gdi32.GetDIBits(hCaptureDC, hCaptureBmp, 0, screen_height, ctypes.byref(image_data), ctypes.byref(img_info), DIB_RGB_COLORS)
+        scanlines = self._gdi32.GetDIBits(
+            hCaptureDC,
+            hCaptureBmp,
+            0,
+            screen_height,
+            ctypes.byref(image_data),
+            ctypes.byref(img_info),
+            DIB_RGB_COLORS)
         if scanlines != screen_height:
             raise WindowsError("gdi:GetDIBits failed")
-        final_image = ImageOps.flip(Image.frombuffer("RGBX", (screen_width, screen_height), image_data, "raw", "RGBX", 0, 1))
+        final_image = ImageOps.flip(
+            Image.frombuffer(
+                "RGBX",
+                (screen_width, screen_height),
+                image_data,
+                "raw",
+                "RGBX",
+                0,
+                1))
         # Destroy created device context & GDI bitmap
         self._gdi32.DeleteObject(hdc)
         self._gdi32.DeleteObject(hCaptureDC)
@@ -593,28 +628,37 @@ class PlatformManagerWindows(object):
             self._user32.GetMonitorInfoW(hMonitor, ctypes.byref(lpmi))
             #hdc = self._gdi32.CreateDCA(ctypes.c_char_p(lpmi.szDevice), 0, 0, 0)
             monitors.append({
-                    "hmon": hMonitor,
-                    #"hdc":  hdc,
-                    "rect": (lprcMonitor.contents.left,
-                            lprcMonitor.contents.top,
-                            lprcMonitor.contents.right,
-                            lprcMonitor.contents.bottom),
-                    "name": lpmi.szDevice
+                "hmon": hMonitor,
+                #"hdc":  hdc,
+                "rect": (lprcMonitor.contents.left,
+                         lprcMonitor.contents.top,
+                         lprcMonitor.contents.right,
+                         lprcMonitor.contents.bottom),
+                "name": lpmi.szDevice
                 })
             return True
-        MonitorEnumProc = ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.c_ulong, ctypes.c_ulong, ctypes.POINTER(ctypes.wintypes.RECT), ctypes.c_int)
+        MonitorEnumProc = ctypes.WINFUNCTYPE(
+            ctypes.c_bool,
+            ctypes.c_ulong,
+            ctypes.c_ulong,
+            ctypes.POINTER(ctypes.wintypes.RECT),
+            ctypes.c_int)
         callback = MonitorEnumProc(_MonitorEnumProcCallback)
-        if self._user32.EnumDisplayMonitors(0,0,callback,0) == 0:
+        if self._user32.EnumDisplayMonitors(0, 0, callback, 0) == 0:
             raise WindowsError("Unable to enumerate monitors")
-        # Clever magic to make the screen with origin of (0,0) [the primary monitor] the first in the list
-        monitors.sort(key=lambda x: (not (x["rect"][0] == 0 and x["rect"][1] == 0), x["name"])) # Sort by device ID - 0 is primary, 1 is next, etc.
+        # Clever magic to make the screen with origin of (0,0) [the primary monitor]
+        # the first in the list
+        # Sort by device ID - 0 is primary, 1 is next, etc.
+        monitors.sort(key=lambda x: (not (x["rect"][0] == 0 and x["rect"][1] == 0), x["name"]))
+
         return monitors
     def _getVirtualScreenRect(self):
-        """ The virtual screen is the bounding box containing all monitors. 
+        """ The virtual screen is the bounding box containing all monitors.
 
-        Not all regions in the virtual screen are actually visible. The (0,0) coordinate is the top left corner of the primary
-        screen rather than the whole bounding box, so some regions of the virtual screen may have negative coordinates if another
-        screen is positioned in Windows as further to the left or above the primary screen.
+        Not all regions in the virtual screen are actually visible. The (0,0) coordinate
+        is the top left corner of the primary screen rather than the whole bounding box, so
+        some regions of the virtual screen may have negative coordinates if another screen
+        is positioned in Windows as further to the left or above the primary screen.
 
         Returns the rect as (x, y, w, h)
         """
@@ -628,14 +672,17 @@ class PlatformManagerWindows(object):
                 self._user32.GetSystemMetrics(SM_CXVIRTUALSCREEN), \
                 self._user32.GetSystemMetrics(SM_CYVIRTUALSCREEN))
     def _getVirtualScreenBitmap(self):
-        """ Returns a PIL bitmap (BGR channel order) of a screenshot from all monitors arranged like the Virtual Screen """
+        """ Returns a PIL bitmap (BGR channel order) of all monitors
+
+        Arranged like the Virtual Screen
+        """
 
         # Collect information about the virtual screen & monitors
         min_x, min_y, screen_width, screen_height = self._getVirtualScreenRect()
         monitors = self._getMonitorInfo()
 
         # Initialize new black image the size of the virtual screen
-        virt_screen = Image.new("RGB", (screen_width, screen_height)) 
+        virt_screen = Image.new("RGB", (screen_width, screen_height))
 
         # Capture images of each of the monitors and overlay on the virtual screen
         for monitor_id in range(0, len(monitors)):
@@ -646,13 +693,13 @@ class PlatformManagerWindows(object):
             x = x1 - min_x
             y = y1 - min_y
             # Paste on the virtual screen
-            virt_screen.paste(img, (x,y))
+            virt_screen.paste(img, (x, y))
         return virt_screen
 
     ## Clipboard functions
 
     def getClipboard(self):
-        """ Uses Tkinter to fetch any text on the clipboard. 
+        """ Uses Tkinter to fetch any text on the clipboard.
 
         If a Tkinter root window has already been created somewhere else,
         uses that instead of creating a new one.
@@ -697,8 +744,11 @@ class PlatformManagerWindows(object):
     ## Window functions
 
     def getWindowByTitle(self, wildcard, order=0):
-        """ Returns a platform-specific handle for the first window that matches the provided "wildcard" regex """
-        EnumWindowsProc = ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.POINTER(ctypes.c_int), ctypes.py_object)
+        """ Returns a handle for the first window that matches the provided "wildcard" regex """
+        EnumWindowsProc = ctypes.WINFUNCTYPE(
+            ctypes.c_bool,
+            ctypes.POINTER(ctypes.c_int),
+            ctypes.py_object)
         def callback(hwnd, context):
             if ctypes.windll.user32.IsWindowVisible(hwnd):
                 length = ctypes.windll.user32.GetWindowTextLengthW(hwnd)
@@ -714,10 +764,13 @@ class PlatformManagerWindows(object):
         ctypes.windll.user32.EnumWindows(EnumWindowsProc(callback), ctypes.py_object(data))
         return data["handle"]
     def getWindowByPID(self, pid, order=0):
-        """ Returns a platform-specific handle for the first window that matches the provided PID """
+        """ Returns a handle for the first window that matches the provided PID """
         if pid <= 0:
             return None
-        EnumWindowsProc = ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.POINTER(ctypes.c_int), ctypes.py_object)
+        EnumWindowsProc = ctypes.WINFUNCTYPE(
+            ctypes.c_bool,
+            ctypes.POINTER(ctypes.c_int),
+            ctypes.py_object)
         def callback(hwnd, context):
             if ctypes.windll.user32.IsWindowVisible(hwnd):
                 pid = ctypes.c_long()
@@ -766,7 +819,7 @@ class PlatformManagerWindows(object):
     ## Highlighting functions
 
     def highlight(self, rect, seconds=1):
-        """ Simulates a transparent rectangle over the specified ``rect`` on the screen. 
+        """ Simulates a transparent rectangle over the specified ``rect`` on the screen.
 
         Actually takes a screenshot of the region and displays with a
         rectangle border in a borderless window (due to Tkinter limitations)
@@ -799,8 +852,8 @@ class PlatformManagerWindows(object):
         ## Slightly copied wholesale from http://stackoverflow.com/questions/568271/how-to-check-if-there-exists-a-process-with-a-given-pid
         ## Thanks to http://stackoverflow.com/users/1777162/ntrrgc and http://stackoverflow.com/users/234270/speedplane
         class ExitCodeProcess(ctypes.Structure):
-            _fields_ = [ ('hProcess', ctypes.c_void_p),
-                ('lpExitCode', ctypes.POINTER(ctypes.c_ulong))]
+            _fields_ = [('hProcess', ctypes.c_void_p),
+                        ('lpExitCode', ctypes.POINTER(ctypes.c_ulong))]
         SYNCHRONIZE = 0x100000
         PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
         process = self._kernel32.OpenProcess(SYNCHRONIZE|PROCESS_QUERY_LIMITED_INFORMATION, 0, pid)
@@ -855,10 +908,22 @@ class highlightWindow(tk.Toplevel):
         self.attributes("-topmost", True)
 
         ## Create canvas and fill it with the provided image. Then draw rectangle outline
-        self.canvas = tk.Canvas(self, width=rect[2], height=rect[3], bd=0, bg="blue", highlightthickness=0)
-        self.tk_image = ImageTk.PhotoImage(Image.fromarray(screen_cap[...,[2,1,0]]))
-        self.canvas.create_image(0,0,image=self.tk_image,anchor=tk.NW)
-        self.canvas.create_rectangle(2,2,rect[2]-2,rect[3]-2, outline="red", width=4)#, outline="red", fill="")
+        self.canvas = tk.Canvas(
+            self,
+            width=rect[2],
+            height=rect[3],
+            bd=0,
+            bg="blue",
+            highlightthickness=0)
+        self.tk_image = ImageTk.PhotoImage(Image.fromarray(screen_cap[..., [2, 1, 0]]))
+        self.canvas.create_image(0, 0, image=self.tk_image, anchor=tk.NW)
+        self.canvas.create_rectangle(
+            2,
+            2,
+            rect[2]-2,
+            rect[3]-2,
+            outline="red",
+            width=4)
         self.canvas.pack(fill=tk.BOTH, expand=tk.YES)
 
         ## Lift to front if necessary and refresh.
