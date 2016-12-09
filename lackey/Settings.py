@@ -1,5 +1,6 @@
 """ Defines Settings and Debug objects """
 import datetime
+import __main__
 import os
 
 class DebugMaster(object):
@@ -109,7 +110,11 @@ class DebugMaster(object):
         log_entry = "[{}{}] {}".format(log_type, timestamp if log_time else "", message)
         if self._logger and callable(getattr(self._logger, self._logger_methods[log_type], None)):
             # Check for log handler (sends message only if _logger_no_prefix is True)
-            getattr(self._logger, self._logger_methods[log_type], None)(message if self._logger_no_prefix else log_entry)
+            getattr(
+                self._logger,
+                self._logger_methods[log_type],
+                None
+                )(message if self._logger_no_prefix else log_entry)
         elif self._log_file:
             # Otherwise write to file, if a file has been specified
             with open(self._log_file) as logfile:
@@ -150,7 +155,8 @@ class SettingsMaster(object):
     ShowActions = False
 
     ## File Settings
-    BundlePath = os.path.abspath(os.getcwd()) # Path to Sikuli project
+    # Path to Sikuli project - might not be current directory
+    BundlePath = os.path.dirname(os.path.abspath(os.path.join(os.getcwd(), __main__.__file__)))
     ImagePaths = []
     OcrDataPath = None
 
