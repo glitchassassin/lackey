@@ -6,3 +6,4 @@ numpy
 pillow
 opencv-python
 wheel
+keyboard
