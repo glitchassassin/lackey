@@ -4,7 +4,7 @@ import unittest
 import time
 import sys
 import os
-sys.path.insert(0, os.path.abspath('..'))
+#sys.path.insert(0, os.path.abspath('..'))
 import lackey
 
 class TestLocationMethods(unittest.TestCase):
@@ -87,7 +87,7 @@ class TestKeyboardMethods(unittest.TestCase):
 		self.kb.keyDown("{SHIFT}")
 		self.kb.keyUp("{CTRL}")
 		self.kb.keyUp("{SHIFT}")
-		self.kb.type("%{CTRL}")
+		self.kb.type("{CTRL}", lackey.Key.ALT)
 		# Really this should check to make sure these keys have all been released, but 
 		# I'm not sure how to make that work without continuously monitoring the keyboard
 		# (which is the usual scenario). Ah well... if your computer is acting weird after
@@ -339,15 +339,15 @@ class TestComplexFeatures(unittest.TestCase):
 			raise NotImplementedError("Platforms supported include: Windows")
 		r = app.window()
 
-		r.type("This is a +test") # Type should translate "+" into shift modifier for capital first letters
-		r.type("^a") # Select all
-		r.type("^c") # Copy
+		r.type("This is a Test") # Type should translate "+" into shift modifier for capital first letters
+		r.type("a", lackey.Key.CONTROL) # Select all
+		r.type("c", lackey.Key.CONTROL) # Copy
 		self.assertEqual(r.getClipboard(), "This is a Test")
 		r.type("{DELETE}") # Clear the selected text
-		r.paste("This, on the other hand, is a +broken +record.") # Paste should ignore special characters and insert the string as is
-		r.type("^a") # Select all
-		r.type("^c") # Copy
-		self.assertEqual(r.getClipboard(), "This, on the other hand, is a +broken +record.")
+		r.paste("This, on the other hand, is a {SHIFT}broken {SHIFT}record.") # Paste should ignore special characters and insert the string as is
+		r.type("a", lackey.Key.CONTROL) # Select all
+		r.type("c", lackey.Key.CONTROL) # Copy
+		self.assertEqual(r.getClipboard(), "This, on the other hand, is a {SHIFT}broken {SHIFT}record.")
 
 		if sys.platform.startswith("win"):
 			app.close()
@@ -363,10 +363,10 @@ class TestComplexFeatures(unittest.TestCase):
 		r.type("This is a test")
 		r.rightClick(lackey.Pattern("test_text.png").similar(0.6))
 		r.click("select_all.png")
-		r.type("^c") # Copy
+		r.type("c", lackey.Key.CONTROL) # Copy
 		self.assertEqual(r.getClipboard(), "This is a test")
 		r.type("{DELETE}")
-		r.type("%{F4}")
+		r.type("{F4}", lackey.Key.ALT)
 
 	def testDragDrop(self):
 		""" This relies on two specific icons on the desktop.
@@ -376,7 +376,7 @@ class TestComplexFeatures(unittest.TestCase):
 		r = lackey.Screen(0)
 		r.dragDrop("test_file_txt.png", "notepad.png")
 		self.assertTrue(r.exists("test_file_text.png"))
-		r.type("%{F4}")
+		r.type("{F4}", lackey.Key.ALT)
 
 class TestRegionFeatures(unittest.TestCase):
 	def setUp(self):

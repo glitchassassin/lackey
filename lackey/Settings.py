@@ -1,7 +1,7 @@
 """ Defines Settings and Debug objects """
 import datetime
-import __main__
 import os
+import __main__
 
 class DebugMaster(object):
     """ Used to create the global Debug object """
