@@ -62,9 +62,9 @@ class Key():
 
 class KeyModifier():
     """ Key modifiers precede either a single key [e.g., ^v] or a set of characters within parentheses [e.g., +(hello)] """
-    CTRL 		= "^"
-    SHIFT 		= "+"
-    ALT 		= "%"
-    META 		= "@"
-    CMD 		= "@"
-    WIN 		= "@"
+    CTRL 		= "{CTRL}"
+    SHIFT 		= "{SHIFT}"
+    ALT 		= "{ALT}"
+    META 		= "{WIN}"
+    CMD 		= "{WIN}"
+    WIN 		= "{WIN}"
