@@ -105,3 +105,9 @@ To build the wheel from source, run:
     python setup.py bdist_wheel
 
 (Note that you may need to make sure `wheel` is installed)
+
+## Special thanks ##
+
+Debugging contributions:
+
+* [maxdule](https://github.com/maxdule)

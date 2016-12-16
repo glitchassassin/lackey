@@ -2,7 +2,9 @@
 ####### requirements.txt #######
 #
 ###### Requirements without Version Specifiers ######
+requests
 numpy
 pillow
 opencv-python
 wheel
+keyboard
