@@ -765,10 +765,6 @@ class Region(object):
         if pattern:
             self.click(pattern)
 
-        # Patch some Sikuli special codes
-        text = text.replace("{PGDN}", "{PAGE_DOWN}")
-        text = text.replace("{PGUP}", "{PAGE_UP}")
-
         Debug.history("Typing '{}' with modifiers '{}'".format(text, modifiers))
         kb = Keyboard()
         if modifiers:
