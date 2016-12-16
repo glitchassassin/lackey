@@ -426,7 +426,8 @@ class PlatformManagerWindows(object):
                         ("bmiColors", ctypes.wintypes.DWORD*3)]
         HORZRES = ctypes.c_int(8)
         VERTRES = ctypes.c_int(10)
-        SRCCOPY = 0xCC0020
+        SRCCOPY =    0x00CC0020
+        CAPTUREBLT = 0x40000000
         DIB_RGB_COLORS = 0
 
         ## Begin logic
@@ -452,7 +453,7 @@ class PlatformManagerWindows(object):
         self._gdi32.SelectObject(hCaptureDC, hCaptureBmp)
 
         # Perform bit-block transfer from screen to device context (and thereby hCaptureBmp)
-        self._gdi32.BitBlt(hCaptureDC, 0, 0, screen_width, screen_height, hdc, 0, 0, SRCCOPY)
+        self._gdi32.BitBlt(hCaptureDC, 0, 0, screen_width, screen_height, hdc, 0, 0, SRCCOPY | CAPTUREBLT)
 
         # Capture image bits from bitmap
         img_info = BITMAPINFO()
