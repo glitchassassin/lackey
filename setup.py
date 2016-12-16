@@ -4,6 +4,7 @@
 
 from setuptools import setup, find_packages
 from setuptools.dist import Distribution
+from lackey import __version__
 
 class BinaryDistribution(Distribution):
     """ Custom class for platform-specific modules
@@ -22,6 +23,7 @@ setup(
     author="Jon Winsley",
     author_email="jon.winsley@gmail.com",
     license="MIT",
+    version=__version__,
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Environment :: Console",
