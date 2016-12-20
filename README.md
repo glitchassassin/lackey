@@ -1,4 +1,4 @@
-# Lackey v0.4.0a1 #
+# Lackey #
 ## A Graphical Python Automation Suite ##
 [![Documentation Status](https://readthedocs.org/projects/lackey/badge/?version=latest)](http://lackey.readthedocs.io/en/latest/?badge=latest) [![Build status](https://ci.appveyor.com/api/projects/status/l1q68dnp6vm8sre9?svg=true)](https://ci.appveyor.com/project/glitchassassin/lackey)
 
@@ -8,7 +8,8 @@ Developed by [Jon Winsley](https://github.com/glitchassassin)
 
 * numpy
 * pillow
-* opencv (included)
+* opencv
+* keyboard
 
 ## Introduction ##
 
