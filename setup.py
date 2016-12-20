@@ -1,10 +1,13 @@
 """ Setup script for Lackey
 
 """
-
+import re
 from setuptools import setup, find_packages
 from setuptools.dist import Distribution
-from lackey import __version__
+
+with open('lackey/_version.py', 'r') as fd:
+    __version__ = re.search(r'^__version__\s*=\s*[\'"]([^\'"]*)[\'"]',
+                            fd.read(), re.MULTILINE).group(1)
 
 class BinaryDistribution(Distribution):
     """ Custom class for platform-specific modules
