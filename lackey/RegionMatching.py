@@ -26,6 +26,12 @@ else:
     if not os.environ.get('READTHEDOCS') == 'True':
         raise NotImplementedError("Lackey is currently only compatible with Windows.")
 
+# Python 3 compatibility
+try:
+    basestring
+except NameError:
+    basestring = str
+
 class Pattern(object):
     """ Defines a pattern based on a bitmap, similarity, and target offset """
     def __init__(self, path):

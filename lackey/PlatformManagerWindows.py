@@ -15,6 +15,12 @@ from keyboard import mouse
 from PIL import Image, ImageTk, ImageOps
 from .Settings import Debug
 
+# Python 3 compatibility
+try:
+    basestring
+except NameError:
+    basestring = str
+
 class PlatformManagerWindows(object):
     """ Abstracts Windows-specific OS-level features like mouse/keyboard control """
     def __init__(self):
