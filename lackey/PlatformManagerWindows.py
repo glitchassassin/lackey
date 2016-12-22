@@ -763,7 +763,7 @@ class PlatformManagerWindows(object):
         return True
     def killProcess(self, pid):
         """ Kills the process with the specified PID (if possible) """
-        SYNCHRONIZE = 0x00100000L
+        SYNCHRONIZE = 0x00100000
         PROCESS_TERMINATE = 0x0001
         hProcess = self._kernel32.OpenProcess(SYNCHRONIZE|PROCESS_TERMINATE, True, pid)
         result = self._kernel32.TerminateProcess(hProcess, 0)
