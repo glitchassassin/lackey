@@ -316,7 +316,6 @@ class PyramidTemplateMatcher(object):
 
         # Whew! Let's see if there's a match after all that.
         positions.sort(key=lambda x: (x[0][1], x[0][0]))
-        print(len(positions))
         return positions
 
     def _build_pyramid(self, image, levels):

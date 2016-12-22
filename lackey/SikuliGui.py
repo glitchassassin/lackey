@@ -2,8 +2,13 @@
 
 """
 
-import Tkinter as tk
-import ttk
+try:
+    import Tkinter as tk
+    import ttk
+except ImportError:
+    import tkinter as tk
+    from tkinter import ttk
+
 from .Settings import Settings
 
 class PopupInput(tk.Frame):

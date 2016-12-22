@@ -121,7 +121,7 @@ class DebugMaster(object):
                 logfile.write(log_entry)
         else:
             # Otherwise, print to STDOUT
-            print log_entry
+            print(log_entry)
 
 class SettingsMaster(object):
     """ Global settings that Lackey refers to by default """

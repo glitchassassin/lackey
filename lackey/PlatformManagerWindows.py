@@ -207,7 +207,6 @@ class PlatformManagerWindows(object):
             elif in_special_code and (text[i] == "}" or text[i] == " " or i == len(text)-1):
                 # End of special code (or it wasn't a special code after all)
                 in_special_code = False
-                print special_code
                 if special_code in self._SPECIAL_KEYCODES.keys():
                     # Found a special code
                     keyboard.press(self._SPECIAL_KEYCODES[special_code])
@@ -268,7 +267,6 @@ class PlatformManagerWindows(object):
                 in_special_code = True
             elif in_special_code and (text[i] == "}" or text[i] == " " or i == len(text)-1):
                 in_special_code = False
-                print special_code
                 if special_code in self._SPECIAL_KEYCODES.keys():
                     # Found a special code
                     keyboard.press_and_release(self._SPECIAL_KEYCODES[special_code])
