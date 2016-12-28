@@ -15,6 +15,12 @@ from keyboard import mouse
 from PIL import Image, ImageTk, ImageOps
 from .Settings import Debug
 
+# Python 3 compatibility
+try:
+    basestring
+except NameError:
+    basestring = str
+
 class PlatformManagerWindows(object):
     """ Abstracts Windows-specific OS-level features like mouse/keyboard control """
     def __init__(self):
@@ -207,7 +213,6 @@ class PlatformManagerWindows(object):
             elif in_special_code and (text[i] == "}" or text[i] == " " or i == len(text)-1):
                 # End of special code (or it wasn't a special code after all)
                 in_special_code = False
-                print special_code
                 if special_code in self._SPECIAL_KEYCODES.keys():
                     # Found a special code
                     keyboard.press(self._SPECIAL_KEYCODES[special_code])
@@ -268,7 +273,6 @@ class PlatformManagerWindows(object):
                 in_special_code = True
             elif in_special_code and (text[i] == "}" or text[i] == " " or i == len(text)-1):
                 in_special_code = False
-                print special_code
                 if special_code in self._SPECIAL_KEYCODES.keys():
                     # Found a special code
                     keyboard.press_and_release(self._SPECIAL_KEYCODES[special_code])
@@ -765,7 +769,7 @@ class PlatformManagerWindows(object):
         return True
     def killProcess(self, pid):
         """ Kills the process with the specified PID (if possible) """
-        SYNCHRONIZE = 0x00100000L
+        SYNCHRONIZE = 0x00100000
         PROCESS_TERMINATE = 0x0001
         hProcess = self._kernel32.OpenProcess(SYNCHRONIZE|PROCESS_TERMINATE, True, pid)
         result = self._kernel32.TerminateProcess(hProcess, 0)

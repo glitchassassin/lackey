@@ -4,9 +4,15 @@ See https://github.com/glitchassassin/lackey
 """
 
 from zipfile import ZipFile
-import Tkinter as tk
-import tkFileDialog
-import tkMessageBox
+try:
+    import Tkinter as tk
+    import tkFileDialog
+    import tkMessageBox
+except ImportError:
+    import tkinter as tk
+    from tkinter import filedialog as tkFileDialog
+    from tkinter import messagebox as tkMessageBox
+
 import platform
 import sys
 import time

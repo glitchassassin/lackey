@@ -1,5 +1,8 @@
 from PIL import Image, ImageTk
-import Tkinter as tk
+try:
+    import Tkinter as tk
+except ImportError:
+    import tkinter as tk
 import subprocess
 import tempfile
 import platform
@@ -22,6 +25,12 @@ else:
     # Avoid throwing an error if it's just being imported for documentation purposes
     if not os.environ.get('READTHEDOCS') == 'True':
         raise NotImplementedError("Lackey is currently only compatible with Windows.")
+
+# Python 3 compatibility
+try:
+    basestring
+except NameError:
+    basestring = str
 
 class Pattern(object):
     """ Defines a pattern based on a bitmap, similarity, and target offset """

@@ -121,7 +121,7 @@ class DebugMaster(object):
                 logfile.write(log_entry)
         else:
             # Otherwise, print to STDOUT
-            print log_entry
+            print(log_entry)
 
 class SettingsMaster(object):
     """ Global settings that Lackey refers to by default """
@@ -156,7 +156,10 @@ class SettingsMaster(object):
 
     ## File Settings
     # Path to Sikuli project - might not be current directory
-    BundlePath = os.path.dirname(os.path.abspath(os.path.join(os.getcwd(), __main__.__file__)))
+    try:
+        BundlePath = os.path.dirname(os.path.abspath(os.path.join(os.getcwd(), __main__.__file__)))
+    except AttributeError:
+        BundlePath = os.path.dirname(os.path.abspath(os.getcwd()))
     ImagePaths = []
     OcrDataPath = None
 
