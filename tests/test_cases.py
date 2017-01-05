@@ -7,6 +7,12 @@ import os
 #sys.path.insert(0, os.path.abspath('..'))
 import lackey
 
+# Python 3 compatibility
+try:
+    basestring
+except NameError:
+    basestring = str
+
 class TestLocationMethods(unittest.TestCase):
 	def setUp(self):
 		self.test_loc = lackey.Location(10, 11)
@@ -87,7 +93,7 @@ class TestKeyboardMethods(unittest.TestCase):
 		self.kb.keyDown("{SHIFT}")
 		self.kb.keyUp("{CTRL}")
 		self.kb.keyUp("{SHIFT}")
-		self.kb.type("{CTRL}", lackey.Key.ALT)
+		self.kb.type("{CTRL}")
 		# Really this should check to make sure these keys have all been released, but 
 		# I'm not sure how to make that work without continuously monitoring the keyboard
 		# (which is the usual scenario). Ah well... if your computer is acting weird after
@@ -269,6 +275,9 @@ class TestInterfaces(unittest.TestCase):
 		self.assertHasMethod(lackey.PlatformManagerWindows, "isPIDValid", 2)
 		self.assertHasMethod(lackey.PlatformManagerWindows, "killProcess", 2)
 		self.assertHasMethod(lackey.PlatformManagerWindows, "getProcessName", 2)
+
+	def test_version(self):
+		print(lackey.__version__)
 
 
 	def assertHasMethod(self, cls, mthd, args=0):

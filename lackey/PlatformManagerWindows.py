@@ -435,7 +435,7 @@ class PlatformManagerWindows(object):
         DIB_RGB_COLORS = 0
 
         ## Begin logic
-        hdc = self._gdi32.CreateDCA(ctypes.c_char_p(device_name), 0, 0, 0)
+        hdc = self._gdi32.CreateDCA(ctypes.c_char_p(device_name.encode("utf-8")), 0, 0, 0) # Convert to bytestring for c_char_p type
         if hdc == 0:
             raise ValueError("Empty hdc provided")
 
@@ -784,7 +784,7 @@ class PlatformManagerWindows(object):
         hProcess = self._kernel32.OpenProcess(PROCESS_VM_READ|PROCESS_QUERY_INFORMATION, 0, pid)
         #self._psapi.GetProcessImageFileName.restype = ctypes.wintypes.DWORD
         self._psapi.GetModuleFileNameExA(hProcess, 0, ctypes.byref(proc_name), MAX_PATH_LEN)
-        return os.path.basename(str(proc_name.value))
+        return os.path.basename(proc_name.value.decode("utf-8"))
 
 ## Helper class for highlighting
 
