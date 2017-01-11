@@ -202,7 +202,6 @@ class PlatformManagerWindows(object):
     ## Keyboard input methods ##
     def pressKey(self, text):
         """ Accepts a string of keys in typeKeys format (see below). Holds down all of them. """
-
         if not isinstance(text, basestring):
             raise TypeError("pressKey expected text to be a string")
         in_special_code = False
@@ -222,13 +221,14 @@ class PlatformManagerWindows(object):
                     # Press the rest of the keys normally
                     self.pressKey(special_code)
                     self.pressKey(text[i])
+                special_code = ""
             elif in_special_code:
                 special_code += text[i]
             elif text[i] in self._REGULAR_KEYCODES.keys():
                 keyboard.press(text[i])
             elif text[i] in self._UPPERCASE_KEYCODES.keys():
                 keyboard.press(self._SPECIAL_KEYCODES["SHIFT"])
-                keyboard.press(text[i])
+                keyboard.press(self._UPPERCASE_KEYCODES[text[i]])
     def releaseKey(self, text):
         """ Accepts a string of keys in typeKeys format (see below). Releases all of them. """
 
@@ -249,13 +249,14 @@ class PlatformManagerWindows(object):
                     # Release the rest of the keys normally
                     self.releaseKey(special_code)
                     self.releaseKey(text[i])
+                special_code = ""
             elif in_special_code:
                 special_code += text[i]
             elif text[i] in self._REGULAR_KEYCODES.keys():
                 keyboard.release(self._REGULAR_KEYCODES[text[i]])
             elif text[i] in self._UPPERCASE_KEYCODES.keys():
                 keyboard.release(self._SPECIAL_KEYCODES["SHIFT"])
-                keyboard.release(self._REGULAR_KEYCODES[text[i]])
+                keyboard.release(self._UPPERCASE_KEYCODES[text[i]])
     def typeKeys(self, text, delay=0.1):
         """ Translates a string into a series of keystrokes.
 
@@ -435,6 +436,7 @@ class PlatformManagerWindows(object):
         DIB_RGB_COLORS = 0
 
         ## Begin logic
+        self._gdi32.CreateDCA.restype = ctypes.c_void_p
         hdc = self._gdi32.CreateDCA(ctypes.c_char_p(device_name.encode("utf-8")), 0, 0, 0) # Convert to bytestring for c_char_p type
         if hdc == 0:
             raise ValueError("Empty hdc provided")

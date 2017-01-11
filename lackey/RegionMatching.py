@@ -736,20 +736,8 @@ class Region(object):
 
         If a pattern is specified, the pattern is clicked first. Doesn't support text paths.
 
-        This implementation varies slightly from Sikuli by allowing a SendKeys variant format.
-        The following special characters are available as modifiers:
-
-        * ``^`` - Ctrl
-        * ``+`` - Shift
-        * ``%`` - Alt
-        * ``@`` - Win/Meta/Cmd
-        * ``~`` - Enter/Return
-
-        They can be used to modify a single following character. ``^c`` will type Ctrl+C.
-        If you need to modify multiple characters, use parentheses: ``+(abc)`` will hold down
-        Shift and type "ABC".
-
-        To enter these characters as literals, enclose them in brackets: ``{@}``
+        Special keys can be entered with the key name between brackets, as `"{SPACE}"`, or as
+        `Key.SPACE`.
         """
         pattern = None
         text = None
