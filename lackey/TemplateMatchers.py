@@ -143,8 +143,11 @@ class PyramidTemplateMatcher(object):
 
 
             for roi in rois:
-                # Add needle dimensions to roi
+                # Trim ROI bounds to zero (if negative)
                 x, y, w, h = roi
+                x = max(x, 0)
+                y = max(y, 0)
+                # Add needle dimensions to roi
                 roi = (x, y, w+lvl_needle.shape[1]-1, h+lvl_needle.shape[0]-1)
                 # numpy 2D slice
                 roi_slice = (slice(roi[1], roi[1]+roi[3]), slice(roi[0], roi[0]+roi[2]))

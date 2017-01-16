@@ -442,23 +442,40 @@ class PlatformManagerWindows(object):
             raise ValueError("Empty hdc provided")
 
         # Get monitor specs
+        self._gdi32.GetDeviceCaps.argtypes = [ctypes.c_void_p, ctypes.c_int]
         screen_width = self._gdi32.GetDeviceCaps(hdc, HORZRES)
         screen_height = self._gdi32.GetDeviceCaps(hdc, VERTRES)
 
         # Create memory device context for monitor
+        self._gdi32.CreateCompatibleDC.restype = ctypes.c_void_p
+        self._gdi32.CreateCompatibleDC.argtypes = [ctypes.c_void_p]
         hCaptureDC = self._gdi32.CreateCompatibleDC(hdc)
         if hCaptureDC == 0:
             raise WindowsError("gdi:CreateCompatibleDC failed")
 
         # Create bitmap compatible with monitor
+        self._gdi32.CreateCompatibleBitmap.restype = ctypes.c_void_p
+        self._gdi32.CreateCompatibleBitmap.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_int]
         hCaptureBmp = self._gdi32.CreateCompatibleBitmap(hdc, screen_width, screen_height)
         if hCaptureBmp == 0:
             raise WindowsError("gdi:CreateCompatibleBitmap failed")
 
         # Select hCaptureBmp into hCaptureDC device context
+        self._gdi32.SelectObject.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
         self._gdi32.SelectObject(hCaptureDC, hCaptureBmp)
 
         # Perform bit-block transfer from screen to device context (and thereby hCaptureBmp)
+        self._gdi32.BitBlt.argtypes = [
+            ctypes.c_void_p,
+            ctypes.c_int,
+            ctypes.c_int,
+            ctypes.c_int,
+            ctypes.c_int,
+            ctypes.c_void_p,
+            ctypes.c_int,
+            ctypes.c_int,
+            ctypes.c_ulong
+        ]
         self._gdi32.BitBlt(hCaptureDC, 0, 0, screen_width, screen_height, hdc, 0, 0, SRCCOPY | CAPTUREBLT)
 
         # Capture image bits from bitmap
@@ -475,6 +492,16 @@ class PlatformManagerWindows(object):
         buffer_length = screen_width * 4 * screen_height
         image_data = ctypes.create_string_buffer(buffer_length)
 
+        self._gdi32.GetDIBits.restype = ctypes.c_int
+        self._gdi32.GetDIBits.argtypes = [
+            ctypes.c_void_p,
+            ctypes.c_void_p,
+            ctypes.c_uint,
+            ctypes.c_uint,
+            ctypes.c_void_p,
+            ctypes.c_void_p,
+            ctypes.c_uint
+        ]
         scanlines = self._gdi32.GetDIBits(
             hCaptureDC,
             hCaptureBmp,
@@ -495,6 +522,7 @@ class PlatformManagerWindows(object):
                 0,
                 1))
         # Destroy created device context & GDI bitmap
+        self._gdi32.DeleteObject.argtypes = [ctypes.c_void_p]
         self._gdi32.DeleteObject(hdc)
         self._gdi32.DeleteObject(hCaptureDC)
         self._gdi32.DeleteObject(hCaptureBmp)
