@@ -36,6 +36,9 @@ class PlatformManagerWindows(object):
         self._kernel32 = kernel32
         self._psapi = psapi
 
+        # Pay attention to different screen DPI settings
+        self._user32.SetProcessDPIAware()
+
         # Mapping to `keyboard` names
         self._SPECIAL_KEYCODES = {
             "BACKSPACE": 	"backspace",
@@ -62,7 +65,7 @@ class PlatformManagerWindows(object):
             "PRINT_SCREEN":	"print screen",
             "INSERT":		"ins",
             "DELETE":		"del",
-            "WIN":			"left windows",
+            "WIN":			"win",
             "NUM_0":		"keypad 0",
             "NUM_1":		"keypad 1",
             "NUM_2":		"keypad 2",
