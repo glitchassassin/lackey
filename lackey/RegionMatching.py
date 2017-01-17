@@ -1174,6 +1174,7 @@ class Mouse(object):
         If ``seconds`` is 0, moves the cursor immediately. Used for smooth
         somewhat-human-like motion.
         """
+        original_location = PlatformManager.getMousePos()
         if seconds == 0:
             # If the mouse isn't on the main screen, snap to point automatically instead of
             # trying to track a path back
@@ -1195,6 +1196,8 @@ class Mouse(object):
             self.move(Location(mouse_pos.x + deltax, mouse_pos.y + deltay))
             frames -= 1
             time.sleep(self._defaultScanRate)
+        if PlatformManager.getMousePos() == original_location and original_location != location.getTuple():
+            raise IOError("Unable to move mouse cursor. This may happen if you're trying to automate a program running as Administrator with a script running as a non-elevated user.")
 
     def click(self, button=0):
         """ Clicks the specified mouse button.
