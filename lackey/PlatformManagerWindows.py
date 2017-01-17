@@ -202,7 +202,6 @@ class PlatformManagerWindows(object):
     ## Keyboard input methods ##
     def pressKey(self, text):
         """ Accepts a string of keys in typeKeys format (see below). Holds down all of them. """
-
         if not isinstance(text, basestring):
             raise TypeError("pressKey expected text to be a string")
         in_special_code = False
@@ -222,13 +221,14 @@ class PlatformManagerWindows(object):
                     # Press the rest of the keys normally
                     self.pressKey(special_code)
                     self.pressKey(text[i])
+                special_code = ""
             elif in_special_code:
                 special_code += text[i]
             elif text[i] in self._REGULAR_KEYCODES.keys():
                 keyboard.press(text[i])
             elif text[i] in self._UPPERCASE_KEYCODES.keys():
                 keyboard.press(self._SPECIAL_KEYCODES["SHIFT"])
-                keyboard.press(text[i])
+                keyboard.press(self._UPPERCASE_KEYCODES[text[i]])
     def releaseKey(self, text):
         """ Accepts a string of keys in typeKeys format (see below). Releases all of them. """
 
@@ -249,13 +249,14 @@ class PlatformManagerWindows(object):
                     # Release the rest of the keys normally
                     self.releaseKey(special_code)
                     self.releaseKey(text[i])
+                special_code = ""
             elif in_special_code:
                 special_code += text[i]
             elif text[i] in self._REGULAR_KEYCODES.keys():
                 keyboard.release(self._REGULAR_KEYCODES[text[i]])
             elif text[i] in self._UPPERCASE_KEYCODES.keys():
                 keyboard.release(self._SPECIAL_KEYCODES["SHIFT"])
-                keyboard.release(self._REGULAR_KEYCODES[text[i]])
+                keyboard.release(self._UPPERCASE_KEYCODES[text[i]])
     def typeKeys(self, text, delay=0.1):
         """ Translates a string into a series of keystrokes.
 
@@ -435,28 +436,46 @@ class PlatformManagerWindows(object):
         DIB_RGB_COLORS = 0
 
         ## Begin logic
-        hdc = self._gdi32.CreateDCA(ctypes.c_char_p(device_name), 0, 0, 0)
+        self._gdi32.CreateDCA.restype = ctypes.c_void_p
+        hdc = self._gdi32.CreateDCA(ctypes.c_char_p(device_name.encode("utf-8")), 0, 0, 0) # Convert to bytestring for c_char_p type
         if hdc == 0:
             raise ValueError("Empty hdc provided")
 
         # Get monitor specs
+        self._gdi32.GetDeviceCaps.argtypes = [ctypes.c_void_p, ctypes.c_int]
         screen_width = self._gdi32.GetDeviceCaps(hdc, HORZRES)
         screen_height = self._gdi32.GetDeviceCaps(hdc, VERTRES)
 
         # Create memory device context for monitor
+        self._gdi32.CreateCompatibleDC.restype = ctypes.c_void_p
+        self._gdi32.CreateCompatibleDC.argtypes = [ctypes.c_void_p]
         hCaptureDC = self._gdi32.CreateCompatibleDC(hdc)
         if hCaptureDC == 0:
             raise WindowsError("gdi:CreateCompatibleDC failed")
 
         # Create bitmap compatible with monitor
+        self._gdi32.CreateCompatibleBitmap.restype = ctypes.c_void_p
+        self._gdi32.CreateCompatibleBitmap.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_int]
         hCaptureBmp = self._gdi32.CreateCompatibleBitmap(hdc, screen_width, screen_height)
         if hCaptureBmp == 0:
             raise WindowsError("gdi:CreateCompatibleBitmap failed")
 
         # Select hCaptureBmp into hCaptureDC device context
+        self._gdi32.SelectObject.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
         self._gdi32.SelectObject(hCaptureDC, hCaptureBmp)
 
         # Perform bit-block transfer from screen to device context (and thereby hCaptureBmp)
+        self._gdi32.BitBlt.argtypes = [
+            ctypes.c_void_p,
+            ctypes.c_int,
+            ctypes.c_int,
+            ctypes.c_int,
+            ctypes.c_int,
+            ctypes.c_void_p,
+            ctypes.c_int,
+            ctypes.c_int,
+            ctypes.c_ulong
+        ]
         self._gdi32.BitBlt(hCaptureDC, 0, 0, screen_width, screen_height, hdc, 0, 0, SRCCOPY | CAPTUREBLT)
 
         # Capture image bits from bitmap
@@ -473,6 +492,16 @@ class PlatformManagerWindows(object):
         buffer_length = screen_width * 4 * screen_height
         image_data = ctypes.create_string_buffer(buffer_length)
 
+        self._gdi32.GetDIBits.restype = ctypes.c_int
+        self._gdi32.GetDIBits.argtypes = [
+            ctypes.c_void_p,
+            ctypes.c_void_p,
+            ctypes.c_uint,
+            ctypes.c_uint,
+            ctypes.c_void_p,
+            ctypes.c_void_p,
+            ctypes.c_uint
+        ]
         scanlines = self._gdi32.GetDIBits(
             hCaptureDC,
             hCaptureBmp,
@@ -493,6 +522,7 @@ class PlatformManagerWindows(object):
                 0,
                 1))
         # Destroy created device context & GDI bitmap
+        self._gdi32.DeleteObject.argtypes = [ctypes.c_void_p]
         self._gdi32.DeleteObject(hdc)
         self._gdi32.DeleteObject(hCaptureDC)
         self._gdi32.DeleteObject(hCaptureBmp)
@@ -784,7 +814,7 @@ class PlatformManagerWindows(object):
         hProcess = self._kernel32.OpenProcess(PROCESS_VM_READ|PROCESS_QUERY_INFORMATION, 0, pid)
         #self._psapi.GetProcessImageFileName.restype = ctypes.wintypes.DWORD
         self._psapi.GetModuleFileNameExA(hProcess, 0, ctypes.byref(proc_name), MAX_PATH_LEN)
-        return os.path.basename(str(proc_name.value))
+        return os.path.basename(proc_name.value.decode("utf-8"))
 
 ## Helper class for highlighting
 

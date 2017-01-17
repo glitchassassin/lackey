@@ -736,20 +736,8 @@ class Region(object):
 
         If a pattern is specified, the pattern is clicked first. Doesn't support text paths.
 
-        This implementation varies slightly from Sikuli by allowing a SendKeys variant format.
-        The following special characters are available as modifiers:
-
-        * ``^`` - Ctrl
-        * ``+`` - Shift
-        * ``%`` - Alt
-        * ``@`` - Win/Meta/Cmd
-        * ``~`` - Enter/Return
-
-        They can be used to modify a single following character. ``^c`` will type Ctrl+C.
-        If you need to modify multiple characters, use parentheses: ``+(abc)`` will hold down
-        Shift and type "ABC".
-
-        To enter these characters as literals, enclose them in brackets: ``{@}``
+        Special keys can be entered with the key name between brackets, as `"{SPACE}"`, or as
+        `Key.SPACE`.
         """
         pattern = None
         text = None
@@ -1186,6 +1174,7 @@ class Mouse(object):
         If ``seconds`` is 0, moves the cursor immediately. Used for smooth
         somewhat-human-like motion.
         """
+        original_location = PlatformManager.getMousePos()
         if seconds == 0:
             # If the mouse isn't on the main screen, snap to point automatically instead of
             # trying to track a path back
@@ -1207,6 +1196,8 @@ class Mouse(object):
             self.move(Location(mouse_pos.x + deltax, mouse_pos.y + deltay))
             frames -= 1
             time.sleep(self._defaultScanRate)
+        if PlatformManager.getMousePos() == original_location and original_location != location.getTuple():
+            raise IOError("Unable to move mouse cursor. This may happen if you're trying to automate a program running as Administrator with a script running as a non-elevated user.")
 
     def click(self, button=0):
         """ Clicks the specified mouse button.

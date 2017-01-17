@@ -43,6 +43,10 @@ Sample code (note that you'll need to provide your own PNGs):
     wait("Control_Panel.png", 5) # Maybe the Start menu is slow
     click("Notepad.png")
 
+### Working with Elevated Privileges ###
+
+In most cases, you won't need to run Lackey with elevated privileges. However, Windows will not let a non-elevated script send mouse/keyboard events to a program with elevated privileges (an installer running as administrator, for example). If you run into this problem, running Lackey as administrator (for example, by calling it from an Administrator-level Powershell instance) should solve your issue.
+
 ## Documentation ##
 
 Full API documentation can be found at [ReadTheDocs](http://lackey.readthedocs.io/en/latest/).
