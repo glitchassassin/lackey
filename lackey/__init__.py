@@ -23,7 +23,10 @@ import requests
 
 from .PlatformManagerWindows import PlatformManagerWindows
 from .KeyCodes import Button, Key, KeyModifier
-from .RegionMatching import Pattern, Region, Match, Screen, Location, Mouse, Keyboard, App
+from .RegionMatching import Pattern, Region, Match, Screen
+from .Location import Location
+from .InputEmulation import Mouse, Keyboard
+from .App import App
 from .Exceptions import FindFailed
 from .Settings import Debug, Settings, DebugMaster, SettingsMaster
 from . import SikuliGui
