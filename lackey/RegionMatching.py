@@ -15,6 +15,8 @@ import re
 
 
 from .PlatformManagerWindows import PlatformManagerWindows
+from .InputEmulation import Mouse, Keyboard
+from .Location import Location
 from .Exceptions import FindFailed
 from .Settings import Settings, Debug
 from .TemplateMatchers import PyramidTemplateMatcher as TemplateMatcher
@@ -570,7 +572,7 @@ class Region(object):
         else:
             raise TypeError("click expected Pattern, String, Match, Region, or Location object")
         if modifiers != "":
-            PlatformManager.pressKey(modifiers)
+            Keyboard().keyDown(modifiers)
 
         mouse.moveSpeed(target_location, self._defaultMouseSpeed)
         time.sleep(0.1) # For responsiveness
@@ -581,7 +583,7 @@ class Region(object):
         time.sleep(0.1)
 
         if modifiers != 0:
-            PlatformManager.releaseKey(modifiers)
+            Keyboard().keyUp(modifiers)
         Debug.history("Clicked at {}".format(target_location))
     def doubleClick(self, target, modifiers=""):
         """ Moves the cursor to the target location and double-clicks the default mouse button. """
@@ -600,7 +602,7 @@ class Region(object):
         else:
             raise TypeError("doubleClick expected Pattern, String, Match, Region, or Location object")
         if modifiers != "":
-            PlatformManager.pressKey(modifiers)
+            Keyboard().keyDown(modifiers)
 
         mouse.moveSpeed(target_location, self._defaultMouseSpeed)
         time.sleep(0.1)
@@ -616,7 +618,7 @@ class Region(object):
         time.sleep(0.1)
 
         if modifiers != 0:
-            PlatformManager.releaseKey(modifiers)
+            Keyboard().keyUp(modifiers)
     def rightClick(self, target, modifiers=""):
         """ Moves the cursor to the target location and clicks the right mouse button. """
         target_location = None
@@ -635,7 +637,7 @@ class Region(object):
             raise TypeError("rightClick expected Pattern, String, Match, Region, or Location object")
 
         if modifiers != "":
-            PlatformManager.pressKey(modifiers)
+            Keyboard().keyDown(modifiers)
 
         mouse.moveSpeed(target_location, self._defaultMouseSpeed)
         time.sleep(0.1)
@@ -646,7 +648,7 @@ class Region(object):
         time.sleep(0.1)
 
         if modifiers != "":
-            PlatformManager.releaseKey(modifiers)
+            Keyboard().keyUp(modifiers)
 
     def hover(self, target):
         """ Moves the cursor to the target location """
@@ -722,14 +724,14 @@ class Region(object):
         during the drag-drop operation.
         """
         if modifiers != "":
-            PlatformManager.pressKey(modifiers)
+            Keyboard().keyDown(modifiers)
 
         self.drag(dragFrom)
         time.sleep(Settings.DelayBeforeDrag)
         self.dropAt(dragTo)
 
         if modifiers != "":
-            PlatformManager.releaseKey(modifiers)
+            Keyboard().keyUp(modifiers)
 
     def type(self, *args):
         """ Usage: type([PSMRL], text, [modifiers])
@@ -1097,147 +1099,6 @@ class Screen(Region):
     def selectRegion(self, text=""):
         """ Not yet implemented """
         raise NotImplementedError()
-
-class Location(object):
-    """ Basic 2D point object """
-    def __init__(self, x, y):
-        self.setLocation(x, y)
-
-    def getX(self):
-        """ Returns the X-component of the location """
-        return self.x
-    def getY(self):
-        """ Returns the Y-component of the location """
-        return self.y
-
-    def setLocation(self, x, y):
-        """Set the location of this object to the specified coordinates."""
-        self.x = int(x)
-        self.y = int(y)
-
-    def offset(self, dx, dy):
-        """Get a new location which is dx and dy pixels away horizontally and vertically from the current location."""
-        return Location(self.x+dx, self.y+dy)
-
-    def above(self, dy):
-        """Get a new location dy pixels vertically above the current location."""
-        return Location(self.x, self.y-dy)
-    def below(self, dy):
-        """Get a new location dy pixels vertically below the current location."""
-        return Location(self.x, self.y+dy)
-    def left(self, dx):
-        """Get a new location dx pixels horizontally to the left of the current location."""
-        return Location(self.x-dx, self.y)
-    def right(self, dx):
-        """Get a new location dx pixels horizontally to the right of the current location."""
-        return Location(self.x+dx, self.y)
-
-    def getTuple(self):
-        """ Returns coordinates as a tuple (for some PlatformManager methods) """
-        return (self.x, self.y)
-
-    def __repr__(self):
-        return "(Location object at ({},{}))".format(self.x, self.y)
-
-class Mouse(object):
-    """ Mid-level mouse routines. Interfaces with ``PlatformManager`` """
-    def __init__(self):
-        self._defaultScanRate = 0.01
-
-    # Class constants
-    WHEEL_DOWN = 0
-    WHEEL_UP = 1
-    LEFT = 0
-    MIDDLE = 1
-    RIGHT = 2
-
-    def move(self, location):
-        """ Moves cursor to specified ``Location`` """
-
-        # Check if move point is outside a monitor rectangle
-        if not PlatformManager.isPointVisible(location.x, location.y):
-            # move point is outside a monitor rectangle. Snap to closest edge of primary monitor.
-            s_x, s_y, s_w, s_h = Screen(0).getBounds()
-            location.x = min(max(location.x, s_x), s_x+s_w)
-            location.y = min(max(location.y, s_y), s_y+s_h)
-
-        PlatformManager.setMousePos(location.getTuple())
-
-    def getPos(self):
-        """ Gets ``Location`` of cursor """
-        x, y = PlatformManager.getMousePos()
-        return Location(x, y)
-
-    def moveSpeed(self, location, seconds=0.3):
-        """ Moves cursor to specified ``Location`` over ``seconds``.
-
-        If ``seconds`` is 0, moves the cursor immediately. Used for smooth
-        somewhat-human-like motion.
-        """
-        original_location = PlatformManager.getMousePos()
-        if seconds == 0:
-            # If the mouse isn't on the main screen, snap to point automatically instead of
-            # trying to track a path back
-            self.move(location)
-            return
-
-        # Check if move point is outside a monitor rectangle
-        if not PlatformManager.isPointVisible(location.x, location.y):
-            # move point is outside a monitor rectangle. Snap to closest edge of primary monitor.
-            s_x, s_y, s_w, s_h = Screen(0).getBounds()
-            location.x = min(max(location.x, s_x), s_x+s_w)
-            location.y = min(max(location.y, s_y), s_y+s_h)
-
-        frames = int(seconds / self._defaultScanRate)
-        while frames > 0:
-            mouse_pos = self.getPos()
-            deltax = int(round(float(location.x - mouse_pos.x) / frames))
-            deltay = int(round(float(location.y - mouse_pos.y) / frames))
-            self.move(Location(mouse_pos.x + deltax, mouse_pos.y + deltay))
-            frames -= 1
-            time.sleep(self._defaultScanRate)
-        if PlatformManager.getMousePos() == original_location and original_location != location.getTuple():
-            raise IOError("Unable to move mouse cursor. This may happen if you're trying to automate a program running as Administrator with a script running as a non-elevated user.")
-
-    def click(self, button=0):
-        """ Clicks the specified mouse button.
-
-        Use Mouse.LEFT, Mouse.MIDDLE, Mouse.RIGHT
-        """
-        PlatformManager.clickMouse(button)
-    def buttonDown(self, button=0):
-        """ Holds down the specified mouse button.
-
-        Use Mouse.LEFT, Mouse.MIDDLE, Mouse.RIGHT
-        """
-        PlatformManager.mouseButtonDown(button)
-    def buttonUp(self, button=0):
-        """ Releases the specified mouse button.
-
-        Use Mouse.LEFT, Mouse.MIDDLE, Mouse.RIGHT
-        """
-        PlatformManager.mouseButtonUp(button)
-    def wheel(self, direction, steps):
-        """ Clicks the wheel the specified number of steps in the given direction.
-
-        Use Mouse.WHEEL_DOWN, Mouse.WHEEL_UP
-        """
-        return PlatformManager.mouseWheel(direction, steps)
-
-class Keyboard(object):
-    """ Mid-level keyboard routines. Interfaces with ``PlatformManager`` """
-    def __init__(self):
-        pass
-
-    def keyDown(self, keys):
-        """ Holds down the specified keys """
-        return PlatformManager.pressKey(keys)
-    def keyUp(self, keys):
-        """ Releases the specified keys """
-        return PlatformManager.releaseKey(keys)
-    def type(self, text, delay=0.1):
-        """ Types ``text`` with ``delay`` seconds between keypresses """
-        return PlatformManager.typeKeys(text, delay)
 
 class App(object):
     """ Allows apps to be selected by title, PID, or by starting an
