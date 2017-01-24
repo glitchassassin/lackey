@@ -31,8 +31,12 @@ class Mouse(object):
 
     def getPos(self):
         """ Gets ``Location`` of cursor """
-        x, y = mouse.get_position()
-        return Location(x, y)
+        return Location(*mouse.get_position())
+
+    @classmethod
+    def at(cls):
+        """ Gets ``Location`` of cursor (as class method) """
+        return Location(*mouse.get_position())
 
     def moveSpeed(self, location, seconds=0.3):
         """ Moves cursor to specified ``Location`` over ``seconds``.

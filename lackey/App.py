@@ -230,4 +230,8 @@ class App(object):
             else:
                 time.sleep(self._defaultScanRate)
         return self.getPID() > 0
-
+    
+    @classmethod
+    def getClipboard(cls):
+        """ Gets the contents of the clipboard (as classmethod) """
+        return PlatformManager.getClipboard()
