@@ -69,9 +69,9 @@ class NaiveTemplateMatcher(object):
         return positions
 
 class PyramidTemplateMatcher(object):
-    """ Python wrapper for OpenCV's TemplateMatcher 
+    """ Python wrapper for OpenCV's TemplateMatcher
 
-    Uses a pyramid model to optimize matching speed 
+    Uses a pyramid model to optimize matching speed
     """
     def __init__(self, haystack):
         self.haystack = cv2.cvtColor(haystack, cv2.COLOR_BGR2GRAY) # Convert to grayscale
@@ -86,17 +86,28 @@ class PyramidTemplateMatcher(object):
         with enough similarity, not the **best** result.*
         """
         needle = cv2.cvtColor(needle, cv2.COLOR_BGR2GRAY) # Convert to grayscale
+        haystack = self.haystack
+        # Check if haystack or needle are a solid color - if so, switch to SQDIFF_NORMED
+
+        if self._is_solid_color(needle):
+            print("Solid color, using SQDIFF")
+            method = cv2.TM_SQDIFF_NORMED
+            if self._is_solid_black(needle):
+                print("Inverting images")
+                # Invert needle & haystack before matching
+                needle = numpy.invert(needle)
+                haystack = numpy.invert(haystack)
+        else:
+            #print("Not Solid color, using CCOEFF")
+            method = cv2.TM_CCOEFF_NORMED
 
         levels = 3
         needle_pyramid = self._build_pyramid(needle, levels)
         # Needle will be smaller than haystack, so may not be able to create
         # ``levels`` smaller versions of itself. If not, create only as many
         # levels for ``haystack`` as we could for ``needle``.
-        haystack_pyramid = self._build_pyramid(self.haystack, min(levels, len(needle_pyramid)))
+        haystack_pyramid = self._build_pyramid(haystack, min(levels, len(needle_pyramid)))
         roi_mask = None
-        method = cv2.TM_CCOEFF_NORMED
-
-
 
         # Run through each level in the pyramid, refining found ROIs
         for level in range(len(haystack_pyramid)):
@@ -200,6 +211,8 @@ class PyramidTemplateMatcher(object):
             return None
 
         # There was a match!
+        if method == cv2.TM_SQDIFF_NORMED:
+            confidence = 1 - confidence # Invert confidence if we used the SQDIFF method
         return (position, confidence)
 
     def findAllMatches(self, needle, similarity):
@@ -209,6 +222,15 @@ class PyramidTemplateMatcher(object):
         """
         needle = cv2.cvtColor(needle, cv2.COLOR_BGR2GRAY) # Convert to grayscale
 
+        # Check if haystack or needle are a solid color - if so, switch to SQDIFF_NORMED
+
+        if self._is_solid_color(needle):
+            #print("Solid color, using SQDIFF")
+            method = cv2.TM_SQDIFF_NORMED
+        else:
+            #print("Not Solid color, using CCOEFF")
+            method = cv2.TM_CCOEFF_NORMED
+        
         levels = 3
         needle_pyramid = self._build_pyramid(needle, levels)
         # Needle will be smaller than haystack, so may not be able to create ``levels`` smaller
@@ -216,7 +238,7 @@ class PyramidTemplateMatcher(object):
         # needle.
         haystack_pyramid = self._build_pyramid(self.haystack, min(levels, len(needle_pyramid)))
         roi_mask = None
-        method = cv2.TM_CCOEFF_NORMED
+        
         positions = []
 
         # Run through each level in the pyramid, refining found ROIs
@@ -329,3 +351,8 @@ class PyramidTemplateMatcher(object):
                 break
             pyramid.append(cv2.pyrDown(pyramid[-1]))
         return list(reversed(pyramid))
+    def _is_solid_color(self, image):
+        return image.ptp() == 0
+    
+    def _is_solid_black(self, image):
+        return image.mean() == 0
