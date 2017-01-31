@@ -8,3 +8,4 @@ pillow
 opencv-python
 wheel
 keyboard
+twine
