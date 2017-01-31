@@ -81,7 +81,7 @@ class Mouse(object):
             wheel_moved = -1*steps
         else:
             raise ValueError("Expected direction to be 1 or 0")
-        return mouse.wheel(steps)
+        return mouse.wheel(wheel_moved)
 
 class Keyboard(object):
     """ Mid-level keyboard routines. Interfaces with ``PlatformManager`` """

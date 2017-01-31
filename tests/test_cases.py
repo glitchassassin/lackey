@@ -100,6 +100,9 @@ class TestScreenMethods(unittest.TestCase):
 		self.assertNotEqual(tpath, "")
 
 class TestComplexFeatures(unittest.TestCase):
+	def setUp(self):
+		lackey.addImagePath(os.path.dirname(__file__))
+
 	def testTypeCopyPaste(self):
 		if sys.platform.startswith("win"):
 			app = lackey.App("notepad.exe").open()

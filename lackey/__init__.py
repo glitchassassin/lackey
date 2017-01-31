@@ -14,6 +14,7 @@ except ImportError:
     from tkinter import messagebox as tkMessageBox
 
 import platform
+import keyboard
 import sys
 import time
 import os
@@ -33,6 +34,9 @@ from . import SikuliGui
 from ._version import __version__
 
 VALID_PLATFORMS = ["Windows"]
+
+## Define script abort hotkey (Alt+Shift+C)
+keyboard.add_hotkey("alt+shift+c", sys.exit)
 
 ## Sikuli patching: Functions that map to the global Screen region
 ## Don't try this at home, kids!
