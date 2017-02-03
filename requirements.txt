@@ -7,5 +7,5 @@ numpy
 pillow
 opencv-python
 wheel
-keyboard=v0.9.11
+keyboard>=v0.9.11
 twine
