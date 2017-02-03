@@ -3,6 +3,8 @@ import datetime
 import os
 import __main__
 
+from ._version import __version__, __sikuli_version__
+
 class DebugMaster(object):
     """ Used to create the global Debug object """
     _log_file = None
@@ -165,6 +167,12 @@ class SettingsMaster(object):
 
     ## Popup settings
     PopupLocation = None
+
+    # Environment methods
+
+    def getSikuliVersion(self):
+        return "Lackey {} (compatible with SikuliX {})".format(__version__, __sikuli_version__)
+
 
 Debug = DebugMaster()
 Settings = SettingsMaster()

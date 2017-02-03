@@ -10,10 +10,10 @@ try:
 except ImportError:
     import tkinter as tk
 from ctypes import wintypes
-import keyboard
-from keyboard import mouse
 from PIL import Image, ImageTk, ImageOps
+
 from .Settings import Debug
+from .InputEmulation import Keyboard
 
 # Python 3 compatibility
 try:
@@ -36,6 +36,9 @@ class PlatformManagerWindows(object):
         self._kernel32 = kernel32
         self._psapi = psapi
 
+        # Pay attention to different screen DPI settings
+        self._user32.SetProcessDPIAware()
+
         # Mapping to `keyboard` names
         self._SPECIAL_KEYCODES = {
             "BACKSPACE": 	"backspace",
@@ -49,8 +52,8 @@ class PlatformManagerWindows(object):
             "CAPS_LOCK": 	"caps lock",
             "ESC": 			"esc",
             "SPACE":		"spacebar",
-            "PGUP":         "page up",
-            "PGDN":         "page down",
+            "PAGE_UP":      "page up",
+            "PAGE_DOWN":    "page down",
             "END":			"end",
             "HOME":			"home",
             "LEFT":			"left arrow",
@@ -59,20 +62,28 @@ class PlatformManagerWindows(object):
             "DOWN":			"down arrow",
             "SELECT":		"select",
             "PRINT":		"print",
-            "PRINT_SCREEN":	"print screen",
+            "PRINTSCREEN":	"print screen",
             "INSERT":		"ins",
             "DELETE":		"del",
-            "WIN":			"left windows",
-            "NUM_0":		"keypad 0",
-            "NUM_1":		"keypad 1",
-            "NUM_2":		"keypad 2",
-            "NUM_3":		"keypad 3",
-            "NUM_4":		"keypad 4",
-            "NUM_5":		"keypad 5",
-            "NUM_6":		"keypad 6",
-            "NUM_7":		"keypad 7",
-            "NUM_8":		"keypad 8",
-            "NUM_9":		"keypad 9",
+            "WIN":			"win",
+            "CMD":			"win",
+            "META":			"win",
+            "NUM0":		    "keypad 0",
+            "NUM1":		    "keypad 1",
+            "NUM2":		    "keypad 2",
+            "NUM3":		    "keypad 3",
+            "NUM4":		    "keypad 4",
+            "NUM5":		    "keypad 5",
+            "NUM6":		    "keypad 6",
+            "NUM7":		    "keypad 7",
+            "NUM8":		    "keypad 8",
+            "NUM9":		    "keypad 9",
+            "NUM9":		    "keypad 9",
+            "SEPARATOR":    83,
+            "ADD":	        78,
+            "MINUS":        74,
+            "MULTIPLY":     55,
+            "DIVIDE":       53,
             "F1":			"f1",
             "F2":			"f2",
             "F3":			"f3",
@@ -199,135 +210,7 @@ class PlatformManagerWindows(object):
             raise ctypes.WinError(ctypes.get_last_error())
         return args
 
-    ## Keyboard input methods ##
-    def pressKey(self, text):
-        """ Accepts a string of keys in typeKeys format (see below). Holds down all of them. """
-        if not isinstance(text, basestring):
-            raise TypeError("pressKey expected text to be a string")
-        in_special_code = False
-        special_code = ""
-        for i in range(0, len(text)):
-            if text[i] == "{":
-                in_special_code = True
-            elif in_special_code and (text[i] == "}" or text[i] == " " or i == len(text)-1):
-                # End of special code (or it wasn't a special code after all)
-                in_special_code = False
-                if special_code in self._SPECIAL_KEYCODES.keys():
-                    # Found a special code
-                    keyboard.press(self._SPECIAL_KEYCODES[special_code])
-                else:
-                    # Wasn't a special code, just treat it as keystrokes
-                    self.pressKey("{")
-                    # Press the rest of the keys normally
-                    self.pressKey(special_code)
-                    self.pressKey(text[i])
-                special_code = ""
-            elif in_special_code:
-                special_code += text[i]
-            elif text[i] in self._REGULAR_KEYCODES.keys():
-                keyboard.press(text[i])
-            elif text[i] in self._UPPERCASE_KEYCODES.keys():
-                keyboard.press(self._SPECIAL_KEYCODES["SHIFT"])
-                keyboard.press(self._UPPERCASE_KEYCODES[text[i]])
-    def releaseKey(self, text):
-        """ Accepts a string of keys in typeKeys format (see below). Releases all of them. """
 
-        in_special_code = False
-        special_code = ""
-        for i in range(0, len(text)):
-            if text[i] == "{":
-                in_special_code = True
-            elif in_special_code and (text[i] == "}" or text[i] == " " or i == len(text)-1):
-                # End of special code (or it wasn't a special code after all)
-                in_special_code = False
-                if special_code in self._SPECIAL_KEYCODES.keys():
-                    # Found a special code
-                    keyboard.release(self._SPECIAL_KEYCODES[special_code])
-                else:
-                    # Wasn't a special code, just treat it as keystrokes
-                    self.releaseKey("{")
-                    # Release the rest of the keys normally
-                    self.releaseKey(special_code)
-                    self.releaseKey(text[i])
-                special_code = ""
-            elif in_special_code:
-                special_code += text[i]
-            elif text[i] in self._REGULAR_KEYCODES.keys():
-                keyboard.release(self._REGULAR_KEYCODES[text[i]])
-            elif text[i] in self._UPPERCASE_KEYCODES.keys():
-                keyboard.release(self._SPECIAL_KEYCODES["SHIFT"])
-                keyboard.release(self._UPPERCASE_KEYCODES[text[i]])
-    def typeKeys(self, text, delay=0.1):
-        """ Translates a string into a series of keystrokes.
-
-        Respects Sikuli special codes, like "{ENTER}". Does not
-        use SendKeys-like modifiers.
-        """
-        in_special_code = False
-        special_code = ""
-        modifier_held = False
-        modifier_stuck = False
-        modifier_codes = []
-
-        for i in range(0, len(text)):
-            if text[i] == "{":
-                in_special_code = True
-            elif in_special_code and (text[i] == "}" or text[i] == " " or i == len(text)-1):
-                in_special_code = False
-                if special_code in self._SPECIAL_KEYCODES.keys():
-                    # Found a special code
-                    keyboard.press_and_release(self._SPECIAL_KEYCODES[special_code])
-                else:
-                    # Wasn't a special code, just treat it as keystrokes
-                    keyboard.press(self._SPECIAL_KEYCODES["SHIFT"])
-                    keyboard.press_and_release(self._UPPERCASE_KEYCODES["{"])
-                    keyboard.release(self._SPECIAL_KEYCODES["SHIFT"])
-                    # Release the rest of the keys normally
-                    return
-                    self.typeKeys(special_code)
-                    self.typeKeys(text[i])
-            elif in_special_code:
-                special_code += text[i]
-            elif text[i] in self._REGULAR_KEYCODES.keys():
-                keyboard.press(self._REGULAR_KEYCODES[text[i]])
-                keyboard.release(self._REGULAR_KEYCODES[text[i]])
-            elif text[i] in self._UPPERCASE_KEYCODES.keys():
-                keyboard.press(self._SPECIAL_KEYCODES["SHIFT"])
-                keyboard.press_and_release(self._UPPERCASE_KEYCODES[text[i]])
-                keyboard.release(self._SPECIAL_KEYCODES["SHIFT"])
-            if delay:
-                time.sleep(delay)
-
-    ## Mouse input methods
-
-    def setMousePos(self, location):
-        """ Accepts a tuple (x,y) and sets the mouse position accordingly """
-        x, y = location
-        if self.isPointVisible(x, y):
-            mouse.move(x, y)
-    def getMousePos(self):
-        """ Returns the current mouse position as a tuple (x,y)
-
-        Relative to origin of main screen top left (0,0). May be negative.
-        """
-        return mouse.get_position()
-    def mouseButtonDown(self, button=0):
-        """ Translates the button (0=LEFT, 1=MIDDLE, 2=RIGHT) and sends a mousedown to the OS """
-        button_code = [mouse.LEFT, mouse.MIDDLE, mouse.RIGHT][button]
-        mouse.press(button_code)
-    def mouseButtonUp(self, button=0):
-        """ Translates the button (0=LEFT, 1=MIDDLE, 2=RIGHT) and sends a mouseup to the OS """
-        button_code = [mouse.LEFT, mouse.MIDDLE, mouse.RIGHT][button]
-        mouse.release(button_code)
-    def clickMouse(self, button=0):
-        """ Abstracts the clicking function
-
-        Button codes are (0=LEFT, 1=MIDDLE, 2=RIGHT) and should be provided as constants
-        by the Mouse class
-        """
-        button_code = [mouse.LEFT, mouse.MIDDLE, mouse.RIGHT][button]
-        mouse.click(button_code)
-    def mouseWheel(self, direction, steps):
         """ Clicks the mouse wheel the specified number of steps in the given direction
 
         Valid directions are 0 (for down) and 1 (for up). These should be provided
@@ -339,7 +222,7 @@ class PlatformManagerWindows(object):
             wheel_moved = -1*steps
         else:
             raise ValueError("Expected direction to be 1 or 0")
-        mouse._os_mouse.queue.put(WheelEvent(wheel_moved, time.time()))
+        mouse._os_mouse.wheel(wheel_moved)
 
     ## Screen functions
 
@@ -654,14 +537,16 @@ class PlatformManagerWindows(object):
             root.destroy()
     def osCopy(self):
         """ Triggers the OS "copy" keyboard shortcut """
-        self.pressKey("{CTRL}")
-        self.typeKeys("c")
-        self.releaseKey("{CTRL}")
+        k = Keyboard()
+        k.keyDown("{CTRL}")
+        k.type("c")
+        k.keyUp("{CTRL}")
     def osPaste(self):
         """ Triggers the OS "paste" keyboard shortcut """
-        self.pressKey("{CTRL}")
-        self.typeKeys("v")
-        self.releaseKey("{CTRL}")
+        k = Keyboard()
+        k.keyDown("{CTRL}")
+        k.type("v")
+        k.keyUp("{CTRL}")
 
     ## Window functions
 

@@ -1,10 +1,17 @@
+branches:
+  only:
+    - master
+
 environment:
   global:
     # SDK v7.0 MSVC Express 2008's SetEnv.cmd script will fail if the
     # /E:ON and /V:ON options are not enabled in the batch script intepreter
     # See: http://stackoverflow.com/a/13751649/163740
     CMD_IN_ENV: "cmd /E:ON /V:ON /C .\\appveyor\\run_with_env.cmd"
-
+  USER:
+    secure: rZM77hY3FVJKkbN0ZxbrjQ==
+  PASS:
+    secure: 1+JDFvadY94ojZGhbEeZ/G0of7zzFWwXaj4Mx0Th0Lo=
   matrix:
 
     # Python 2.7.12 is the latest version and is not pre-installed.
@@ -59,6 +66,6 @@ artifacts:
   # Archive the generated packages in the ci.appveyor.com build report.
   - path: dist\*
 
-#on_success:
-#  - TODO: upload the content of dist/*.whl to a public wheelhouse
-#
+deploy_script:
+  # Deploy the generated wheel to PyPi
+  - if "%APPVEYOR_REPO_TAG%"=="true" (python -m twine upload -u %USER% -p %PASS% --skip-existing dist/Lackey*.whl) else (echo "Tag not set, deployment skipped.")
