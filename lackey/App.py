@@ -17,6 +17,12 @@ else:
     if not os.environ.get('READTHEDOCS') == 'True':
         raise NotImplementedError("Lackey is currently only compatible with Windows.")
 
+# Python 3 compatibility
+try:
+    basestring
+except NameError:
+    basestring = str
+
 class App(object):
     """ Allows apps to be selected by title, PID, or by starting an
     application directly. Can address individual windows tied to an
