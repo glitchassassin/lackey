@@ -99,6 +99,9 @@ class Region(object):
                 raise TypeError("Unrecognized argument for Region()")
         else:
             raise TypeError("Unrecognized argument(s) for Region()")
+        
+        self.FOREVER = None
+
         self.setROI(x, y, w, h)
         self._lastMatch = None
         self._lastMatches = []
@@ -1026,6 +1029,145 @@ class Region(object):
         if self._raster[1] == 0:
             return 0
         return self.w / self._raster[1]
+
+    """ Event Handlers """
+
+    def onAppear(self, pattern, handler):
+        """ Calls ``handler`` when ``pattern`` appears in this region. 
+        
+        The ``handler`` function should take one parameter, an ObserveEvent object 
+        (see below). This event is ignored in the future unless the handler calls 
+        the repeat() method on the provided ObserveEvent object.
+
+        Returns the event's ID as a string.
+        """
+        raise NotImplementedError()
+    def onVanish(self, pattern, handler):
+        """ Calls ``handler`` when ``pattern`` disappears from this region. 
+        
+        The ``handler`` function should take one parameter, an ObserveEvent object 
+        (see below). This event is ignored in the future unless the handler calls 
+        the repeat() method on the provided ObserveEvent object.
+
+        Returns the event's ID as a string.
+        """
+        raise NotImplementedError()
+    def onChange(self, min_changed_pixels=None, handler=None):
+        """ Calls ``handler`` when at least ``min_changed_pixels`` change in this region.
+        
+        (Default for min_changed_pixels is set in Settings.ObserveMinChangedPixels)
+        
+        The ``handler`` function should take one parameter, an ObserveEvent object 
+        (see below). This event is ignored in the future unless the handler calls 
+        the repeat() method on the provided ObserveEvent object.
+
+        Returns the event's ID as a string.
+        """
+        raise NotImplementedError()
+
+    def observe(self, seconds=None):
+        """ Begins the observer loop (synchronously).
+
+        Loops for ``seconds`` or until this region's stopObserver() method is called.
+        If ``seconds`` is None, the observer loop cycles until stopped. If this
+        method is called while the observer loop is already running, it returns False.
+
+        Returns True if the observer could be started, False otherwise.
+        """
+        raise NotImplementedError()
+    def observeInBackground(self, seconds=None):
+        """ As Region.observe(), but runs in a background process, allowing the rest
+        of your script to continue.
+        """
+        raise NotImplementedError()
+    def stopObserver(self):
+        """ Stops this region's observer loop. """
+        raise NotImplementedError()
+
+    def hasObserver(self):
+        """ Check whether at least one event is registered for this region. 
+        
+        The observer may or may not be running. 
+        """
+        raise NotImplementedError()
+    def isObserving(self):
+        """ Check whether an observer is running for this region """
+        raise NotImplementedError()
+    def hasEvents(self):
+        """ Check whether any events have been caught for this region """
+        raise NotImplementedError()
+    def getEvents(self):
+        """ Returns a list of all events that have occurred. 
+        
+        Empties the internal queue. 
+        """
+        raise NotImplementedError()
+    def getEvent(self, name):
+        """ Returns the named event.
+
+        Removes it from the internal queue.
+        """
+        raise NotImplementedError()
+    def setInactive(self, name):
+        """ The specified event is ignored until reactivated 
+        or until the observer restarts.
+        """
+        raise NotImplementedError()
+    def setActive(self, name):
+        """ Activates an inactive event type. """
+        raise NotImplementedError()
+
+class ObserveEvent(object):
+    def __init__(self, region, pattern=None, match=None, event_type="GENERIC"):
+        self._valid_types = ["APPEAR", "VANISH", "CHANGE", "GENERIC", "FINDFAILED", "MISSING"]
+        self._type = event_type
+        self._region = region
+        self._pattern = pattern
+        self._match = match
+        self._count = 
+        pass
+    def getType(self):
+        return self._type
+    def isAppear(self):
+        return (self._type == "APPEAR")
+    def isVanish(self):
+        return (self._type == "VANISH")
+    def isChange(self):
+        return (self._type == "CHANGE")
+    def isGeneric(self):
+        return (self._type == "GENERIC")
+    def isFindFailed(self):
+        return (self._type == "FINDFAILED")
+    def isMissing(self):
+        return (self._type == "MISSING")
+    def getRegion(self):
+        return self._region
+    def getPattern(self):
+        return self._pattern
+    def getImage(self):
+        valid_types = ["APPEAR", "VANISH", "FINDFAILED", "MISSING"]
+        if self._type not in valid_types:
+            raise TypeError("This is a(n) {} event, but method getImage is only valid for the following event types: ({})".format(self._type, ", ".join(valid_types)))
+        elif self._pattern is None:
+            raise ValueError("This event's pattern was not set!")
+        return cv2.imread(self._pattern.path)
+    def getMatch(self):
+        valid_types = ["APPEAR", "VANISH"]
+        if self._type not in valid_types:
+            raise TypeError("This is a(n) {} event, but method getMatch is only valid for the following event types: ({})".format(self._type, ", ".join(valid_types)))
+        elif self._match is None:
+            raise ValueError("This event's match was not set!")
+        return self._match
+    def getChanges(self):
+        valid_types = ["CHANGE"]
+        if self._type not in valid_types:
+            raise TypeError("This is a(n) {} event, but method getChanges is only valid for the following event types: ({})".format(self._type, ", ".join(valid_types)))
+        elif self._match is None:
+            raise ValueError("This event's match was not set!")
+        return self._match
+    def getCount(self):
+        
+
 
 class Match(Region):
     """ Extended Region object with additional data on click target, match score """
