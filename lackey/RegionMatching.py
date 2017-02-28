@@ -815,11 +815,23 @@ class Region(object):
         return PlatformManager.mouseButtonUp(button)
     def mouseMove(self, PSRML, dy=0):
         """ Low-level mouse actions """
-        if isinstance(PSRML, int):
+        if isinstance(PSRML, Pattern):
+            move_location = self.find(PSRML).getTarget()
+        elif isinstance(PSRML, basestring):
+            move_location = self.find(PSRML).getTarget()
+        elif isinstance(PSRML, Match):
+            move_location = PSRML.getTarget()
+        elif isinstance(PSRML, Region):
+            move_location = PSRML.getCenter()
+        elif isinstance(PSRML, Location):
+            move_location = PSRML
+        elif isinstance(PSRML, int):
             # Assume called as mouseMove(dx, dy)
             offset = Location(PSRML, dy)
-            PSRML = Mouse().getPos().offset(offset)
-        Mouse().moveSpeed(PSRML)
+            move_location = Mouse().getPos().offset(offset)
+        else:
+            raise TypeError("doubleClick expected Pattern, String, Match, Region, or Location object")
+        Mouse().moveSpeed(move_location)
     def wheel(self, PSRML, direction, steps):
         """ Clicks the wheel the specified number of ticks """
         self.mouseMove(PSRML)
