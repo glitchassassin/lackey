@@ -210,20 +210,6 @@ class PlatformManagerWindows(object):
             raise ctypes.WinError(ctypes.get_last_error())
         return args
 
-
-        """ Clicks the mouse wheel the specified number of steps in the given direction
-
-        Valid directions are 0 (for down) and 1 (for up). These should be provided
-        as constants by the Mouse class.
-        """
-        if direction == 1:
-            wheel_moved = steps
-        elif direction == 0:
-            wheel_moved = -1*steps
-        else:
-            raise ValueError("Expected direction to be 1 or 0")
-        mouse._os_mouse.wheel(wheel_moved)
-
     ## Screen functions
 
     def getBitmapFromRect(self, x, y, w, h):

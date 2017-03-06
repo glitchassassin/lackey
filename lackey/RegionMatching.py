@@ -106,7 +106,6 @@ class Region(object):
         self.autoWaitTimeout = 3.0
         # Converts searches per second to actual second interval
         self._defaultScanRate = 1/Settings.WaitScanRate
-        self._defaultMouseSpeed = Settings.MoveMouseDelay
         self._defaultTypeSpeed = 0.05
         self._raster = (0, 0)
 
@@ -574,7 +573,7 @@ class Region(object):
         if modifiers != "":
             Keyboard().keyDown(modifiers)
 
-        mouse.moveSpeed(target_location, self._defaultMouseSpeed)
+        mouse.moveSpeed(target_location, Settings.MoveMouseDelay)
         time.sleep(0.1) # For responsiveness
         if Settings.ClickDelay > 0:
             time.sleep(min(1.0, Settings.ClickDelay))
@@ -604,7 +603,7 @@ class Region(object):
         if modifiers != "":
             Keyboard().keyDown(modifiers)
 
-        mouse.moveSpeed(target_location, self._defaultMouseSpeed)
+        mouse.moveSpeed(target_location, Settings.MoveMouseDelay)
         time.sleep(0.1)
         if Settings.ClickDelay > 0:
             time.sleep(min(1.0, Settings.ClickDelay))
@@ -639,7 +638,7 @@ class Region(object):
         if modifiers != "":
             Keyboard().keyDown(modifiers)
 
-        mouse.moveSpeed(target_location, self._defaultMouseSpeed)
+        mouse.moveSpeed(target_location, Settings.MoveMouseDelay)
         time.sleep(0.1)
         if Settings.ClickDelay > 0:
             time.sleep(min(1.0, Settings.ClickDelay))
@@ -667,7 +666,7 @@ class Region(object):
         else:
             raise TypeError("hover expected Pattern, String, Match, Region, or Location object")
 
-        mouse.moveSpeed(target_location, self._defaultMouseSpeed)
+        mouse.moveSpeed(target_location, Settings.MoveMouseDelay)
     def drag(self, dragFrom):
         """ Starts a dragDrop operation.
 
@@ -687,7 +686,7 @@ class Region(object):
             dragFromLocation = dragFrom
         else:
             raise TypeError("drag expected dragFrom to be Pattern, String, Match, Region, or Location object")
-        mouse.moveSpeed(dragFromLocation, self._defaultMouseSpeed)
+        mouse.moveSpeed(dragFromLocation, Settings.MoveMouseDelay)
         time.sleep(Settings.DelayBeforeMouseDown)
         mouse.buttonDown()
         Debug.history("Began drag at {}".format(dragFromLocation))
@@ -710,7 +709,7 @@ class Region(object):
         else:
             raise TypeError("dragDrop expected dragTo to be Pattern, String, Match, Region, or Location object")
 
-        mouse.moveSpeed(dragToLocation, self._defaultMouseSpeed)
+        mouse.moveSpeed(dragToLocation, Settings.MoveMouseDelay)
         time.sleep(delay if delay is not None else Settings.DelayBeforeDrop)
         mouse.buttonUp()
         Debug.history("Ended drag at {}".format(dragToLocation))
