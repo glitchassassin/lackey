@@ -68,4 +68,4 @@ artifacts:
 
 deploy_script:
   # Deploy the generated wheel to PyPi
-  - if "%APPVEYOR_REPO_TAG%"=="true" (python -m twine upload -u %USER% -p %PASS% --skip-existing dist/Lackey*.whl) else (echo "Tag not set, deployment skipped.")
+  - if "%APPVEYOR_REPO_TAG%"=="true" (%PYTHON%\\python.exe -m twine upload -u %USER% -p %PASS% --skip-existing dist/Lackey*.whl) else (echo "Tag not set, deployment skipped.")
