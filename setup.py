@@ -42,7 +42,7 @@ setup(
     ],
     keywords="automation testing sikuli",
     packages=find_packages(exclude=['docs', 'tests']),
-    install_requires=['requests', 'pillow', 'numpy', 'opencv-python', 'keyboard'],
+    install_requires=['requests', 'pillow', 'numpy', 'opencv-python', 'keyboard', 'pyperclip'],
     include_package_data=True,
     distclass=BinaryDistribution
 )

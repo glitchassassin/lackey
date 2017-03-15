@@ -205,8 +205,6 @@ class TestInterfaces(unittest.TestCase):
 		self.assertHasMethod(lackey.PlatformManagerWindows, "isPointVisible", 3)
 
 		## Clipboard methods
-		self.assertHasMethod(lackey.PlatformManagerWindows, "getClipboard", 1)
-		self.assertHasMethod(lackey.PlatformManagerWindows, "setClipboard", 2)
 		self.assertHasMethod(lackey.PlatformManagerWindows, "osCopy", 1)
 		self.assertHasMethod(lackey.PlatformManagerWindows, "osPaste", 1)
 

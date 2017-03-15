@@ -14,40 +14,11 @@ PlatformManager has no public properties. Accessing private properties of a spec
 Methods
 -------
 
-- **Mouse Functions**
-    - **clickMouse** (button=0):
-        - Clicks the specified mouse button (0=LEFT, 1=MIDDLE, 2=RIGHT)
-    - **mouseButtonDown** (button=0):
-        - Sets the specified mouse button to "down" (0=LEFT, 1=MIDDLE, 2=RIGHT)
-    - **mouseButtonUp** (button=0):
-        - Sets the specified mouse button to "up" (0=LEFT, 1=MIDDLE, 2=RIGHT)
-    - **mouseWheel** (direction, steps):
-        - Spins the mouse wheel ``steps`` ticks in ``direction`` (0=DOWN, 1=UP)
-    - **setMousePos** (location):
-        - Accepts a tuple ``(x,y)`` and sets the mouse position accordingly
-    - **getMousePos** ():
-        - Returns a tuple ``(x,y)`` of the current mouse position
-- **Keyboard Functions**
-    - **pressKey** (text):
-        - Accepts a string of one or more keys in typeKeys() format (see below). Sets all of them to "down."
-    - **releaseKey** (text):
-        - Accepts a string of one or more keys in typeKeys() format (see below). Sets all of them to "up."
-    - **typeKeys** ():
-        - Accepts a string of one or more keys and translates them into a series of keypresses. Keys may be "special keys" noted by brackets (e.g., ``"Put in a new line{ENTER}"``). 
-        - Uses shift key to enter uppercase letters/symbols.
-            - ``"Hello!"`` translates to ``SHIFT,h,unshift,e,l,l,o,SHIFT,1,unshift``
-        - Also supports SendKeys-style modifiers (e.g., ``"^v"`` to type CTRL+V). 
-            - To enter a modifier as a key, put it in brackets: ``"{+}"``. 
-            - To modify a group of characters, use parentheses: ``"+(bacon)"``
 - **Clipboard Functions**
     - **osCopy** ():
         - Triggers the OS "copy" keyboard shortcut (usually CTRL+C or CMD+C)
     - **osPaste** ():
         - Triggers the OS "paste" keyboard shortcut (usually CTRL+V or CMD+V)
-    - **setClipboard** (text):
-        - Sets the system clipboard to ``text``
-    - **getClipboard** ():
-        - Returns any text in the clipboard
 - **Window Functions**
     - **getWindowByTitle** (wildcard, windowNum=0):
         - Returns the native window handle (as a Python object) for a window that matches the specified regex. If multiple windows with the regex exist, return the ``windowNum`` -th of them (starting from 0).
@@ -86,11 +57,6 @@ Methods
 
 ### Supported Key Codes ###
 
-- **Modifiers**
-    - ``+``: SHIFT
-    - ``^``: CTRL
-    - ``%``: ALT
-    - ``@``: META/WIN/CMD
 - **Special Keys**
     - ``{BACKSPACE}``
     - ``{TAB}``

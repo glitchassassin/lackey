@@ -210,20 +210,6 @@ class PlatformManagerWindows(object):
             raise ctypes.WinError(ctypes.get_last_error())
         return args
 
-
-        """ Clicks the mouse wheel the specified number of steps in the given direction
-
-        Valid directions are 0 (for down) and 1 (for up). These should be provided
-        as constants by the Mouse class.
-        """
-        if direction == 1:
-            wheel_moved = steps
-        elif direction == 0:
-            wheel_moved = -1*steps
-        else:
-            raise ValueError("Expected direction to be 1 or 0")
-        mouse._os_mouse.wheel(wheel_moved)
-
     ## Screen functions
 
     def getBitmapFromRect(self, x, y, w, h):
@@ -499,42 +485,6 @@ class PlatformManagerWindows(object):
 
     ## Clipboard functions
 
-    def getClipboard(self):
-        """ Uses Tkinter to fetch any text on the clipboard.
-
-        If a Tkinter root window has already been created somewhere else,
-        uses that instead of creating a new one.
-        """
-        if tk._default_root is None:
-            temporary_root = True
-            root = tk.Tk()
-            root.withdraw()
-        else:
-            temporary_root = False
-            root = tk._default_root
-        root.update()
-        to_return = str(root.clipboard_get())
-        if temporary_root:
-            root.destroy()
-        return to_return
-    def setClipboard(self, text):
-        """ Uses Tkinter to set the system clipboard.
-
-        If a Tkinter root window has already been created somewhere else,
-        uses that instead of creating a new one.
-        """
-        if tk._default_root is None:
-            temporary_root = True
-            root = tk.Tk()
-            root.withdraw()
-        else:
-            temporary_root = False
-            root = tk._default_root
-        root.clipboard_clear()
-        root.clipboard_append(text)
-        root.update()
-        if temporary_root:
-            root.destroy()
     def osCopy(self):
         """ Triggers the OS "copy" keyboard shortcut """
         k = Keyboard()

@@ -4,6 +4,7 @@ try:
 except ImportError:
     import tkinter as tk
 import subprocess
+import pyperclip
 import tempfile
 import platform
 import numpy
@@ -106,7 +107,6 @@ class Region(object):
         self.autoWaitTimeout = 3.0
         # Converts searches per second to actual second interval
         self._defaultScanRate = 1/Settings.WaitScanRate
-        self._defaultMouseSpeed = Settings.MoveMouseDelay
         self._defaultTypeSpeed = 0.05
         self._raster = (0, 0)
 
@@ -574,7 +574,7 @@ class Region(object):
         if modifiers != "":
             Keyboard().keyDown(modifiers)
 
-        mouse.moveSpeed(target_location, self._defaultMouseSpeed)
+        mouse.moveSpeed(target_location, Settings.MoveMouseDelay)
         time.sleep(0.1) # For responsiveness
         if Settings.ClickDelay > 0:
             time.sleep(min(1.0, Settings.ClickDelay))
@@ -604,7 +604,7 @@ class Region(object):
         if modifiers != "":
             Keyboard().keyDown(modifiers)
 
-        mouse.moveSpeed(target_location, self._defaultMouseSpeed)
+        mouse.moveSpeed(target_location, Settings.MoveMouseDelay)
         time.sleep(0.1)
         if Settings.ClickDelay > 0:
             time.sleep(min(1.0, Settings.ClickDelay))
@@ -639,7 +639,7 @@ class Region(object):
         if modifiers != "":
             Keyboard().keyDown(modifiers)
 
-        mouse.moveSpeed(target_location, self._defaultMouseSpeed)
+        mouse.moveSpeed(target_location, Settings.MoveMouseDelay)
         time.sleep(0.1)
         if Settings.ClickDelay > 0:
             time.sleep(min(1.0, Settings.ClickDelay))
@@ -667,7 +667,7 @@ class Region(object):
         else:
             raise TypeError("hover expected Pattern, String, Match, Region, or Location object")
 
-        mouse.moveSpeed(target_location, self._defaultMouseSpeed)
+        mouse.moveSpeed(target_location, Settings.MoveMouseDelay)
     def drag(self, dragFrom):
         """ Starts a dragDrop operation.
 
@@ -687,7 +687,7 @@ class Region(object):
             dragFromLocation = dragFrom
         else:
             raise TypeError("drag expected dragFrom to be Pattern, String, Match, Region, or Location object")
-        mouse.moveSpeed(dragFromLocation, self._defaultMouseSpeed)
+        mouse.moveSpeed(dragFromLocation, Settings.MoveMouseDelay)
         time.sleep(Settings.DelayBeforeMouseDown)
         mouse.buttonDown()
         Debug.history("Began drag at {}".format(dragFromLocation))
@@ -710,7 +710,7 @@ class Region(object):
         else:
             raise TypeError("dragDrop expected dragTo to be Pattern, String, Match, Region, or Location object")
 
-        mouse.moveSpeed(dragToLocation, self._defaultMouseSpeed)
+        mouse.moveSpeed(dragToLocation, Settings.MoveMouseDelay)
         time.sleep(delay if delay is not None else Settings.DelayBeforeDrop)
         mouse.buttonUp()
         Debug.history("Ended drag at {}".format(dragToLocation))
@@ -794,15 +794,16 @@ class Region(object):
         else:
             raise TypeError("paste method expected [PSMRL], text")
 
-        PlatformManager.setClipboard(text)
+        pyperclip.copy(text)
         # Triggers OS paste for foreground window
         PlatformManager.osPaste()
         time.sleep(0.2)
     def getClipboard(self):
         """ Returns the contents of the clipboard
 
-        Can be used to pull outside text into the application. """
-        return PlatformManager.getClipboard()
+        Can be used to pull outside text into the application, if it is first
+        copied with the OS keyboard shortcut (e.g., "Ctrl+C") """
+        return pyperclip.paste()
     def text(self):
         """ OCR method. Todo. """
         raise NotImplementedError("OCR not yet supported")
@@ -815,11 +816,23 @@ class Region(object):
         return PlatformManager.mouseButtonUp(button)
     def mouseMove(self, PSRML, dy=0):
         """ Low-level mouse actions """
-        if isinstance(PSRML, int):
+        if isinstance(PSRML, Pattern):
+            move_location = self.find(PSRML).getTarget()
+        elif isinstance(PSRML, basestring):
+            move_location = self.find(PSRML).getTarget()
+        elif isinstance(PSRML, Match):
+            move_location = PSRML.getTarget()
+        elif isinstance(PSRML, Region):
+            move_location = PSRML.getCenter()
+        elif isinstance(PSRML, Location):
+            move_location = PSRML
+        elif isinstance(PSRML, int):
             # Assume called as mouseMove(dx, dy)
             offset = Location(PSRML, dy)
-            PSRML = Mouse().getPos().offset(offset)
-        Mouse().moveSpeed(PSRML)
+            move_location = Mouse().getPos().offset(offset)
+        else:
+            raise TypeError("doubleClick expected Pattern, String, Match, Region, or Location object")
+        Mouse().moveSpeed(move_location)
     def wheel(self, PSRML, direction, steps):
         """ Clicks the wheel the specified number of ticks """
         self.mouseMove(PSRML)

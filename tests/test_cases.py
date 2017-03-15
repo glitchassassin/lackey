@@ -7,7 +7,7 @@ import os
 #sys.path.insert(0, os.path.abspath('..'))
 import lackey
 
-from appveyor_test_cases import TestLocationMethods, TestPatternMethods, TestInterfaces, TestConvenienceFunctions
+from .appveyor_test_cases import TestLocationMethods, TestPatternMethods, TestInterfaces, TestConvenienceFunctions
 
 # Python 3 compatibility
 try:
@@ -24,6 +24,7 @@ class TestMouseMethods(unittest.TestCase):
 		self.assertEqual(self.mouse.getPos().getTuple(), (10,10))
 		self.mouse.moveSpeed(lackey.Location(100,200), 0.5)
 		self.assertEqual(self.mouse.getPos().getTuple(), (100,200))
+		lackey.wheel(self.mouse.getPos(), 0, 3) # Mostly just verifying it doesn't crash
 		
 	def test_clicks(self):
 		"""
