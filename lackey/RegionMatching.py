@@ -4,6 +4,7 @@ try:
 except ImportError:
     import tkinter as tk
 import subprocess
+import pyperclip
 import tempfile
 import platform
 import numpy
@@ -793,15 +794,16 @@ class Region(object):
         else:
             raise TypeError("paste method expected [PSMRL], text")
 
-        PlatformManager.setClipboard(text)
+        pyperclip.copy(text)
         # Triggers OS paste for foreground window
         PlatformManager.osPaste()
         time.sleep(0.2)
     def getClipboard(self):
         """ Returns the contents of the clipboard
 
-        Can be used to pull outside text into the application. """
-        return PlatformManager.getClipboard()
+        Can be used to pull outside text into the application, if it is first
+        copied with the OS keyboard shortcut (e.g., "Ctrl+C") """
+        return pyperclip.paste()
     def text(self):
         """ OCR method. Todo. """
         raise NotImplementedError("OCR not yet supported")

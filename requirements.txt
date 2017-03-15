@@ -7,5 +7,6 @@ numpy
 pillow
 opencv-python
 wheel
+pyperclip
 keyboard>=v0.9.11
 twine

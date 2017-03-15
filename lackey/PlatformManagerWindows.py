@@ -485,42 +485,6 @@ class PlatformManagerWindows(object):
 
     ## Clipboard functions
 
-    def getClipboard(self):
-        """ Uses Tkinter to fetch any text on the clipboard.
-
-        If a Tkinter root window has already been created somewhere else,
-        uses that instead of creating a new one.
-        """
-        if tk._default_root is None:
-            temporary_root = True
-            root = tk.Tk()
-            root.withdraw()
-        else:
-            temporary_root = False
-            root = tk._default_root
-        root.update()
-        to_return = str(root.clipboard_get())
-        if temporary_root:
-            root.destroy()
-        return to_return
-    def setClipboard(self, text):
-        """ Uses Tkinter to set the system clipboard.
-
-        If a Tkinter root window has already been created somewhere else,
-        uses that instead of creating a new one.
-        """
-        if tk._default_root is None:
-            temporary_root = True
-            root = tk.Tk()
-            root.withdraw()
-        else:
-            temporary_root = False
-            root = tk._default_root
-        root.clipboard_clear()
-        root.clipboard_append(text)
-        root.update()
-        if temporary_root:
-            root.destroy()
     def osCopy(self):
         """ Triggers the OS "copy" keyboard shortcut """
         k = Keyboard()
