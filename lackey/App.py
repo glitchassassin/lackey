@@ -2,6 +2,7 @@
 import os
 import re
 import time
+import pyperclip
 import platform
 import subprocess
 
@@ -240,4 +241,4 @@ class App(object):
     @classmethod
     def getClipboard(cls):
         """ Gets the contents of the clipboard (as classmethod) """
-        return PlatformManager.getClipboard()
+        return pyperclip.paste()
