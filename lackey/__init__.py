@@ -15,7 +15,10 @@ except ImportError:
 
 import platform
 import keyboard
-import thread
+try:
+    import thread
+except ImportError:
+    import _thread as thread
 import sys
 import time
 import os

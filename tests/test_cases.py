@@ -51,9 +51,12 @@ class TestAppMethods(unittest.TestCase):
     def test_getters(self):
         if sys.platform.startswith("win"):
             app = lackey.App("notepad.exe tests\\test_cases.py")
+            app2 = lackey.App("notepad.exe tests\\test_cases.py")
             #app.setUsing("test_cases.py")
             app.open()
-            time.sleep(1)
+            app2.open()
+            lackey.sleep(1)
+            app2.close()
         else:
             raise NotImplementedError("Platforms supported include: Windows")
         app.focus()
@@ -69,7 +72,7 @@ class TestAppMethods(unittest.TestCase):
 
         if sys.platform.startswith("win"):
             app.close()
-        lackey.wait(1.0)
+        lackey.sleep(1.0)
 
     def test_launchers(self):
         app = lackey.App("notepad.exe")
