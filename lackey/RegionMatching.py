@@ -400,7 +400,7 @@ class Region(object):
             raise FindFailed("Region outside all visible screens")
             return None
         seconds = self.autoWaitTimeout
-        if isinstance(pattern, int):
+        if isinstance(pattern, (int, float)):
             time.sleep(pattern)
             return
         if not pattern:
@@ -448,6 +448,9 @@ class Region(object):
         Functionally identical to find()
         Sikuli supports OCR search with a text parameter. This does not (yet).
         """
+        if isinstance(pattern, (int, float)):
+            time.sleep(pattern)
+            return
         if seconds:
             timeout = time.time() + seconds
         else:
@@ -473,7 +476,7 @@ class Region(object):
             return None
         if seconds is None:
             seconds = self.autoWaitTimeout
-        if isinstance(pattern, int):
+        if isinstance(pattern, (int, float)):
             time.sleep(pattern)
             return
         if not pattern:
@@ -508,7 +511,7 @@ class Region(object):
             return None
         if seconds is None:
             seconds = self.autoWaitTimeout
-        if isinstance(pattern, int):
+        if isinstance(pattern, (int, float)):
             # Actually just a "wait" statement
             time.sleep(pattern)
             return
