@@ -3,6 +3,8 @@ import datetime
 import os
 import __main__
 
+from io import open # For Python 2 native line endings compatibility
+
 from ._version import __version__, __sikuli_version__
 
 class DebugMaster(object):
@@ -119,7 +121,7 @@ class DebugMaster(object):
                 )(message if self._logger_no_prefix else log_entry)
         elif self._log_file:
             # Otherwise write to file, if a file has been specified
-            with open(self._log_file) as logfile:
+            with open(self._log_file, 'a') as logfile:
                 logfile.write(log_entry)
         else:
             # Otherwise, print to STDOUT
