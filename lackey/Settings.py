@@ -100,7 +100,13 @@ class DebugMaster(object):
         """ Sends debug messages to ``logger.[mthd]()`` for handling """
         self._logger_methods["debug"] = mthd
     def setLogFile(self, filepath):
-        """ Defines the file to which output log messages should be sent """
+        """ Defines the file to which output log messages should be sent.
+
+        Set to `None` to print to STDOUT instead.
+        """
+        if filepath is None:
+            self._log_file = None
+            return
         parsed_path = os.path.abspath(filepath)
         # Checks if the provided log filename is in a real directory, and that
         # the filename itself is not a directory.
@@ -122,7 +128,10 @@ class DebugMaster(object):
         elif self._log_file:
             # Otherwise write to file, if a file has been specified
             with open(self._log_file, 'a') as logfile:
-                logfile.write(log_entry)
+                try:
+                    logfile.write(unicode(log_entry + "\n"))
+                except NameError: # `unicode` only works in Python 2
+                    logfile.write(log_entry + "\n")
         else:
             # Otherwise, print to STDOUT
             print(log_entry)

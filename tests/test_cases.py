@@ -108,6 +108,7 @@ class TestComplexFeatures(unittest.TestCase):
         lackey.addImagePath(os.path.dirname(__file__))
 
     def testTypeCopyPaste(self):
+        lackey.Debug.setLogFile("logfile.txt")
         if sys.platform.startswith("win"):
             app = lackey.App("notepad.exe").open()
             time.sleep(1)
@@ -127,6 +128,10 @@ class TestComplexFeatures(unittest.TestCase):
 
         if sys.platform.startswith("win"):
             app.close()
+        
+        lackey.Debug.setLogFile(None)
+
+        self.assertTrue(os.path.exists("logfile.txt"))
 
     def testOpenApp(self):
         """ This looks for the specified Notepad icon on the desktop.
