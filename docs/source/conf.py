@@ -37,7 +37,7 @@ class Mock(MagicMock):
     def __getattr__(cls, name):
             return Mock()
 
-MOCK_MODULES = ['ctypes', 'PIL', 'PIL.Image', 'PIL.ImageGrab', 'numpy', 'cv2']
+MOCK_MODULES = ['keyboard', 'ctypes', 'PIL', 'PIL.Image', 'PIL.ImageGrab', 'numpy', 'cv2']
 if (os.environ.get('READTHEDOCS') == 'True'):
     sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
