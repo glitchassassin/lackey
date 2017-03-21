@@ -34,7 +34,7 @@ from .InputEmulation import Mouse, Keyboard
 from .App import App
 from .Exceptions import FindFailed
 from .Settings import Debug, Settings, DebugMaster, SettingsMaster
-from . import SikuliGui
+from .SikuliGui import PopupInput, PopupList, PopupTextarea
 from ._version import __version__
 
 VALID_PLATFORMS = ["Windows"]
@@ -181,7 +181,7 @@ def input(msg="", default="", title="Lackey Input", hidden=False):
     root = tk.Tk()
     input_text = tk.StringVar()
     input_text.set(default)
-    SikuliGui.PopupInput(root, msg, title, hidden, input_text)
+    PopupInput(root, msg, title, hidden, input_text)
     root.focus_force()
     root.mainloop()
     return str(input_text.get())
@@ -192,7 +192,7 @@ def inputText(message="", title="Lackey Input", lines=9, width=20, text=""):
     root = tk.Tk()
     input_text = tk.StringVar()
     input_text.set(text)
-    SikuliGui.PopupTextarea(root, message, title, lines, width, input_text)
+    PopupTextarea(root, message, title, lines, width, input_text)
     root.focus_force()
     root.mainloop()
     return str(input_text.get())
@@ -211,7 +211,7 @@ def select(message="", title="Lackey Input", options=None, default=None):
     root = tk.Tk()
     input_text = tk.StringVar()
     input_text.set(message)
-    SikuliGui.PopupList(root, message, title, options, default, input_text)
+    PopupList(root, message, title, options, default, input_text)
     root.focus_force()
     root.mainloop()
     return str(input_text.get())

@@ -17,10 +17,14 @@
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
 import os
+import re
 import sys
 path = os.path.abspath('../..')
 sys.path.insert(0, path)
-from lackey import __version__
+
+with open('../../lackey/_version.py', 'r') as fd:
+    __version__ = re.search(r'^__version__\s*=\s*[\'"]([^\'"]*)[\'"]',
+                            fd.read(), re.MULTILINE).group(1)
 try:
     #py3 import
     from unittest.mock import MagicMock
@@ -33,7 +37,7 @@ class Mock(MagicMock):
     def __getattr__(cls, name):
             return Mock()
 
-MOCK_MODULES = ['ctypes', 'PIL', 'PIL.Image', 'PIL.ImageGrab', 'numpy', 'cv2']
+MOCK_MODULES = ['keyboard', 'ctypes', 'PIL', 'PIL.Image', 'PIL.ImageGrab', 'numpy', 'cv2']
 if (os.environ.get('READTHEDOCS') == 'True'):
     sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
