@@ -1,6 +1,6 @@
 # Lackey #
 ## A Graphical Python Automation Suite ##
-[![Documentation Status](https://readthedocs.org/projects/lackey/badge/?version=latest)](http://lackey.readthedocs.io/en/latest/?badge=latest) [![Develop Documentation Status](https://readthedocs.org/projects/lackey/badge/?version=develop)](http://lackey.readthedocs.io/en/latest/?badge=develop) [![Build status](https://ci.appveyor.com/api/projects/status/l1q68dnp6vm8sre9/branch/master?svg=true)](https://ci.appveyor.com/project/glitchassassin/lackey) [![Build status](https://ci.appveyor.com/api/projects/status/l1q68dnp6vm8sre9?svg=true)](https://ci.appveyor.com/project/glitchassassin/lackey)
+[![Documentation Status](https://readthedocs.org/projects/lackey/badge/?version=latest)](http://lackey.readthedocs.io/en/latest/?badge=latest) [![Develop Documentation Status](https://readthedocs.org/projects/lackey/badge/?version=develop)](http://lackey.readthedocs.io/en/latest/?badge=develop) [![Build status](https://ci.appveyor.com/api/projects/status/l1q68dnp6vm8sre9?svg=true)](https://ci.appveyor.com/project/glitchassassin/lackey)
 
 Developed by [Jon Winsley](https://github.com/glitchassassin)
 
