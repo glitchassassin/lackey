@@ -240,8 +240,12 @@ class App(object):
             else:
                 time.sleep(self._defaultScanRate)
         return self.getPID() > 0
-    
+
     @classmethod
     def getClipboard(cls):
         """ Gets the contents of the clipboard (as classmethod) """
         return pyperclip.paste()
+    @classmethod
+    def setClipboard(cls, contents):
+        """ Sets the contents of the clipboard (as classmethod) """
+        return pyperclip.copy(contents)
