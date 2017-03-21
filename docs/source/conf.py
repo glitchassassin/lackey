@@ -22,7 +22,7 @@ import sys
 path = os.path.abspath('../..')
 sys.path.insert(0, path)
 
-with open('lackey/_version.py', 'r') as fd:
+with open('../../lackey/_version.py', 'r') as fd:
     __version__ = re.search(r'^__version__\s*=\s*[\'"]([^\'"]*)[\'"]',
                             fd.read(), re.MULTILINE).group(1)
 try:
