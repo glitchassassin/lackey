@@ -403,11 +403,6 @@ class Region(object):
             raise FindFailed("Region outside all visible screens")
             return None
         seconds = self.autoWaitTimeout
-        if isinstance(pattern, int):
-            time.sleep(pattern)
-            return
-        if not pattern:
-            time.sleep(seconds)
         if not isinstance(pattern, Pattern):
             if not isinstance(pattern, basestring):
                 raise TypeError("find expected a string [image path] or Pattern object")
@@ -445,16 +440,21 @@ class Region(object):
         self._lastMatchTime = (time.time() - find_time) * 1000 # Capture find time in milliseconds
         return self._lastMatches
 
-    def wait(self, pattern, seconds=3):
+    def wait(self, pattern, seconds=None):
         """ Searches for an image pattern in the given region, given a specified timeout period
 
-        Functionally identical to find()
+        Functionally identical to find(). If a number is passed instead of a pattern,
+        just waits the specified number of seconds.
         Sikuli supports OCR search with a text parameter. This does not (yet).
         """
-        if seconds:
-            timeout = time.time() + seconds
-        else:
-            timeout = time.time()
+        if isinstance(pattern, (int, float)):
+            time.sleep(pattern)
+            return None
+
+        if seconds is None:
+            seconds = self.autoWaitTimeout
+
+        timeout = time.time() + seconds
         while True:
             match = self.exists(pattern)
             if match:
@@ -476,11 +476,6 @@ class Region(object):
             return None
         if seconds is None:
             seconds = self.autoWaitTimeout
-        if isinstance(pattern, int):
-            time.sleep(pattern)
-            return
-        if not pattern:
-            time.sleep(seconds)
         if not isinstance(pattern, Pattern):
             if not isinstance(pattern, basestring):
                 raise TypeError("find expected a string [image path] or Pattern object")

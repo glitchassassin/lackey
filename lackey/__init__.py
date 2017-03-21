@@ -15,6 +15,10 @@ except ImportError:
 
 import platform
 import keyboard
+try:
+    import thread
+except ImportError:
+    import _thread as thread
 import sys
 import time
 import os
@@ -36,7 +40,11 @@ from ._version import __version__
 VALID_PLATFORMS = ["Windows"]
 
 ## Define script abort hotkey (Alt+Shift+C)
-keyboard.add_hotkey("alt+shift+c", sys.exit)
+
+def _abort_script():
+    thread.interrupt_main()
+
+keyboard.add_hotkey("alt+shift+c", _abort_script, suppress=True)
 
 ## Sikuli patching: Functions that map to the global Screen region
 ## Don't try this at home, kids!
