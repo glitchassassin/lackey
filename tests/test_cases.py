@@ -108,6 +108,7 @@ class TestComplexFeatures(unittest.TestCase):
         lackey.addImagePath(os.path.dirname(__file__))
 
     def testTypeCopyPaste(self):
+        """ Also tests the log file """
         lackey.Debug.setLogFile("logfile.txt")
         if sys.platform.startswith("win"):
             app = lackey.App("notepad.exe").open()
@@ -136,12 +137,21 @@ class TestComplexFeatures(unittest.TestCase):
     def testOpenApp(self):
         """ This looks for the specified Notepad icon on the desktop.
 
-        This test will probably fail if you don't have the same setup I do. 
+        This test will probably fail if you don't have the same setup I do.
         """
+        def test_observer(appear_event):
+            assert(appear_event.isAppear())
+            img = appear_event.getImage()
+            region = appear_event.getRegion()
+            region.TestFlag = True
+            region.stopObserver()
         r = lackey.Screen(0)
         r.doubleClick("notepad.png")
         time.sleep(2)
         r.type("This is a test")
+        r.onAppear(lackey.Pattern("test_text.png").similar(0.6), test_observer)
+        r.observe(30)
+        self.assertTrue(r.TestFlag)
         r.rightClick(lackey.Pattern("test_text.png").similar(0.6))
         r.click("select_all.png")
         r.type("c", lackey.Key.CONTROL) # Copy

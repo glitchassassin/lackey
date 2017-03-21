@@ -1118,6 +1118,7 @@ class Region(object):
 
         # Start observe loop
         while (not self._observer.isStopped) and (seconds is None or time.time() < timeout):
+            print(self._observer)
             # Check registered events
             self._observer.check_events()
             # Sleep for scan rate
@@ -1126,6 +1127,11 @@ class Region(object):
     def observeInBackground(self, seconds=None):
         """ As Region.observe(), but runs in a background process, allowing the rest
         of your script to continue.
+
+        Note that the subprocess operates on *copies* of the usual objects, not the original
+        Region object itself for example. If your event handler needs to share data with your
+        main process, check out the documentation for the ``multiprocessing`` module to set up
+        shared memory.
         """
         if self._observer.isRunning:
             return False
@@ -1133,8 +1139,14 @@ class Region(object):
         self._observer_process.start()
         return True
     def stopObserver(self):
-        """ Stops this region's observer loop. """
+        """ Stops this region's observer loop.
+
+        If this is running in a subprocess, exits the subprocess.
+        """
+        if not type(multiprocessing.current_process()) == multiprocessing.Process:
+            print("Running in subprocess)")
         self._observer.isStopped = True
+        self._observer.isRunning = False
 
     def hasObserver(self):
         """ Check whether at least one event is registered for this region.
@@ -1226,11 +1238,12 @@ class Observer(object):
 
     def check_events(self):
         for event_name in self._events.keys():
-            if not self._events[event_name]["active"]:
+            event = self._events[event_name]
+            if not event["active"]:
                 continue
-            event_type = self._events[event_name]["event_type"]
-            pattern = self._events[event_name]["pattern"]
-            handler = self._events[event_name]["handler"]
+            event_type = event["event_type"]
+            pattern = event["pattern"]
+            handler = event["handler"]
             if event_type == "APPEAR" and self._region.exists(event["pattern"], 0):
                 # Call the handler with a new ObserveEvent object
                 appear_event = ObserveEvent(self._region,
@@ -1240,9 +1253,9 @@ class Observer(object):
                 if callable(handler):
                     handler(appear_event)
                 self.caught_events.append(appear_event)
-                self._events[event_name]["count"] += 1
+                event["count"] += 1
                 # Event handlers are inactivated after being caught once
-                self._events[event_name]["active"] = False
+                event["active"] = False
             elif event_type == "VANISH" and not self._region.exists(event["pattern"], 0):
                 # Call the handler with a new ObserveEvent object
                 vanish_event = ObserveEvent(self._region,
@@ -1253,9 +1266,9 @@ class Observer(object):
                     handler(vanish_event)
                 else:
                     self.caught_events.append(vanish_event)
-                self._events[event_name]["count"] += 1
+                event["count"] += 1
                 # Event handlers are inactivated after being caught once
-                self._events[event_name]["active"] = False
+                event["active"] = False
             # For a CHANGE event, ``pattern`` is a tuple of
             # (min_pixels_changed, original_region_state)
             elif event_type == "CHANGE" and self._region.isChanged(*event["pattern"]):
@@ -1268,9 +1281,9 @@ class Observer(object):
                     handler(change_event)
                 else:
                     self.caught_events.append(change_event)
-                self._events[event_name]["count"] += 1
+                event["count"] += 1
                 # Event handlers are inactivated after being caught once
-                self._events[event_name]["active"] = False
+                event["active"] = False
 
 
 class ObserveEvent(object):
