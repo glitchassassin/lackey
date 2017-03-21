@@ -4,9 +4,9 @@ class Button():
     RIGHT = 2
 
 class Key():
-    """ Key codes for PlatformManager.TypeKeys() function.
+    """ Key codes for InputEmulation.Keyboard object.
 
-    Can be entered directly or concatenated with an existing string. """
+    Can be entered directly or concatenated with an existing string, e.g. ``type(Key.TAB)`` """
     ENTER 		= "{ENTER}"
     ESC 		= "{ESC}"
     BACKSPACE 	= "{BACKSPACE}"
@@ -66,7 +66,7 @@ class Key():
     DIVIDE		= "{DIVIDE}"
 
 class KeyModifier():
-    """ Key modifiers precede either a single key [e.g., ^v] or a set of characters within parentheses [e.g., +(hello)] """
+    """ Can be used with type() to modify another key, e.g. ``type(Key.DELETE, Key.CTRL+Key.ALT)`` """
     CTRL 		= "{CTRL}"
     SHIFT 		= "{SHIFT}"
     ALT 		= "{ALT}"

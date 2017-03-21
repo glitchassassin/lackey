@@ -2,6 +2,7 @@
 import os
 import re
 import time
+import pyperclip
 import platform
 import subprocess
 
@@ -37,6 +38,7 @@ class App(object):
         self._exec = ""
         self._params = ""
         self._process = None
+        self._devnull = None
         self._defaultScanRate = 0.1
         self.proc = None
 
@@ -148,6 +150,7 @@ class App(object):
     def _close_instance(self):
         if self._process:
             self._process.terminate()
+            self._devnull.close()
         elif self.getPID() != -1:
             PlatformManager.killProcess(self.getPID())
 
@@ -162,7 +165,8 @@ class App(object):
     def _open_instance(self, waitTime=0):
         if self._exec != "":
             # Open from an executable + parameters
-            self._process = subprocess.Popen([self._exec] + self._params, shell=False)
+            self._devnull = open(os.devnull, 'w')
+            self._process = subprocess.Popen([self._exec] + self._params, shell=False, stderr=self._devnull, stdout=self._devnull)
             self._pid = self._process.pid
         elif self._title != "":
             # Capture an existing window that matches self._title
@@ -240,4 +244,4 @@ class App(object):
     @classmethod
     def getClipboard(cls):
         """ Gets the contents of the clipboard (as classmethod) """
-        return PlatformManager.getClipboard()
+        return pyperclip.paste()
