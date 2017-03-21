@@ -29,7 +29,7 @@ class App(object):
     application directly. Can address individual windows tied to an
     app.
 
-    For more information, see [Sikuli's App documentation](http://sikulix-2014.readthedocs.io/en/latest/appclass.html#App)
+    For more information, see `Sikuli's App documentation<http://sikulix-2014.readthedocs.io/en/latest/appclass.html#App>`_.
     """
     def __init__(self, identifier=None):
         self._pid = None
