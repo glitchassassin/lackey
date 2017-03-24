@@ -560,8 +560,11 @@ class Region(object):
         self._lastMatchTime = (time.time() - find_time) * 1000 # Capture find time in milliseconds
         return self._lastMatch
 
-    def click(self, target, modifiers=""):
+    def click(self, target=None, modifiers=""):
         """ Moves the cursor to the target location and clicks the default mouse button. """
+        if target is None:
+            target = self._lastMatch or self # Whichever one is not None
+
         target_location = None
         if isinstance(target, Pattern):
             target_location = self.find(target).getTarget()
@@ -573,8 +576,6 @@ class Region(object):
             target_location = target.getCenter()
         elif isinstance(target, Location):
             target_location = target
-        elif target is None and isinstance(self._lastMatch, Match):
-            target_location = self._lastMatch.getTarget()
         else:
             raise TypeError("click expected Pattern, String, Match, Region, or Location object")
         if modifiers != "":
@@ -591,8 +592,10 @@ class Region(object):
         if modifiers != 0:
             keyboard.keyUp(modifiers)
         Debug.history("Clicked at {}".format(target_location))
-    def doubleClick(self, target, modifiers=""):
+    def doubleClick(self, target=None, modifiers=""):
         """ Moves the cursor to the target location and double-clicks the default mouse button. """
+        if target is None:
+            target = self._lastMatch or self # Whichever one is not None
         target_location = None
         if isinstance(target, Pattern):
             target_location = self.find(target).getTarget()
@@ -624,8 +627,10 @@ class Region(object):
 
         if modifiers != 0:
             keyboard.keyUp(modifiers)
-    def rightClick(self, target, modifiers=""):
+    def rightClick(self, target=None, modifiers=""):
         """ Moves the cursor to the target location and clicks the right mouse button. """
+        if target is None:
+            target = self._lastMatch or self # Whichever one is not None
         target_location = None
         if isinstance(target, Pattern):
             target_location = self.find(target).getTarget()
@@ -654,8 +659,10 @@ class Region(object):
         if modifiers != "":
             keyboard.keyUp(modifiers)
 
-    def hover(self, target):
+    def hover(self, target=None):
         """ Moves the cursor to the target location """
+        if target is None:
+            target = self._lastMatch or self # Whichever one is not None
         target_location = None
         if isinstance(target, Pattern):
             target_location = self.find(target).getTarget()
@@ -671,11 +678,13 @@ class Region(object):
             raise TypeError("hover expected Pattern, String, Match, Region, or Location object")
 
         mouse.moveSpeed(target_location, Settings.MoveMouseDelay)
-    def drag(self, dragFrom):
+    def drag(self, dragFrom=None):
         """ Starts a dragDrop operation.
 
         Moves the cursor to the target location and clicks the mouse in preparation to drag
         a screen element """
+        if dragFrom is None:
+            dragFrom = self._lastMatch or self # Whichever one is not None
         dragFromLocation = None
         if isinstance(dragFrom, Pattern):
             dragFromLocation = self.find(dragFrom).getTarget()
@@ -693,11 +702,13 @@ class Region(object):
         time.sleep(Settings.DelayBeforeMouseDown)
         mouse.buttonDown()
         Debug.history("Began drag at {}".format(dragFromLocation))
-    def dropAt(self, dragTo, delay=None):
+    def dropAt(self, dragTo=None, delay=None):
         """ Completes a dragDrop operation
 
         Moves the cursor to the target location, waits ``delay`` seconds, and releases the mouse
         button """
+        if dragTo is None:
+            dragTo = self._lastMatch or self # Whichever one is not None
         if isinstance(dragTo, Pattern):
             dragToLocation = self.find(dragTo).getTarget()
         elif isinstance(dragTo, basestring):
@@ -815,8 +826,10 @@ class Region(object):
     def mouseUp(self, button):
         """ Low-level mouse actions """
         return PlatformManager.mouseButtonUp(button)
-    def mouseMove(self, PSRML, dy=0):
+    def mouseMove(self, PSRML=None, dy=0):
         """ Low-level mouse actions """
+        if PSRML is None:
+            PSRML = self._lastMatch or self # Whichever one is not None
         if isinstance(PSRML, Pattern):
             move_location = self.find(PSRML).getTarget()
         elif isinstance(PSRML, basestring):
