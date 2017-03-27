@@ -86,7 +86,7 @@ class App(object):
             else:
                 # No executable found - treat as a title instead. Try to capture window.
                 self._title = identifier
-                self.open
+                self.open()
         else:
             self._pid = -1 # Unrecognized identifier, setting to empty app
 
