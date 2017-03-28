@@ -86,6 +86,19 @@ class TestAppMethods(unittest.TestCase):
         app.close()
         lackey.wait(0.9)
 
+    def test_app_title(self):
+        """ App selected by title should capture existing window if open. """
+        app = lackey.App("notepad.exe")
+        app.open()
+        lackey.wait(1)
+        app2 = lackey.App("Notepad")
+        lackey.wait(1)
+
+        self.assertTrue(app2.isRunning())
+        self.assertEqual(app2.getName(), app.getName())
+        app.close()
+        app2.close()
+
 class TestScreenMethods(unittest.TestCase):
     def setUp(self):
         self.primaryScreen = lackey.Screen(0)
