@@ -100,3 +100,5 @@ To link directly to the repository (if you want to work with the `develop` ring,
 Debugging contributions:
 
 * [maxdule](https://github.com/maxdule)
+* [nejch](https://github.com/nejch)
+* [suvit](https://github.com/suvit)
