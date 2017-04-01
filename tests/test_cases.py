@@ -103,7 +103,6 @@ class TestAppMethods(unittest.TestCase):
         self.assertEqual(app2.getName(), app.getName())
         self.assertEqual(app3.getName(), app.getName())
         app.close()
-        app2.close()
 
 
 class TestScreenMethods(unittest.TestCase):
