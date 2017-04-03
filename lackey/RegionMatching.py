@@ -1240,7 +1240,7 @@ class Region(object):
     PROMPT = "PROMPT"
     RETRY = "RETRY"
 
-    def setFindFailedResponse(response):
+    def setFindFailedResponse(self, response):
         """ Set the response to a FindFailed exception in this region.
         
         Can be ABORT, SKIP, PROMPT, or RETRY. """
@@ -1248,16 +1248,16 @@ class Region(object):
         if response not in valid_responses:
             raise ValueError("Invalid response - expected one of ({})".format(", ".join(valid_responses)))
         self._findFailedResponse = response
-    def setFindFailedHandler(handler):
+    def setFindFailedHandler(self, handler):
         """ Set a handler to receive FindFailed events (instead of triggering
         an exception). """
         if not callable(handler):
             raise ValueError("Expected FindFailed handler to be a callable")
         self._findFailedHandler = handler
-    def getFindFailedResponse():
+    def getFindFailedResponse(self):
         """ Returns the current default response to a FindFailed exception """
         return self._findFailedResponse
-    def setThrowException(setting):
+    def setThrowException(self, setting):
         """ Defines whether an exception should be thrown for FindFailed operations.
 
         ``setting`` should be True or False. """
@@ -1267,11 +1267,11 @@ class Region(object):
         else:
             self._throwException = False
             self._findFailedResponse = "SKIP"
-    def getThrowException():
+    def getThrowException(self):
         """ Returns True if an exception will be thrown for FindFailed operations,
         False otherwise. """
         return self._throwException
-    def _raiseFindFailed(pattern):
+    def _raiseFindFailed(self, pattern):
         """ Builds a FindFailed event and triggers the default handler (or the custom handler,
         if one has been specified). Returns True if throwing method should retry, False if it
         should skip, and throws an exception if it should abort. """
@@ -1289,7 +1289,7 @@ class Region(object):
             return False
         elif response == "RETRY":
             return True
-    def _findFailedPrompt(pattern):
+    def _findFailedPrompt(self, pattern):
         ret_value = tkmb.showerror(
             title="Sikuli Prompt", 
             message="Could not find target '{}'. Abort, retry, or skip?".format(pattern), 

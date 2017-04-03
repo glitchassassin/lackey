@@ -136,7 +136,7 @@ class TestComplexFeatures(unittest.TestCase):
             raise NotImplementedError("Platforms supported include: Windows")
         r = app.window()
 
-        r.type("This is a Test") # Type should translate "+" into shift modifier for capital first letters
+        r.type("This is a Test")
         r.type("a", lackey.Key.CONTROL) # Select all
         r.type("c", lackey.Key.CONTROL) # Copy
         self.assertEqual(r.getClipboard(), "This is a Test")
@@ -148,7 +148,7 @@ class TestComplexFeatures(unittest.TestCase):
 
         if sys.platform.startswith("win"):
             app.close()
-        
+
         lackey.Debug.setLogFile(None)
 
         self.assertTrue(os.path.exists("logfile.txt"))
@@ -187,6 +187,19 @@ class TestComplexFeatures(unittest.TestCase):
         r.dragDrop("test_file_txt.png", "notepad.png")
         self.assertTrue(r.exists("test_file_text.png"))
         r.type("{F4}", lackey.Key.ALT)
+
+    def testFindFailed(self):
+        """ Sets up a region (which should not have the target icon) """
+
+        r = lackey.Screen(0).get(lackey.Region.NORTH_EAST)
+        with self.assertRaises(lackey.FindFailed) as context:
+            r.find("notepad.png")
+        r.setFindFailedResponse(r.SKIP)
+        try:
+            r.find("notepad.png")
+        except FindFailed:
+            self.fail("Incorrectly threw FindFailed exception; should have skipped")
+
 
 class TestRegionFeatures(unittest.TestCase):
     def setUp(self):

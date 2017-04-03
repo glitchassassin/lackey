@@ -180,7 +180,7 @@ class TestInterfaces(unittest.TestCase):
         self.assertHasMethod(lackey.Region, "mouseDown", 2)
         self.assertHasMethod(lackey.Region, "mouseUp", 2)
         self.assertHasMethod(lackey.Region, "mouseMove", 3)
-        self.assertHasMethod(lackey.Region, "wheel", 4)
+        self.assertHasMethod(lackey.Region, "wheel", 1)     # Uses *args
         self.assertHasMethod(lackey.Region, "keyDown", 2)
         self.assertHasMethod(lackey.Region, "keyUp", 2)
         # Event Handler Methods
@@ -198,6 +198,14 @@ class TestInterfaces(unittest.TestCase):
         self.assertHasMethod(lackey.Region, "getEvent", 2)
         self.assertHasMethod(lackey.Region, "setInactive", 2)
         self.assertHasMethod(lackey.Region, "setActive", 2)
+        # FindFailed event methods
+        self.assertHasMethod(lackey.Region, "setFindFailedResponse", 2)
+        self.assertHasMethod(lackey.Region, "setFindFailedHandler", 2)
+        self.assertHasMethod(lackey.Region, "getFindFailedResponse", 1)
+        self.assertHasMethod(lackey.Region, "setThrowException", 2)
+        self.assertHasMethod(lackey.Region, "getThrowException", 1)
+        self.assertHasMethod(lackey.Region, "_raiseFindFailed", 2)
+        self.assertHasMethod(lackey.Region, "_findFailedPrompt", 2)
 
     def test_pattern_interface(self):
         """ Checking App class interface methods """
