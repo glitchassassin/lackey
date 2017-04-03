@@ -856,9 +856,29 @@ class Region(object):
         else:
             raise TypeError("doubleClick expected Pattern, String, Match, Region, or Location object")
         mouse.moveSpeed(move_location)
-    def wheel(self, PSRML, direction, steps):
-        """ Clicks the wheel the specified number of ticks """
-        self.mouseMove(PSRML)
+    def wheel(self, *args): # [PSRML], direction, steps
+        """ Clicks the wheel the specified number of ticks. Use the following parameters:
+
+        wheel([PSRML], direction, steps, [stepDelay])
+        """
+        if len(args) == 2:
+            PSRML = None
+            direction = int(args[0])
+            steps = int(args[1])
+            stepDelay = None
+        elif len(args) == 3:
+            PSRML = args[0]
+            direction = int(args[1])
+            steps = int(args[2])
+            stepDelay = None
+        elif len(args) == 4:
+            PSRML = args[0]
+            direction = int(args[1])
+            steps = int(args[2])
+            stepDelay = int(args[3])
+        
+        if PSRML is not None:
+            self.mouseMove(PSRML)
         mouse.wheel(direction, steps)
     def keyDown(self, keys):
         """ Concatenate multiple keys to press them all down. """
