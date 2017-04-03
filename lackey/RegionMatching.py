@@ -1,8 +1,10 @@
 from PIL import Image, ImageTk
 try:
     import Tkinter as tk
+    import tkMessageBox as tkmb
 except ImportError:
     import tkinter as tk
+    import tkinter.messagebox as tkmb
 import multiprocessing
 import subprocess
 import pyperclip
@@ -119,6 +121,9 @@ class Region(object):
         self._defaultTypeSpeed = 0.05
         self._raster = (0, 0)
         self._observer = Observer(self)
+        self._throwException = True
+        self._findFailedResponse = "ABORT"
+        self._findFailedHandler = None
 
     def setX(self, x):
         """ Set the x-coordinate of the upper left-hand corner """
@@ -252,7 +257,7 @@ class Region(object):
             location = Location(location, dy)
         r = Region(self.x+location.x, self.y+location.y, self.w, self.h).clipRegionToScreen()
         if r is None:
-            raise FindFailed("Specified region is not visible on any screen")
+            raise ValueError("Specified region is not visible on any screen")
             return None
         return r
     def grow(self, width, height=None):
@@ -392,11 +397,13 @@ class Region(object):
         Throws ``FindFailed`` exception if the image could not be found.
         Sikuli supports OCR search with a text parameter. This does not (yet).
         """
-        match = self.exists(pattern)
-        if match is None:
+        findFailedRetry = True
+        while findFailedRetry:
+            match = self.exists(pattern)
+            if match is not None:
+                break
             path = pattern.path if isinstance(pattern, Pattern) else pattern
-            raise FindFailed("Could not find pattern '{}'".format(path))
-            return None
+            findFailedRetry = self._raiseFindFailed("Could not find pattern '{}'".format(path))
         return match
     def findAll(self, pattern):
         """ Searches for an image pattern in the given region
@@ -407,7 +414,7 @@ class Region(object):
         find_time = time.time()
         r = self.clipRegionToScreen()
         if r is None:
-            raise FindFailed("Region outside all visible screens")
+            raise ValueError("Region outside all visible screens")
             return None
         seconds = self.autoWaitTimeout
         if not isinstance(pattern, Pattern):
@@ -460,16 +467,18 @@ class Region(object):
 
         if seconds is None:
             seconds = self.autoWaitTimeout
-
+        
+        findFailedRetry = True
         timeout = time.time() + seconds
-        while True:
-            match = self.exists(pattern)
-            if match:
-                return match
-            if time.time() >= timeout:
-                break
-        path = pattern.path if isinstance(pattern, Pattern) else pattern
-        raise FindFailed("Could not find pattern '{}'".format(path))
+        while findFailedRetry:
+            while True:
+                match = self.exists(pattern)
+                if match:
+                    return match
+                if time.time() >= timeout:
+                    break
+            path = pattern.path if isinstance(pattern, Pattern) else pattern
+            findFailedRetry = _raiseFindFailed("Could not find pattern '{}'".format(path))
         return None
     def waitVanish(self, pattern, seconds=None):
         """ Waits until the specified pattern is not visible on screen.
@@ -479,7 +488,7 @@ class Region(object):
         """
         r = self.clipRegionToScreen()
         if r is None:
-            raise FindFailed("Region outside all visible screens")
+            raise ValueError("Region outside all visible screens")
             return None
         if seconds is None:
             seconds = self.autoWaitTimeout
@@ -509,7 +518,7 @@ class Region(object):
         find_time = time.time()
         r = self.clipRegionToScreen()
         if r is None:
-            raise FindFailed("Region outside all visible screens")
+            raise ValueError("Region outside all visible screens")
             return None
         if seconds is None:
             seconds = self.autoWaitTimeout
@@ -1131,7 +1140,6 @@ class Region(object):
 
         # Start observe loop
         while (not self._observer.isStopped) and (seconds is None or time.time() < timeout):
-            print(self._observer)
             # Check registered events
             self._observer.check_events()
             # Sleep for scan rate
@@ -1154,10 +1162,8 @@ class Region(object):
     def stopObserver(self):
         """ Stops this region's observer loop.
 
-        If this is running in a subprocess, exits the subprocess.
+        If this is running in a subprocess, the subprocess will end automatically.
         """
-        if not type(multiprocessing.current_process()) == multiprocessing.Process:
-            print("Running in subprocess)")
         self._observer.isStopped = True
         self._observer.isRunning = False
 
@@ -1205,6 +1211,75 @@ class Region(object):
     def setActive(self, name):
         """ Activates an inactive event type. """
         self._observer.activate_event(name)
+
+    ## FindFailed event handling ##
+
+    # Constants
+    ABORT = "ABORT"
+    SKIP = "SKIP"
+    PROMPT = "PROMPT"
+    RETRY = "RETRY"
+
+    def setFindFailedResponse(response):
+        """ Set the response to a FindFailed exception in this region.
+        
+        Can be ABORT, SKIP, PROMPT, or RETRY. """
+        valid_responses = ("ABORT", "SKIP", "PROMPT", "RETRY")
+        if response not in valid_responses:
+            raise ValueError("Invalid response - expected one of ({})".format(", ".join(valid_responses)))
+        self._findFailedResponse = response
+    def setFindFailedHandler(handler):
+        """ Set a handler to receive FindFailed events (instead of triggering
+        an exception). """
+        if not callable(handler):
+            raise ValueError("Expected FindFailed handler to be a callable")
+        self._findFailedHandler = handler
+    def getFindFailedResponse():
+        """ Returns the current default response to a FindFailed exception """
+        return self._findFailedResponse
+    def setThrowException(setting):
+        """ Defines whether an exception should be thrown for FindFailed operations.
+
+        ``setting`` should be True or False. """
+        if setting:
+            self._throwException = True
+            self._findFailedResponse = "ABORT"
+        else:
+            self._throwException = False
+            self._findFailedResponse = "SKIP"
+    def getThrowException():
+        """ Returns True if an exception will be thrown for FindFailed operations,
+        False otherwise. """
+        return self._throwException
+    def _raiseFindFailed(pattern):
+        """ Builds a FindFailed event and triggers the default handler (or the custom handler,
+        if one has been specified). Returns True if throwing method should retry, False if it
+        should skip, and throws an exception if it should abort. """
+        event = FindFailedEvent(self, pattern=pattern, event_type="FINDFAILED")
+
+        if self._findFailedHandler is not None:
+            self._findFailedHandler(event)
+        response = (event._response or self._findFailedResponse)
+        if response == "PROMPT":
+            response = _findFailedPrompt(pattern)
+
+        if response == "ABORT":
+            raise FindFailed(event)
+        elif response == "SKIP":
+            return False
+        elif response == "RETRY":
+            return True
+    def _findFailedPrompt(pattern):
+        ret_value = tkmb.showerror(
+            title="Sikuli Prompt", 
+            message="Could not find target '{}'. Abort, retry, or skip?".format(pattern), 
+            type=tkmb.ABORTRETRYIGNORE)
+        value_map = {
+            "abort": "ABORT",
+            "retry": "RETRY",
+            "ignore": "SKIP"
+        }
+        return value_map[ret_value]
 
 class Observer(object):
     def __init__(self, region):
@@ -1348,7 +1423,16 @@ class ObserveEvent(object):
         return self._match
     def getCount(self):
         return self._count
-
+class FindFailedEvent(ObserveEvent):
+    def __init__(self, *args, **kwargs):
+        ObserveEvent.__init__(self, *args, **kwargs)
+        self._response = None
+    def setResponse(response):
+        valid_responses = ("ABORT", "SKIP", "PROMPT", "RETRY")
+        if response not in valid_responses:
+            raise ValueError("Invalid response - expected one of ({})".format(", ".join(valid_responses)))
+        else:
+            self._response = response
 class Match(Region):
     """ Extended Region object with additional data on click target, match score """
     def __init__(self, score, target, rect):
