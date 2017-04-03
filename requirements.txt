@@ -8,5 +8,5 @@ pillow
 opencv-python
 wheel
 pyperclip
-keyboard>=v0.9.11
+keyboard>=v0.9.13
 twine

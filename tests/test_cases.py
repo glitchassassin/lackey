@@ -7,7 +7,7 @@ import os
 #sys.path.insert(0, os.path.abspath('..'))
 import lackey
 
-from .appveyor_test_cases import TestLocationMethods, TestPatternMethods, TestInterfaces, TestConvenienceFunctions
+from .appveyor_test_cases import TestLocationMethods, TestPatternMethods, TestInterfaces, TestConvenienceFunctions, TestObserverEventMethods
 
 # Python 3 compatibility
 try:

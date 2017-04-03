@@ -63,12 +63,12 @@ class TestPatternMethods(unittest.TestCase):
         self.assertEqual(self.pattern.getTargetOffset().getTuple(), (0,0))
 class TestObserverEventMethods(unittest.TestCase):
     def setUp(self):
-        self.r = lackey.Region()
+        self.r = lackey.Screen(0)
         self.generic_event = lackey.ObserveEvent(self.r, event_type="GENERIC")
         self.appear_event = lackey.ObserveEvent(self.r, event_type="APPEAR")
         self.vanish_event = lackey.ObserveEvent(self.r, event_type="VANISH")
         self.change_event = lackey.ObserveEvent(self.r, event_type="CHANGE")
-    
+
     def test_validators(self):
         self.assertTrue(self.generic_event.isGeneric())
         self.assertFalse(self.generic_event.isAppear())
@@ -81,9 +81,12 @@ class TestObserverEventMethods(unittest.TestCase):
 
     def test_getters(self):
         self.assertEqual(self.generic_event.getRegion(), self.r)
-        self.assertRaises(self.generic_event.getImage())
-        self.assertRaises(self.generic_event.getMatch())
-        self.assertRaises(self.generic_event.getChanges())
+        with self.assertRaises(TypeError) as context:
+            self.generic_event.getImage()
+        with self.assertRaises(TypeError) as context:
+            self.generic_event.getMatch()
+        with self.assertRaises(TypeError) as context:
+            self.generic_event.getChanges()
 
 class TestInterfaces(unittest.TestCase):
     """ This class tests Sikuli interface compatibility on a surface level.
