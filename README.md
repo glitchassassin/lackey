@@ -81,7 +81,7 @@ Don't forget to update the unit tests and verify that they still run.
 
 ## Fair Warning ##
 
-This library is currently under development, and is missing many features needed for full Sikuli compatibility (and may have serious bugs). Check the Issues list to find features/bugs you can help with!
+This library is currently under development, and may have some bugs. Check the Issues list to find features/bugs you can help with!
 
 ## Build Instructions ##
 
@@ -93,10 +93,12 @@ To link directly to the repository (if you want to work with the `develop` ring,
 
     pip install -e ./
 
-(Note that you may need to install the `wheel` package)
+(Note that you may need to install the `wheel` package.)
 
 ## Special thanks ##
 
 Debugging contributions:
 
 * [maxdule](https://github.com/maxdule)
+* [nejch](https://github.com/nejch)
+* [suvit](https://github.com/suvit)

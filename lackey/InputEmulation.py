@@ -1,6 +1,7 @@
 """
 Interfaces with ``keyboard`` to provide mid-level input emulation routines
 """
+import multiprocessing
 import time
 
 import keyboard
@@ -17,6 +18,7 @@ class Mouse(object):
     """ Mid-level mouse routines. """
     def __init__(self):
         self._defaultScanRate = 0.01
+        self._lock = multiprocessing.Lock()
 
     # Class constants
     WHEEL_DOWN = 0
@@ -27,7 +29,9 @@ class Mouse(object):
 
     def move(self, location):
         """ Moves cursor to specified ``Location`` """
+        self._lock.acquire()
         mouse.move(location.x, location.y)
+        self._lock.release()
 
     def getPos(self):
         """ Gets ``Location`` of cursor """
@@ -44,6 +48,7 @@ class Mouse(object):
         If ``seconds`` is 0, moves the cursor immediately. Used for smooth
         somewhat-human-like motion.
         """
+        self._lock.acquire()
         original_location = mouse.get_position()
         mouse.move(location.x, location.y, duration=seconds)
         if mouse.get_position() == original_location and original_location != location.getTuple():
@@ -51,36 +56,45 @@ class Mouse(object):
                 Unable to move mouse cursor. This may happen if you're trying to automate a 
                 program running as Administrator with a script running as a non-elevated user.
             """)
+        self._lock.release()
 
     def click(self, button=mouse.LEFT):
         """ Clicks the specified mouse button.
 
         Use Mouse.LEFT, Mouse.MIDDLE, Mouse.RIGHT
         """
+        self._lock.acquire()
         mouse.click(button)
+        self._lock.release()
     def buttonDown(self, button=mouse.LEFT):
         """ Holds down the specified mouse button.
 
         Use Mouse.LEFT, Mouse.MIDDLE, Mouse.RIGHT
         """
+        self._lock.acquire()
         mouse.press(button)
+        self._lock.release()
     def buttonUp(self, button=mouse.LEFT):
         """ Releases the specified mouse button.
 
         Use Mouse.LEFT, Mouse.MIDDLE, Mouse.RIGHT
         """
+        self._lock.acquire()
         mouse.release(button)
+        self._lock.release()
     def wheel(self, direction, steps):
         """ Clicks the wheel the specified number of steps in the given direction.
 
         Use Mouse.WHEEL_DOWN, Mouse.WHEEL_UP
         """
+        self._lock.acquire()
         if direction == 1:
             wheel_moved = steps
         elif direction == 0:
             wheel_moved = -1*steps
         else:
             raise ValueError("Expected direction to be 1 or 0")
+        self._lock.release()
         return mouse.wheel(wheel_moved)
 
 class Keyboard(object):
