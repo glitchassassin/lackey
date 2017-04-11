@@ -106,6 +106,15 @@ class Region(object):
                 x, y, w, h = args[0]
             else:
                 raise TypeError("Unrecognized argument for Region()")
+        elif len(args) == 5: 
+            # We can safely ignore Sikuli's screen argument, as that's
+            # checked dynamically by the location of the region
+            x, y, w, h, screen = args
+        elif len(args) == 2:
+            # Minimal point-like region
+            x, y = args
+            w = 1
+            h = 1
         else:
             raise TypeError("Unrecognized argument(s) for Region()")
         
@@ -124,6 +133,26 @@ class Region(object):
         self._throwException = True
         self._findFailedResponse = "ABORT"
         self._findFailedHandler = None
+    
+    CREATE_X_DIRECTION_LEFT = 0
+    CREATE_X_DIRECTION_RIGHT = 1
+    CREATE_Y_DIRECTION_TOP = 0
+    CREATE_Y_DIRECTION_BOTTOM = 1
+    @classmethod
+    def create(cls, *args):
+        if len(args) == 3 and isinstance(args[0], Location):
+            return cls(args[0].x, args[0].y, args[1], args[2])
+        elif len(args) == 5 and isinstance(args[0], Location):
+            loc, create_x_direction, create_y_direction, w, h = args
+            if create_x_direction == cls.CREATE_X_DIRECTION_LEFT:
+                x = loc.x
+            else:
+                x = loc.x - w
+            if create_y_direction == cls.CREATE_Y_DIRECTION_TOP:
+                y = loc.y
+            else:
+                y = loc.y - h
+            return cls(x, y, w, h)
 
     def setX(self, x):
         """ Set the x-coordinate of the upper left-hand corner """
@@ -180,13 +209,26 @@ class Region(object):
         self.setW(w)
         self.setH(h)
     setRect = setROI
-
+    def contains(self, point):
+        """ Checks if ``point`` (Location) is within this region """
+        return (self.x < point.x < self.x + self.w) and (self.y < point.y < self.y + self.h)
+    def containsMouse(self):
+        return self.contains(mouse.getPos())
     def morphTo(self, region):
         """ Change shape of this region to match the given ``Region`` object """
         if not region or not isinstance(region, Region):
             raise TypeError("morphTo expected a Region object")
         self.setROI(region.x, region.y, region.w, region.h)
         return self
+    def copyTo(self, screen):
+        if not isinstance(screen, Screen):
+            # Parameter was screen ID instead of object
+            screen = Screen(screen)
+        zero_coord = Location(screen.getX(), screen.getY())
+        this_screen = self.getScreen()
+        offset = Location(this_screen.getX() - zero_coord.x, this_screen.getY() - zero_coord.y)
+        target_coord = zero_coord.offset(offset.x, offset.y)
+        return Region(self).moveTo(target_coord)
 
     def getCenter(self):
         """ Return the ``Location`` of the center of this region """
@@ -1083,7 +1125,7 @@ class Region(object):
             return 0
         return self.w / self._raster[1]
 
-    """ Event Handlers """
+    # Event Handlers 
 
     def onAppear(self, pattern, handler=None):
         """ Registers an event to call ``handler`` when ``pattern`` appears in this region.
