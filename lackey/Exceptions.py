@@ -2,5 +2,6 @@
 
 class FindFailed(Exception):
     """ Exception: Unable to find the searched item """
-    def __init__(self, *args, **kwargs):
-        Exception.__init__(self, *args, **kwargs)
+    def __init__(self, event):
+        Exception.__init__(self, str(event))
+    

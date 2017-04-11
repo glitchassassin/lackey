@@ -1453,6 +1453,10 @@ class FindFailedEvent(ObserveEvent):
             raise ValueError("Invalid response - expected one of ({})".format(", ".join(valid_responses)))
         else:
             self._response = response
+    def __repr__(self):
+        if hasattr(self._pattern, "path"):
+            return path
+        return self._pattern
 class Match(Region):
     """ Extended Region object with additional data on click target, match score """
     def __init__(self, score, target, rect):
