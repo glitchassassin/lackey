@@ -23,8 +23,9 @@ import re
 from .PlatformManagerWindows import PlatformManagerWindows
 from .InputEmulation import Mouse as MouseClass, Keyboard
 from .Exceptions import FindFailed, ImageMissing
-from .Settings import Settings, Debug
+from .SettingsDebug import Settings, Debug
 from .TemplateMatchers import PyramidTemplateMatcher as TemplateMatcher
+from .Geometry import Location
 
 if platform.system() == "Windows":
     PlatformManager = PlatformManagerWindows() # No other input managers built yet
@@ -92,13 +93,15 @@ class Pattern(object):
         ## Loop through image paths to find the image
         found = False
         for image_path in [Settings.BundlePath, os.getcwd()] + Settings.ImagePaths:
-            full_path = os.path.join(image_path, path)
+            full_path = os.path.join(image_path, filename)
             if os.path.exists(full_path):
                 # Image file not found
                 found = True
                 break
         ## Check if path is valid
         if not found:
+            self.path = filename
+            print(Settings.ImagePaths)
             raise ImageMissing(ImageMissingEvent(pattern=self, event_type="IMAGEMISSING"))
         self.path = full_path
         self.image = cv2.imread(self.path)
@@ -1762,7 +1765,7 @@ class FindFailedEvent(ObserveEvent):
             self._response = response
     def __repr__(self):
         if hasattr(self._pattern, "path"):
-            return path
+            return self._pattern.path
         return self._pattern
 class ImageMissingEvent(ObserveEvent):
     def __init__(self, *args, **kwargs):
@@ -1776,7 +1779,7 @@ class ImageMissingEvent(ObserveEvent):
             self._response = response
     def __repr__(self):
         if hasattr(self._pattern, "path"):
-            return path
+            return self._pattern.path
         return self._pattern
 class Match(Region):
     """ Extended Region object with additional data on click target, match score """

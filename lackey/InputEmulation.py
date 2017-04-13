@@ -6,7 +6,6 @@ import time
 
 import keyboard
 from keyboard import mouse
-from .RegionMatching import Location
 
 # Python 3 compatibility
 try:
@@ -28,22 +27,24 @@ class Mouse(object):
     MIDDLE = mouse.MIDDLE
     RIGHT = mouse.RIGHT
 
-    def move(self, loc, yoff):
+    def move(self, loc, yoff=None):
         """ Moves cursor to specified location. Accepts the following arguments:
         
         * ``move(loc)`` - Move cursor to ``Location``
         * ``move(xoff, yoff) - Move cursor to offset from current location
         """
+        from .Geometry import Location
         self._lock.acquire()
         if isinstance(loc, Location):
-            mouse.move(location.x, location.y)
+            mouse.move(loc.x, loc.y)
         else:
             mouse.move(loc, yoff)
-        self._last_position = location
+        self._last_position = loc
         self._lock.release()
 
     def getPos(self):
         """ Gets ``Location`` of cursor """
+        from .Geometry import Location
         return Location(*mouse.get_position())
     at = getPos
 

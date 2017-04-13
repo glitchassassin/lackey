@@ -172,7 +172,7 @@ class TestInterfaces(unittest.TestCase):
         self.assertHasMethod(lackey.Region, "click", 3)
         self.assertHasMethod(lackey.Region, "doubleClick", 3)
         self.assertHasMethod(lackey.Region, "rightClick", 3)
-        self.assertHasMethod(lackey.Region, "highlight", 2)
+        self.assertHasMethod(lackey.Region, "highlight", 1) # Uses *args
         self.assertHasMethod(lackey.Region, "hover", 2)
         self.assertHasMethod(lackey.Region, "dragDrop", 4)
         self.assertHasMethod(lackey.Region, "drag", 2)

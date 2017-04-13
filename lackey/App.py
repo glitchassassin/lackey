@@ -7,9 +7,8 @@ import platform
 import subprocess
 
 from .RegionMatching import Region
-from .Settings import Debug
+from .SettingsDebug import Debug
 from .PlatformManagerWindows import PlatformManagerWindows
-from .Exceptions import FindFailed
 
 if platform.system() == "Windows":
     PlatformManager = PlatformManagerWindows() # No other input managers built yet

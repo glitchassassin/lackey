@@ -6,6 +6,7 @@ import sys
 import os
 #sys.path.insert(0, os.path.abspath('..'))
 import lackey
+import numpy
 
 from .appveyor_test_cases import TestLocationMethods, TestPatternMethods, TestInterfaces, TestConvenienceFunctions, TestObserverEventMethods
 
@@ -111,7 +112,7 @@ class TestScreenMethods(unittest.TestCase):
 
     def testScreenInfo(self):
         self.assertGreater(self.primaryScreen.getNumberScreens(), 0)
-        x,y,w,h = self.primaryScreen.getBounds()
+        x, y, w, h = self.primaryScreen.getBounds()
         self.assertEqual(x, 0) # Top left corner of primary screen should be 0,0
         self.assertEqual(y, 0) # Top left corner of primary screen should be 0,0
         self.assertGreater(w, 0) # Primary screen should be wider than 0
@@ -119,11 +120,11 @@ class TestScreenMethods(unittest.TestCase):
 
     def testCapture(self):
         tpath = self.primaryScreen.capture()
-        self.assertIsInstance(tpath, basestring)
-        self.assertNotEqual(tpath, "")
+        self.assertIsInstance(tpath, numpy.ndarray)
 
 class TestComplexFeatures(unittest.TestCase):
     def setUp(self):
+        print(os.path.dirname(__file__))
         lackey.addImagePath(os.path.dirname(__file__))
 
     def testTypeCopyPaste(self):

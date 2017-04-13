@@ -170,6 +170,7 @@ class SettingsMaster(object):
     ## File Settings
     # Path to Sikuli project - might not be current directory
     try:
+        print(__main__.__file__)
         BundlePath = os.path.dirname(os.path.abspath(os.path.join(os.getcwd(), __main__.__file__)))
     except AttributeError:
         BundlePath = os.path.dirname(os.path.abspath(os.getcwd()))

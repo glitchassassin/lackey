@@ -12,8 +12,7 @@ except ImportError:
 from ctypes import wintypes
 from PIL import Image, ImageTk, ImageOps
 
-from .Settings import Debug
-from .InputEmulation import Keyboard
+from .SettingsDebug import Debug
 
 # Python 3 compatibility
 try:
@@ -486,12 +485,14 @@ class PlatformManagerWindows(object):
     ## Clipboard functions
     def osCopy(self):
         """ Triggers the OS "copy" keyboard shortcut """
+        from .InputEmulation import Keyboard
         k = Keyboard()
         k.keyDown("{CTRL}")
         k.type("c")
         k.keyUp("{CTRL}")
     def osPaste(self):
         """ Triggers the OS "paste" keyboard shortcut """
+        from .InputEmulation import Keyboard
         k = Keyboard()
         k.keyDown("{CTRL}")
         k.type("v")

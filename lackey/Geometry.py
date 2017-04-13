@@ -1,5 +1,4 @@
 import time
-from .RegionMatching import Screen, Mouse
 
 class Location(object):
     """ Basic 2D point object """
@@ -21,7 +20,7 @@ class Location(object):
     moveTo = setLocation
     move = setLocation
     def offset(self, dx, dy):
-        """Get a new location which is dx and dy pixels away horizontally and vertically 
+        """Get a new location which is dx and dy pixels away horizontally and vertically
         from the current location.
         """
         return Location(self.x+dx, self.y+dy)
@@ -47,6 +46,7 @@ class Location(object):
 
         Returns None if the Location isn't positioned in any screen.
         """
+        from .RegionMatching import PlatformManager, Screen
         screens = PlatformManager.getScreenDetails()
         for screen in screens:
             s_x, s_y, s_w, s_h = screen["rect"]
@@ -59,6 +59,7 @@ class Location(object):
 
         Returns the primary screen if the Location isn't positioned in any screen.
         """
+        from .RegionMatching import Screen
         scr = self.getScreen()
         return scr if scr is not None else Screen(0)
     def getColor(self):
@@ -92,25 +93,30 @@ class Location(object):
     def copyTo(self, screen):
         """ Creates a new point with the same offset on the target screen as this point has on the
         current screen """
+        from .RegionMatching import Screen
         if not isinstance(screen, Screen):
-            screen = Screen(screen)
+            screen = RegionMatching.Screen(screen)
         return screen.getTopLeft().offset(self.getScreen().getTopLeft().getOffset(self))
     def hover(self):
-        Mouse.moveSpeed(self)
+        from .RegionMatching import Mouse
+        RegionMatching.Mouse.moveSpeed(self)
         return self
     def click(self):
-        Mouse.moveSpeed(self)
-        Mouse.click()
+        from .RegionMatching import Mouse
+        RegionMatching.Mouse.moveSpeed(self)
+        RegionMatching.Mouse.click()
         return self
     def doubleClick(self):
-        Mouse.moveSpeed(self)
-        Mouse.click()
+        from .RegionMatching import Mouse
+        RegionMatching.Mouse.moveSpeed(self)
+        RegionMatching.Mouse.click()
         time.sleep(0.1)
-        Mouse.click()
+        RegionMatching.Mouse.click()
         return self
     def click(self):
-        Mouse.moveSpeed(self)
-        Mouse.click(button=Mouse.RIGHT)
+        from .RegionMatching import Mouse
+        RegionMatching.Mouse.moveSpeed(self)
+        RegionMatching.Mouse.click(button=RegionMatching.Mouse.RIGHT)
         return self
     def __repr__(self):
         return "(Location object at ({},{}))".format(self.x, self.y)
