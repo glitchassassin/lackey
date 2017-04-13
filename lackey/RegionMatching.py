@@ -20,7 +20,7 @@ import re
 
 
 from .PlatformManagerWindows import PlatformManagerWindows
-from .InputEmulation import Mouse, Keyboard
+from .InputEmulation import Mouse as MouseClass, Keyboard
 from .Exceptions import FindFailed
 from .Settings import Settings, Debug
 from .TemplateMatchers import PyramidTemplateMatcher as TemplateMatcher
@@ -39,12 +39,55 @@ except NameError:
     basestring = str
 
 # Instantiate input emulation objects
-mouse = Mouse()
+Mouse = MouseClass()
 keyboard = Keyboard()
 
 class Pattern(object):
     """ Defines a pattern based on a bitmap, similarity, and target offset """
-    def __init__(self, path):
+    def __init__(self, target=None):
+        self.path = None
+        self.similarity = Settings.MinSimilarity
+        self.offset = Location(0, 0)
+        self.imagePattern = False
+        if isinstance(target, Pattern):
+            self.image = target.getImage()
+            self.similarity = target.similarity
+            self.offset = target.offset.offset(0, 0) # Clone Location
+            self.imagePattern = target.isImagePattern()
+        elif isinstance(target, basestring):
+            self.setFilename(target)
+        elif isinstance(target, np.ndarray):
+            self.setImage(target)
+        elif target is not None:
+            raise TypeError("Unrecognized argument for Pattern()")
+
+    def similar(self, similarity):
+        """ Returns a new Pattern with the specified similarity threshold """
+        pattern = Pattern(self.path)
+        pattern.similarity = similarity
+        return pattern
+    def getSimilar(self):
+        """ Returns the current minimum similarity """
+        return self.similarity
+    def exact(self):
+        """ Returns a new Pattern with a similarity threshold of 1.0 """
+        pattern = Pattern(self.path)
+        pattern.similarity = 1.0
+        return pattern
+    def isValid():
+        return (self.image is not None)
+    def targetOffset(self, dx, dy):
+        """ Returns a new Pattern with the given target offset """
+        pattern = Pattern(self.path)
+        pattern.similarity = self.similarity
+        pattern.offset = Location(dx, dy)
+        return pattern
+
+    def getFilename(self):
+        """ Returns the path to this Pattern's bitmap """
+        return self.path
+    def setFilename(self, filename):
+        """ Set the filename of the pattern's image (and load it) """
         ## Loop through image paths to find the image
         found = False
         for image_path in [Settings.BundlePath, os.getcwd()] + Settings.ImagePaths:
@@ -57,153 +100,23 @@ class Pattern(object):
         if not found:
             raise OSError("File not found: {}".format(path))
         self.path = full_path
-        self.similarity = Settings.MinSimilarity
-        self.offset = Location(0, 0)
-
-    def similar(self, similarity):
-        """ Returns a new Pattern with the specified similarity threshold """
-        pattern = Pattern(self.path)
-        pattern.similarity = similarity
-        return pattern
-
-    def exact(self):
-        """ Returns a new Pattern with a similarity threshold of 1.0 """
-        pattern = Pattern(self.path)
-        pattern.similarity = 1.0
-        return pattern
-
-    def targetOffset(self, dx, dy):
-        """ Returns a new Pattern with the given target offset """
-        pattern = Pattern(self.path)
-        pattern.similarity = self.similarity
-        pattern.offset = Location(dx, dy)
-        return pattern
-
-    def getFilename(self):
-        """ Returns the path to this Pattern's bitmap """
-        return self.path
-
+        self.image = cv2.imread(self.path)
+        return self
+    def setImage(self, img):
+        self.image = img
+        self.imagePattern = True
+        return self
     def getTargetOffset(self):
         """ Returns the target offset as a Location(dx, dy) """
         return self.offset
-
+    def isImagePattern(self):
+        return self.imagePattern
     def debugPreview(self, title="Debug"):
         """ Loads and displays the image at ``Pattern.path`` """
         haystack = cv2.imread(self.path)
         cv2.imshow(title, haystack)
         cv2.waitKey(0)
         cv2.destroyAllWindows()
-
-class Location(object):
-    """ Basic 2D point object """
-    def __init__(self, x, y):
-        self.setLocation(x, y)
-
-    def getX(self):
-        """ Returns the X-component of the location """
-        return self.x
-    def getY(self):
-        """ Returns the Y-component of the location """
-        return self.y
-
-    def setLocation(self, x, y):
-        """Set the location of this object to the specified coordinates."""
-        self.x = int(x)
-        self.y = int(y)
-        return self
-    moveTo = setLocation
-    move = setLocation
-    def offset(self, dx, dy):
-        """Get a new location which is dx and dy pixels away horizontally and vertically 
-        from the current location.
-        """
-        return Location(self.x+dx, self.y+dy)
-
-    def above(self, dy):
-        """Get a new location dy pixels vertically above the current location."""
-        return Location(self.x, self.y-dy)
-    def below(self, dy):
-        """Get a new location dy pixels vertically below the current location."""
-        return Location(self.x, self.y+dy)
-    def left(self, dx):
-        """Get a new location dx pixels horizontally to the left of the current location."""
-        return Location(self.x-dx, self.y)
-    def right(self, dx):
-        """Get a new location dx pixels horizontally to the right of the current location."""
-        return Location(self.x+dx, self.y)
-
-    def getTuple(self):
-        """ Returns coordinates as a tuple (for some PlatformManager methods) """
-        return (self.x, self.y)
-    def getScreen(self):
-        """ Returns an instance of the ``Screen`` object this Location is inside.
-
-        Returns None if the Location isn't positioned in any screen.
-        """
-        screens = PlatformManager.getScreenDetails()
-        for screen in screens:
-            s_x, s_y, s_w, s_h = screen["rect"]
-            if (self.x >= s_x) and (self.x < s_x + s_w) and (self.y >= s_y) and (self.y < s_y + s_h):
-                # Top left corner is inside screen region
-                return Screen(screens.index(screen))
-        return None # Could not find matching screen
-    def getMonitor(self):
-        """ Returns an instance of the ``Screen`` object this Location is inside.
-
-        Returns the primary screen if the Location isn't positioned in any screen.
-        """
-        scr = self.getScreen()
-        return scr if scr is not None else Screen(0)
-    def getOffset(self, loc):
-        """ Returns the offset between the given point and this point """
-        return Location(loc.x - x, loc.y - y)
-    def grow(self, *args):
-        """ Creates a region around the given point Valid arguments:
-
-        * ``grow(wh)`` - Creates a region centered on this point with a width and height of ``wh``.
-        * ``grow(w, h)`` - Creates a region centered on this point with a width of ``w`` and height
-        of ``h``.
-        * ``grow(Region.CREATE_X_DIRECTION, Region.CREATE_Y_DIRECTION, w, h)`` - Creates a region
-        with this point as one corner, expanding in the specified direction
-        """
-        if len(args) == 1:
-            return Region.grow(self.x, self.y, args[0], args[0])
-        elif len(args) == 2:
-            return Region(self.x, self.y, args[0], args[1])
-        elif len(args) == 4:
-            return Region.create(self, *args)
-        else:
-            raise ValueError("Unrecognized arguments for grow")
-    def translate(self, dx, dy):
-        self.x += dx
-        self.y += dy
-        return this
-    def copyTo(self, screen):
-        """ Creates a new point with the same offset on the target screen as this point has on the
-        current screen """
-        if not isinstance(screen, Screen):
-            screen = Screen(screen)
-        return screen.getTopLeft().offset(self.getScreen().getTopLeft().getOffset(self))
-    def hover(self):
-        mouse.moveSpeed(self)
-        return self
-    def click(self):
-        mouse.moveSpeed(self)
-        mouse.click()
-        return self
-    def doubleClick(self):
-        mouse.moveSpeed(self)
-        mouse.click()
-        time.sleep(0.1)
-        mouse.click()
-        return self
-    def click(self):
-        mouse.moveSpeed(self)
-        mouse.click(button=mouse.RIGHT)
-        return self
-    def __repr__(self):
-        return "(Location object at ({},{}))".format(self.x, self.y)
-
 
 class Region(object):
     def __init__(self, *args):
@@ -216,7 +129,7 @@ class Region(object):
                 x, y, w, h = args[0]
             else:
                 raise TypeError("Unrecognized argument for Region()")
-        elif len(args) == 5: 
+        elif len(args) == 5:
             # We can safely ignore Sikuli's screen argument, as that's
             # checked dynamically by the location of the region
             x, y, w, h, screen = args
@@ -227,7 +140,6 @@ class Region(object):
             h = 1
         else:
             raise TypeError("Unrecognized argument(s) for Region()")
-        
         self.FOREVER = None
 
         self.setROI(x, y, w, h)
@@ -323,7 +235,7 @@ class Region(object):
         """ Checks if ``point`` (Location) is within this region """
         return (self.x < point.x < self.x + self.w) and (self.y < point.y < self.y + self.h)
     def containsMouse(self):
-        return self.contains(mouse.getPos())
+        return self.contains(Mouse.getPos())
     def morphTo(self, region):
         """ Change shape of this region to match the given ``Region`` object """
         if not region or not isinstance(region, Region):
@@ -736,12 +648,12 @@ class Region(object):
         if modifiers != "":
             keyboard.keyDown(modifiers)
 
-        mouse.moveSpeed(target_location, Settings.MoveMouseDelay)
+        Mouse.moveSpeed(target_location, Settings.MoveMouseDelay)
         time.sleep(0.1) # For responsiveness
         if Settings.ClickDelay > 0:
             time.sleep(min(1.0, Settings.ClickDelay))
             Settings.ClickDelay = 0.0
-        mouse.click()
+        Mouse.click()
         time.sleep(0.1)
 
         if modifiers != 0:
@@ -767,17 +679,17 @@ class Region(object):
         if modifiers != "":
             keyboard.keyDown(modifiers)
 
-        mouse.moveSpeed(target_location, Settings.MoveMouseDelay)
+        Mouse.moveSpeed(target_location, Settings.MoveMouseDelay)
         time.sleep(0.1)
         if Settings.ClickDelay > 0:
             time.sleep(min(1.0, Settings.ClickDelay))
             Settings.ClickDelay = 0.0
-        mouse.click()
+        Mouse.click()
         time.sleep(0.1)
         if Settings.ClickDelay > 0:
             time.sleep(min(1.0, Settings.ClickDelay))
             Settings.ClickDelay = 0.0
-        mouse.click()
+        Mouse.click()
         time.sleep(0.1)
 
         if modifiers != 0:
@@ -803,12 +715,12 @@ class Region(object):
         if modifiers != "":
             keyboard.keyDown(modifiers)
 
-        mouse.moveSpeed(target_location, Settings.MoveMouseDelay)
+        Mouse.moveSpeed(target_location, Settings.MoveMouseDelay)
         time.sleep(0.1)
         if Settings.ClickDelay > 0:
             time.sleep(min(1.0, Settings.ClickDelay))
             Settings.ClickDelay = 0.0
-        mouse.click(Mouse.RIGHT)
+        Mouse.click(button=Mouse.RIGHT)
         time.sleep(0.1)
 
         if modifiers != "":
@@ -832,7 +744,7 @@ class Region(object):
         else:
             raise TypeError("hover expected Pattern, String, Match, Region, or Location object")
 
-        mouse.moveSpeed(target_location, Settings.MoveMouseDelay)
+        Mouse.moveSpeed(target_location, Settings.MoveMouseDelay)
     def drag(self, dragFrom=None):
         """ Starts a dragDrop operation.
 
@@ -853,9 +765,9 @@ class Region(object):
             dragFromLocation = dragFrom
         else:
             raise TypeError("drag expected dragFrom to be Pattern, String, Match, Region, or Location object")
-        mouse.moveSpeed(dragFromLocation, Settings.MoveMouseDelay)
+        Mouse.moveSpeed(dragFromLocation, Settings.MoveMouseDelay)
         time.sleep(Settings.DelayBeforeMouseDown)
-        mouse.buttonDown()
+        Mouse.buttonDown()
         Debug.history("Began drag at {}".format(dragFromLocation))
     def dropAt(self, dragTo=None, delay=None):
         """ Completes a dragDrop operation
@@ -877,9 +789,9 @@ class Region(object):
         else:
             raise TypeError("dragDrop expected dragTo to be Pattern, String, Match, Region, or Location object")
 
-        mouse.moveSpeed(dragToLocation, Settings.MoveMouseDelay)
+        Mouse.moveSpeed(dragToLocation, Settings.MoveMouseDelay)
         time.sleep(delay if delay is not None else Settings.DelayBeforeDrop)
-        mouse.buttonUp()
+        Mouse.buttonUp()
         Debug.history("Ended drag at {}".format(dragToLocation))
     def dragDrop(self, dragFrom, dragTo, modifiers=""):
         """ Performs a dragDrop operation.
@@ -998,10 +910,10 @@ class Region(object):
         elif isinstance(PSRML, int):
             # Assume called as mouseMove(dx, dy)
             offset = Location(PSRML, dy)
-            move_location = mouse.getPos().offset(offset)
+            move_location = Mouse.getPos().offset(offset)
         else:
             raise TypeError("doubleClick expected Pattern, String, Match, Region, or Location object")
-        mouse.moveSpeed(move_location)
+        Mouse.moveSpeed(move_location)
     def wheel(self, *args): # [PSRML], direction, steps
         """ Clicks the wheel the specified number of ticks. Use the following parameters:
 
@@ -1025,7 +937,7 @@ class Region(object):
         
         if PSRML is not None:
             self.mouseMove(PSRML)
-        mouse.wheel(direction, steps)
+        Mouse.wheel(direction, steps)
     def keyDown(self, keys):
         """ Concatenate multiple keys to press them all down. """
         return keyboard.keyDown(keys)

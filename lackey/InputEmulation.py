@@ -6,7 +6,7 @@ import time
 
 import keyboard
 from keyboard import mouse
-from .Location import Location
+from .RegionMatching import Location
 
 # Python 3 compatibility
 try:
@@ -19,6 +19,7 @@ class Mouse(object):
     def __init__(self):
         self._defaultScanRate = 0.01
         self._lock = multiprocessing.Lock()
+        self._last_position = None
 
     # Class constants
     WHEEL_DOWN = 0
@@ -27,20 +28,28 @@ class Mouse(object):
     MIDDLE = mouse.MIDDLE
     RIGHT = mouse.RIGHT
 
-    def move(self, location):
-        """ Moves cursor to specified ``Location`` """
+    def move(self, loc, yoff):
+        """ Moves cursor to specified location. Accepts the following arguments:
+        
+        * ``move(loc)`` - Move cursor to ``Location``
+        * ``move(xoff, yoff) - Move cursor to offset from current location
+        """
         self._lock.acquire()
-        mouse.move(location.x, location.y)
+        if isinstance(loc, Location):
+            mouse.move(location.x, location.y)
+        else:
+            mouse.move(loc, yoff)
+        self._last_position = location
         self._lock.release()
 
     def getPos(self):
         """ Gets ``Location`` of cursor """
         return Location(*mouse.get_position())
+    at = getPos
 
-    @classmethod
-    def at(cls):
-        """ Gets ``Location`` of cursor (as class method) """
-        return Location(*mouse.get_position())
+    def hasMoved(self):
+        """ Checks if mouse was moved since last mouse action """
+        return self.getPos() == self._last_position
 
     def moveSpeed(self, location, seconds=0.3):
         """ Moves cursor to specified ``Location`` over ``seconds``.
@@ -58,12 +67,16 @@ class Mouse(object):
             """)
         self._lock.release()
 
-    def click(self, button=mouse.LEFT):
+    def click(self, loc=None, button=mouse.LEFT):
         """ Clicks the specified mouse button.
 
-        Use Mouse.LEFT, Mouse.MIDDLE, Mouse.RIGHT
+        If ``loc`` is set, move the mouse to that Location first.
+
+        Use button constants Mouse.LEFT, Mouse.MIDDLE, Mouse.RIGHT
         """
         self._lock.acquire()
+        if loc is not None:
+            self.moveSpeed(loc)
         mouse.click(button)
         self._lock.release()
     def buttonDown(self, button=mouse.LEFT):
@@ -74,6 +87,7 @@ class Mouse(object):
         self._lock.acquire()
         mouse.press(button)
         self._lock.release()
+    down = buttonDown
     def buttonUp(self, button=mouse.LEFT):
         """ Releases the specified mouse button.
 
@@ -82,6 +96,7 @@ class Mouse(object):
         self._lock.acquire()
         mouse.release(button)
         self._lock.release()
+    up = buttonUp
     def wheel(self, direction, steps):
         """ Clicks the wheel the specified number of steps in the given direction.
 

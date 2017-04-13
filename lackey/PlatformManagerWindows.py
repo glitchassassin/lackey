@@ -211,7 +211,6 @@ class PlatformManagerWindows(object):
         return args
 
     ## Screen functions
-
     def getBitmapFromRect(self, x, y, w, h):
         """ Capture the specified area of the (virtual) screen. """
         min_x, min_y, screen_width, screen_height = self._getVirtualScreenRect()
@@ -483,8 +482,8 @@ class PlatformManagerWindows(object):
             virt_screen.paste(img, (x, y))
         return virt_screen
 
-    ## Clipboard functions
 
+    ## Clipboard functions
     def osCopy(self):
         """ Triggers the OS "copy" keyboard shortcut """
         k = Keyboard()
@@ -499,7 +498,6 @@ class PlatformManagerWindows(object):
         k.keyUp("{CTRL}")
 
     ## Window functions
-
     def getWindowByTitle(self, wildcard, order=0):
         """ Returns a handle for the first window that matches the provided "wildcard" regex """
         EnumWindowsProc = ctypes.WINFUNCTYPE(
@@ -574,7 +572,6 @@ class PlatformManagerWindows(object):
         return self._user32.GetForegroundWindow()
 
     ## Highlighting functions
-
     def highlight(self, rect, seconds=1):
         """ Simulates a transparent rectangle over the specified ``rect`` on the screen.
 
