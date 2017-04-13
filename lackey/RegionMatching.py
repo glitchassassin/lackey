@@ -21,7 +21,7 @@ import re
 
 from .PlatformManagerWindows import PlatformManagerWindows
 from .InputEmulation import Mouse as MouseClass, Keyboard
-from .Exceptions import FindFailed
+from .Exceptions import FindFailed, ImageMissing
 from .Settings import Settings, Debug
 from .TemplateMatchers import PyramidTemplateMatcher as TemplateMatcher
 
@@ -98,7 +98,7 @@ class Pattern(object):
                 break
         ## Check if path is valid
         if not found:
-            raise OSError("File not found: {}".format(path))
+            raise ImageMissing(ImageMissingEvent(pattern=self, event_type="IMAGEMISSING"))
         self.path = full_path
         self.image = cv2.imread(self.path)
         return self
@@ -152,6 +152,8 @@ class Region(object):
         self._defaultTypeSpeed = 0.05
         self._raster = (0, 0)
         self._observer = Observer(self)
+        self._observeScanRate = None
+        self._repeatWaitTime = 0.3
         self._throwException = True
         self._findFailedResponse = "ABORT"
         self._findFailedHandler = None
@@ -184,10 +186,10 @@ class Region(object):
         self.y = int(y)
     def setW(self, w):
         """ Set the width of the region """
-        self.w = int(w)
+        self.w = max(1, int(w))
     def setH(self, h):
         """ Set the height of the region """
-        self.h = int(h)
+        self.h = max(1, int(h))
 
     def getX(self):
         """ Get the x-coordinate of the upper left-hand corner """
@@ -202,17 +204,17 @@ class Region(object):
         """ Get the height of the region """
         return self.h
 
-    def moveTo(self, location):
+    def setLocation(self, location):
         """ Change the upper left-hand corner to a new ``Location``
 
         Doesn't change width or height
         """
         if not location or not isinstance(location, Location):
-            raise ValueError("moveTo expected a Location object")
+            raise ValueError("setLocation expected a Location object")
         self.x = location.x
         self.y = location.y
         return self
-
+    moveTo = setLocation
     def setROI(self, *args):
         """ Set Region of Interest (same as Region.setRect()) """
         if len(args) == 4:
@@ -250,7 +252,7 @@ class Region(object):
         this_screen = self.getScreen()
         offset = Location(this_screen.getX() - zero_coord.x, this_screen.getY() - zero_coord.y)
         target_coord = zero_coord.offset(offset.x, offset.y)
-        return Region(self).moveTo(target_coord)
+        return Region(self).setLocation(target_coord)
 
     def getCenter(self):
         """ Return the ``Location`` of the center of this region """
@@ -415,7 +417,14 @@ class Region(object):
             w = expand
             h = self.h
         return Region(x, y, w, h).clipRegionToScreen()
-
+    def add(self, l, r, t, b):
+        x = self.getX() - l
+        y = self.getY() - t
+        w = self.getW() + l + r
+        h = self.getH() + t + b
+        self.setRect(x, y, w, h)
+        return self
+    
     def getBitmap(self):
         """ Captures screen area of this region, at least the part that is on the screen
 
@@ -462,6 +471,8 @@ class Region(object):
                 break
             path = pattern.path if isinstance(pattern, Pattern) else pattern
             findFailedRetry = self._raiseFindFailed("Could not find pattern '{}'".format(path))
+            if findFailedRetry:
+                time.sleep(self._repeatWaitTime)
         return match
     def findAll(self, pattern):
         """ Searches for an image pattern in the given region
@@ -537,6 +548,8 @@ class Region(object):
                     break
             path = pattern.path if isinstance(pattern, Pattern) else pattern
             findFailedRetry = _raiseFindFailed("Could not find pattern '{}'".format(path))
+            if findFailedRetry:
+                time.sleep(self._repeatWaitTime)
         return None
     def waitVanish(self, pattern, seconds=None):
         """ Waits until the specified pattern is not visible on screen.
@@ -1140,8 +1153,66 @@ class Region(object):
         if self._raster[1] == 0:
             return 0
         return self.w / self._raster[1]
+    def showScreens(self):
+        """ Synonym for showMonitors """
+        Screen.showMonitors()
+    def resetScreens(self):
+        """ Synonym for resetMonitors """
+        Screen.resetMonitors()
+    def getTarget(self):
+        """ By default, a region's target is its center """
+        return self.getCenter()
+    def setCenter(self, loc):
+        """ Move this region so it is centered on ``loc`` """
+        offset = self.getCenter().getOffset(loc) # Calculate offset from current center
+        return self.setLocation(self.getTopLeft().offset(offset)) # Move top left corner by the same offset
+    def setTopLeft(self, loc):
+        """ Move this region so its top left corner is on ``loc`` """
+        return self.setLocation(loc)
+    def setTopRight(self, loc):
+        """ Move this region so its top right corner is on ``loc`` """
+        offset = self.getTopRight().getOffset(loc) # Calculate offset from current top right
+        return self.setLocation(self.getTopLeft().offset(offset)) # Move top left corner by the same offset
+    def setBottomLeft(self, loc):
+        """ Move this region so its bottom left corner is on ``loc`` """
+        offset = self.getBottomLeft().getOffset(loc) # Calculate offset from current bottom left
+        return self.setLocation(self.getTopLeft().offset(offset)) # Move top left corner by the same offset
+    def setBottomRight(self, loc):
+        """ Move this region so its bottom right corner is on ``loc`` """
+        offset = self.getBottomRight().getOffset(loc) # Calculate offset from current bottom right
+        return self.setLocation(self.getTopLeft().offset(offset)) # Move top left corner by the same offset
+    def setSize(self, w, h):
+        """ Sets the new size of the region """
+        self.setW(w)
+        self.setH(h)
+        return self
+    def setRect(self, *args):
+        """ Sets the rect of the region. Accepts the following arguments:
 
-    # Event Handlers 
+        setRect(rect_tuple)
+        setRect(x, y, w, h)
+        setRect(rect_region)
+        """
+        if len(args) == 1:
+            if isinstance(args[0], tuple):
+                x, y, w, h = args[0]
+            elif isinstance(args[0], Region):
+                x = Region.getX()
+                y = Region.getY()
+                w = Region.getW()
+                h = Region.getH()
+            else:
+                raise TypeError("Unrecognized arguments for setRect")
+        elif len(args) == 4:
+            x, y, w, h = args
+        else:
+            raise TypeError("Unrecognized arguments for setRect")
+        self.setX(x)
+        self.setY(y)
+        self.setW(w)
+        self.setH(h)
+        return self
+    # Event Handlers
 
     def onAppear(self, pattern, handler=None):
         """ Registers an event to call ``handler`` when ``pattern`` appears in this region.
@@ -1221,8 +1292,20 @@ class Region(object):
             # Check registered events
             self._observer.check_events()
             # Sleep for scan rate
-            time.sleep(1/Settings.ObserveScanRate)
+            time.sleep(1/self.getObserveScanRate())
         return True
+    def getObserveScanRate(self):
+        """ Gets the number of times per second the observe loop should run """
+        return self._observeScanRate if self._observeScanRate is not None else Settings.ObserveScanRate
+    def setObserveScanRate(self, scan_rate):
+        """ Set the number of times per second the observe loop should run """
+        self._observeScanRate = scan_rate
+    def getRepeatWaitTime(self):
+        """ Gets the wait time before repeating a search """
+        return self._repeatWaitTime
+    def setRepeatWaitTime(self, wait_time):
+        """ Sets the wait time before repeating a search """
+        self._repeatWaitTime = wait_time
     def observeInBackground(self, seconds=None):
         """ As Region.observe(), but runs in a background process, allowing the rest
         of your script to continue.
@@ -1289,7 +1372,29 @@ class Region(object):
     def setActive(self, name):
         """ Activates an inactive event type. """
         self._observer.activate_event(name)
+    def _raiseImageMissing(self, pattern):
+        """ Builds an ImageMissing event and triggers the default handler (or the custom handler,
+        if one has been specified). Returns True if throwing method should retry, False if it
+        should skip, and throws an exception if it should abort. """
+        event = ImageMissingEvent(self, pattern=pattern, event_type="MISSING")
 
+        if self._imageMissingHandler is not None:
+            self._imageMissingHandler(event)
+        response = (event._response or self._findFailedResponse)
+        #if response == "PROMPT": # Prompt not valid for ImageMissing error
+        #    response = _findFailedPrompt(pattern)
+        if response == "ABORT":
+            raise FindFailed(event)
+        elif response == "SKIP":
+            return False
+        elif response == "RETRY":
+            return True
+    def setImageMissingHandler(self, handler):
+        """ Set a handler to receive ImageMissing events (instead of triggering
+        an exception). """
+        if not callable(handler):
+            raise ValueError("Expected ImageMissing handler to be a callable")
+        self._imageMissingHandler = handler
     ## FindFailed event handling ##
 
     # Constants
@@ -1453,7 +1558,7 @@ class Observer(object):
 
 
 class ObserveEvent(object):
-    def __init__(self, region, count=0, pattern=None, match=None, event_type="GENERIC"):
+    def __init__(self, region=None, count=0, pattern=None, match=None, event_type="GENERIC"):
         self._valid_types = ["APPEAR", "VANISH", "CHANGE", "GENERIC", "FINDFAILED", "MISSING"]
         self._type = event_type
         self._region = region
@@ -1507,6 +1612,20 @@ class FindFailedEvent(ObserveEvent):
         self._response = None
     def setResponse(response):
         valid_responses = ("ABORT", "SKIP", "PROMPT", "RETRY")
+        if response not in valid_responses:
+            raise ValueError("Invalid response - expected one of ({})".format(", ".join(valid_responses)))
+        else:
+            self._response = response
+    def __repr__(self):
+        if hasattr(self._pattern, "path"):
+            return path
+        return self._pattern
+class ImageMissingEvent(ObserveEvent):
+    def __init__(self, *args, **kwargs):
+        ObserveEvent.__init__(self, *args, **kwargs)
+        self._response = None
+    def setResponse(response):
+        valid_responses = ("ABORT", "SKIP", "RETRY")
         if response not in valid_responses:
             raise ValueError("Invalid response - expected one of ({})".format(", ".join(valid_responses)))
         else:
@@ -1622,10 +1741,11 @@ class Screen(Region):
     def getPrimaryScreen(cls):
         """ Returns the primary screen """
         return Screen(cls.primaryScreen)
-    def showMonitors(self):
+    @classmethod
+    def showMonitors(cls):
         """ Prints debug information about currently detected screens """
-        Debug.info("*** monitor configuration [ {} Screen(s)] ***".format(self.getNumberScreens()))
-        Debug.info("*** Primary is Screen {}".format(self.primaryScreen))
+        Debug.info("*** monitor configuration [ {} Screen(s)] ***".format(cls.getNumberScreens()))
+        Debug.info("*** Primary is Screen {}".format(cls.primaryScreen))
         for index, screen in enumerate(PlatformManager.getScreenDetails()):
             Debug.info("Screen {}: ({}, {}, {}, {})".format(index, *screen[rect]))
         Debug.info("*** end monitor configuration ***")
