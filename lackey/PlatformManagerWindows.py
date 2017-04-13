@@ -572,7 +572,7 @@ class PlatformManagerWindows(object):
         return self._user32.GetForegroundWindow()
 
     ## Highlighting functions
-    def highlight(self, rect, seconds=1):
+    def highlight(self, rect, color="red", seconds=None):
         """ Simulates a transparent rectangle over the specified ``rect`` on the screen.
 
         Actually takes a screenshot of the region and displays with a
@@ -591,14 +591,13 @@ class PlatformManagerWindows(object):
             temporary_root = False
             root = tk._default_root
         image_to_show = self.getBitmapFromRect(*rect)
-        app = highlightWindow(root, rect, image_to_show)
-        timeout = time.time()+seconds
-        while time.time() < timeout:
-            app.update_idletasks()
-            app.update()
-        app.destroy()
-        if temporary_root:
-            root.destroy()
+        app = highlightWindow(root, rect, color, image_to_show)
+        if seconds is None:
+            t = threading.Thread(target=app.do_until_timeout)
+            t.start()
+            return app
+        app.do_until_timeout(seconds)
+        
 
     ## Process functions
     def isPIDValid(self, pid):
@@ -651,9 +650,11 @@ class PlatformManagerWindows(object):
 ## Helper class for highlighting
 
 class highlightWindow(tk.Toplevel):
-    def __init__(self, root, rect, screen_cap):
+    def __init__(self, root, rect, frame_color, screen_cap):
         """ Accepts rect as (x,y,w,h) """
         self.root = root
+        self.complete = False
+        self.cleaned_up = False
         tk.Toplevel.__init__(self, self.root, bg="red", bd=0)
 
         ## Set toplevel geometry, remove borders, and push to the front
@@ -676,10 +677,29 @@ class highlightWindow(tk.Toplevel):
             2,
             rect[2]-2,
             rect[3]-2,
-            outline="red",
+            outline=frame_color,
             width=4)
         self.canvas.pack(fill=tk.BOTH, expand=tk.YES)
 
         ## Lift to front if necessary and refresh.
         self.lift()
         self.update()
+    def do_until_timeout(self, seconds=None):
+        timeout = None
+        if seconds is not None:
+            timeout = time.time()+seconds
+        while true:
+            self.update_idletasks()
+            self.update()
+            if (timeout is not None and time.time() < timeout) or self.complete:
+                break
+
+        if temporary_root:
+            root.destroy()
+        else:
+            self.destroy()
+        self.cleaned_up = True
+    def close(self):
+        self.complete = True
+        while not self.cleaned_up:
+            time.sleep(0.1)

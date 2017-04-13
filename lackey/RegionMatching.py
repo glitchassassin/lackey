@@ -1,4 +1,5 @@
 from PIL import Image, ImageTk
+from numbers import Number
 try:
     import Tkinter as tk
     import tkMessageBox as tkmb
@@ -233,9 +234,17 @@ class Region(object):
         self.setW(w)
         self.setH(h)
     setRect = setROI
-    def contains(self, point):
-        """ Checks if ``point`` (Location) is within this region """
-        return (self.x < point.x < self.x + self.w) and (self.y < point.y < self.y + self.h)
+    def contains(self, point_or_region):
+        """ Checks if ``point_or_region`` is within this region """
+        if isinstance(point_or_region, Location):
+            return (self.x < point_or_region.x < self.x + self.w) and (self.y < point_or_region.y < self.y + self.h)
+        elif isinstance(point_or_region, Region):
+            return ((self.x < point_or_region.getX() < self.x + self.w) and
+                    (self.y < point_or_region.getY() < self.y + self.h) and
+                    (self.x < point_or_region.getX() + point_or_region.getW() < self.x + self.w) and
+                    (self.y < point_or_region.getY() + point_or_region.getH() < self.y + self.h))
+        else:
+            raise TypeError("Unrecognized argument type for contains()")
     def containsMouse(self):
         return self.contains(Mouse.getPos())
     def morphTo(self, region):
@@ -451,12 +460,32 @@ class Region(object):
         cv2.imshow(title, haystack)
         cv2.waitKey(0)
         cv2.destroyAllWindows()
-    def highlight(self, seconds=1):
-        """ Temporarily using ``debugPreview()`` to show the region instead of highlighting it
+    def highlight(self, *args):
+        """ Highlights the region with a colored frame. Accepts the following parameters:
 
-        Probably requires transparent GUI creation/manipulation. TODO
+        highlight([toEnable], [seconds], [color])
+        
+        * toEnable (boolean): Enables or disables the overlay
+        * seconds (number): Seconds to show overlay
+        * color (string): Hex code ("#XXXXXX") or color name ("black")
         """
-        PlatformManager.highlight((self.getX(), self.getY(), self.getW(), self.getH()), seconds)
+        toEnable = (self._highlighter is None)
+        seconds = None
+        color = "red"
+        if len(args) > 3:
+            raise TypeError("Unrecognized argument(s) for highlight()")
+        for arg in args:
+            if type(arg) == "boolean":
+                toEnable = arg
+            elif isinstance(arg, Number):
+                seconds = arg
+            elif isinstance(arg, basestring):
+                color = arg
+        if self._highlighter is not None:
+                self.highlighter.close()
+        if toEnable:
+            self._highlighter = PlatformManager.highlight((self.getX(), self.getY(), self.getW(), self.getH()), color, seconds)
+            
 
     def find(self, pattern):
         """ Searches for an image pattern in the given region
@@ -806,7 +835,7 @@ class Region(object):
         time.sleep(delay if delay is not None else Settings.DelayBeforeDrop)
         Mouse.buttonUp()
         Debug.history("Ended drag at {}".format(dragToLocation))
-    def dragDrop(self, dragFrom, dragTo, modifiers=""):
+    def dragDrop(self, target, target2=None, modifiers=""):
         """ Performs a dragDrop operation.
 
         Holds down the mouse button on ``dragFrom``, moves the mouse to ``dragTo``, and releases
@@ -817,6 +846,13 @@ class Region(object):
         """
         if modifiers != "":
             keyboard.keyDown(modifiers)
+        
+        if target2 is None:
+            dragFrom = self._lastMatch
+            dragTo = target
+        else:
+            dragFrom = target
+            dragTo = target2
 
         self.drag(dragFrom)
         time.sleep(Settings.DelayBeforeDrag)
@@ -903,9 +939,9 @@ class Region(object):
     def mouseDown(self, button):
         """ Low-level mouse actions. """
         return PlatformManager.mouseButtonDown(button)
-    def mouseUp(self, button):
+    def mouseUp(self, button=Mouse.LEFT):
         """ Low-level mouse actions """
-        return PlatformManager.mouseButtonUp(button)
+        return Mouse.buttonUp(button)
     def mouseMove(self, PSRML=None, dy=0):
         """ Low-level mouse actions """
         if PSRML is None:
@@ -951,13 +987,19 @@ class Region(object):
         if PSRML is not None:
             self.mouseMove(PSRML)
         Mouse.wheel(direction, steps)
+    def atMouse(self):
+        return Mouse.at()
     def keyDown(self, keys):
         """ Concatenate multiple keys to press them all down. """
         return keyboard.keyDown(keys)
     def keyUp(self, keys):
         """ Concatenate multiple keys to up them all. """
         return keyboard.keyUp(keys)
-
+    def write(self, text):
+        """ Has fancy special options. Not implemented yet. """
+        raise NotImplementedError()
+    def delayType(millisecs):
+        Settings.TypeDelay = millisecs
     def isRegionValid(self):
         """ Returns false if the whole region is outside any screen, otherwise true """
         screens = PlatformManager.getScreenDetails()
@@ -1212,6 +1254,108 @@ class Region(object):
         self.setW(w)
         self.setH(h)
         return self
+
+    def saveScreenCapture(self, path=None, name=None):
+        """ Saves the region's bitmap """
+        bitmap = self.getBitmap()
+        target_file = None
+        if path is None and name is None:
+            _, target_file = tempfile.mkstemp(".png")
+        elif name is None:
+            _, tpath = tempfile.mkstemp(".png")
+            target_file = os.path.join(path, tfile)
+        else:
+            target_file = os.path.join(path, name+".png")
+        cv2.imwrite(target_file, bitmap)
+        return target_file
+    def getLastScreenImage(self):
+        """ Gets the last image taken on this region's screen """
+        return self.getScreen().getLastScreenImageFromScreen()
+    def saveLastScreenImage(self):
+        """ Saves the last image taken on this region's screen to a temporary file """
+        bitmap = self.getLastScreenImage()
+        _, target_file = tempfile.mkstemp(".png")
+        cv2.imwrite(target_file, bitmap)
+    
+    def asOffset(self):
+        """ Returns bottom right corner as offset from top left corner """
+        return Location(self.getW(), self.getH())
+
+    def rightAt(self, offset=0):
+        """ Returns point in the center of the region's right side (offset to the right
+        by ``offset``) """
+        return Location(self.getX() + self.getW() + offset, self.getY() + (self.getH() / 2))
+    def leftAt(self, offset=0):
+        """ Returns point in the center of the region's left side (offset to the left
+        by negative ``offset``) """
+        return Location(self.getX() + offset, self.getY() + (self.getH() / 2))
+    def aboveAt(self, offset=0):
+        """ Returns point in the center of the region's top side (offset to the top
+        by negative ``offset``) """
+        return Location(self.getX() + (getW() / 2), self.getY() + offset)
+    def bottomAt(self, offset=0):
+        """ Returns point in the center of the region's bottom side (offset to the bottom
+        by ``offset``) """
+        return Location(self.getX() + (getW() / 2), self.getY() + self.getH() + offset)
+
+    def union(ur):
+        """ Returns a new region that contains both this region and the specified region """
+        x = min(self.getX(), ur.getX())
+        y = min(self.getY(), ur.getY())
+        w = max(self.getBottomRight().x, ur.getBottomRight().x) - x
+        h = max(self.getBottomRight().y, ur.getBottomRight().y) - y
+        return Region(x, y, w, h)
+    def intersection(ir):
+        """ Returns a new region that contains the overlapping portion of this region and the specified region (may be None) """
+        x = max(self.getX(), ur.getX())
+        y = max(self.getY(), ur.getY())
+        w = min(self.getBottomRight().x, ur.getBottomRight().x) - x
+        h = min(self.getBottomRight().y, ur.getBottomRight().y) - y
+        if w > 0 and h > 0:
+            return Region(x, y, w, h)
+        return None
+    def findAllByRow(self, target):
+        """ Returns an array of rows in the region (defined by the raster), each
+        row containing all matches in that row for the target pattern. """
+        row_matches = []
+        for row_index in range(self._raster[0]):
+            row = self.getRow(row_index)
+            row_matches[row_index] = row.findAll(target)
+        return row_matches
+    def findAllBycolumn(self, target):
+        """ Returns an array of columns in the region (defined by the raster), each
+        column containing all matches in that column for the target pattern. """
+        column_matches = []
+        for column_index in range(self._raster[1]):
+            column = self.getRow(column_index)
+            column_matches[column_index] = column.findAll(target)
+        return column_matches
+    def findBest(self, pattern):
+        """ Returns the *best* match in the region (instead of the first match) """
+        findFailedRetry = True
+        while findFailedRetry:
+            best_match = None
+            all_matches = self.findAll(*args)
+            for match in all_matches:
+                if best_match is None or best_match.getScore() < match.getScore():
+                    best_match = match
+            self._lastMatch = best_match
+            if best_match is not None:
+                break
+            path = pattern.path if isinstance(pattern, Pattern) else pattern
+            findFailedRetry = self._raiseFindFailed("Could not find pattern '{}'".format(path))
+            if findFailedRetry:
+                time.sleep(self._repeatWaitTime)
+        return best_match
+    def compare(self, image):
+        """ Compares the region to the specified image """
+        return exists(Pattern(image), 0)
+    def findText(self, text, timeout=None):
+        """ OCR function """
+        raise NotImplementedError()
+    def findAllText(self, text):
+        """ OCR function """
+        raise NotImplementedError()
     # Event Handlers
 
     def onAppear(self, pattern, handler=None):
@@ -1687,7 +1831,7 @@ class Screen(Region):
         """ Returns bounds of screen as (x, y, w, h) """
         return PlatformManager.getScreenBounds(self._screenId)
     def capture(self, *args): #x=None, y=None, w=None, h=None):
-        """ Captures the region as an image and saves to a temporary file (specified by TMPDIR, TEMP, or TMP environmental variable) """
+        """ Captures the region as an image """
         if len(args) == 0:
             # Capture screen region
             region = self
@@ -1703,10 +1847,8 @@ class Screen(Region):
         elif isinstance(args[0], int):
             # Capture region defined by provided x,y,w,h
             region = Region(*args)
-        bitmap = region.getBitmap()
-        tfile, tpath = tempfile.mkstemp(".png")
-        cv2.imwrite(tpath, bitmap)
-        return tpath
+        self.lastScreenImage = region.getBitmap()
+        return self.lastScreenImage
     captureForHighlight = capture
     def selectRegion(self, text=""):
         """ Not yet implemented """
