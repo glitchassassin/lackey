@@ -1,6 +1,10 @@
 # Dev notes
 /dev_notes
 
+# Coverage report
+/htmlcov
+.coverage
+
 # Build files
 /build
 /Lackey.egg-info
