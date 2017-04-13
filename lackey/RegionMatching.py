@@ -1536,9 +1536,10 @@ class Match(Region):
         return "Match[{},{} {}x{}] score={:2f}, target={}".format(self.x, self.y, self.w, self.h, self._score, self._target.getTuple())
 
 class Screen(Region):
-    """ Individual screen objects can be created for each monitor in a multi-monitor system. 
+    """ Individual screen objects can be created for each monitor in a multi-monitor system.
 
-    Screens are indexed according to the system order. 0 is the primary monitor (display 1), 1 is the next monitor, etc.
+    Screens are indexed according to the system order. 0 is the primary monitor (display 1),
+    1 is the next monitor, etc.
 
     Lackey also makes it possible to search all screens as a single "virtual screen," arranged
     according to the system's settings. Screen(-1) returns this virtual screen. Note that the
@@ -1550,14 +1551,17 @@ class Screen(Region):
     it follows the latter convention. We've opted to make Screen(0) the actual primary monitor
     (wherever the Start Menu/System Menu Bar is) across the board.
     """
+    primaryScreen = 0
     def __init__(self, screenId=None):
         """ Defaults to the main screen. """
         if not isinstance(screenId, int) or screenId < -1 or screenId >= len(PlatformManager.getScreenDetails()):
-            screenId = 0
+            screenId = Screen.getPrimaryID()
         self._screenId = screenId
         x, y, w, h = self.getBounds()
+        self.lastScreenImage = None
         super(Screen, self).__init__(x, y, w, h)
-    def getNumberScreens(self):
+    @classmethod
+    def getNumberScreens(cls):
         """ Get the number of screens in a multi-monitor environment at the time the script is running """
         return len(PlatformManager.getScreenDetails())
     def getBounds(self):
@@ -1584,7 +1588,66 @@ class Screen(Region):
         tfile, tpath = tempfile.mkstemp(".png")
         cv2.imwrite(tpath, bitmap)
         return tpath
+    captureForHighlight = capture
     def selectRegion(self, text=""):
         """ Not yet implemented """
         raise NotImplementedError()
-
+    def doPrompt(self, message, obs):
+        """ Not yet implemented """
+        raise NotImplementedError()
+    def closePrompt(self):
+        """ Not yet implemented """
+        raise NotImplementedError()
+    def resetPrompt(self):
+        """ Not yet implemented """
+        raise NotImplementedError()
+    def hasPrompt(self):
+        """ Not yet implemented """
+        raise NotImplementedError()
+    def userCapture(self, message=""):
+        """ Not yet implemented """
+        raise NotImplementedError()
+    def saveCapture(self, name, reg=None):
+        """ Not yet implemented """
+        raise NotImplementedError()
+    def getCurrentID(self):
+        """ Returns screen ID """
+        return self._screenId
+    getID = getCurrentID
+    @classmethod
+    def getPrimaryID(cls):
+        """ Returns primary screen ID """
+        return cls.primaryScreen
+    @classmethod
+    def getPrimaryScreen(cls):
+        """ Returns the primary screen """
+        return Screen(cls.primaryScreen)
+    def showMonitors(self):
+        """ Prints debug information about currently detected screens """
+        Debug.info("*** monitor configuration [ {} Screen(s)] ***".format(self.getNumberScreens()))
+        Debug.info("*** Primary is Screen {}".format(self.primaryScreen))
+        for index, screen in enumerate(PlatformManager.getScreenDetails()):
+            Debug.info("Screen {}: ({}, {}, {}, {})".format(index, *screen[rect]))
+        Debug.info("*** end monitor configuration ***")
+    def resetMonitors(self):
+        """ Recalculates screen based on changed monitor setup """
+        Debug.error("*** BE AWARE: experimental - might not work ***")
+        Debug.error("Re-evaluation of the monitor setup has been requested")
+        Debug.error("... Current Region/Screen objects might not be valid any longer")
+        Debug.error("... Use existing Region/Screen objects only if you know what you are doing!")
+        self.__init__(self._screenId)
+        self.showMonitors()
+    def newRegion(self, loc, width, height):
+        """ Creates a new region on the current screen at the specified offset with the specified
+        width and height. """
+        return Region.create(self.getTopLeft().offset(loc), width, height)
+    def getLastScreenImageFromScreen(self):
+        """ Returns the last captured image from this screen """
+        return self.lastScreenImage
+    def newLocation(self, loc):
+        """ Creates a new location on this screen, with the same offset it would have had on the
+        default screen """
+        return Location(loc).copyTo(self)
+    def showTarget(self):
+        """ Not yet implemented """
+        raise NotImplementedError()
