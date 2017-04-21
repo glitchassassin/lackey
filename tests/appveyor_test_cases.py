@@ -7,6 +7,90 @@ import sys
 import os
 import lackey
 
+class TestMouseMethods(unittest.TestCase):
+    def setUp(self):
+        self.mouse = lackey.Mouse()
+
+    def test_movement(self):
+        self.mouse.move(lackey.Location(10, 10))
+        self.assertEqual(self.mouse.getPos().getTuple(), (10, 10))
+        self.mouse.moveSpeed(lackey.Location(100, 200), 0.5)
+        self.assertEqual(self.mouse.getPos().getTuple(), (100, 200))
+        lackey.wheel(self.mouse.getPos(), 0, 3) # Mostly just verifying it doesn't crash
+
+class TestAppMethods(unittest.TestCase):
+    def test_getters(self):
+        if sys.platform.startswith("win"):
+            app = lackey.App("notepad.exe tests\\test_cases.py")
+            app2 = lackey.App("notepad.exe tests\\test_cases.py")
+            #app.setUsing("test_cases.py")
+            app.open()
+            app2.open()
+            lackey.sleep(1)
+            app2.close()
+        else:
+            raise NotImplementedError("Platforms supported include: Windows")
+        app.focus()
+
+        self.assertEqual(app.getName(), "notepad.exe")
+        self.assertTrue(app.isRunning())
+        self.assertEqual(app.getWindow(), "test_cases.py - Notepad")
+        self.assertNotEqual(app.getPID(), -1)
+        region = app.window()
+        self.assertIsInstance(region, lackey.Region)
+        self.assertGreater(region.getW(), 0)
+        self.assertGreater(region.getH(), 0)
+
+        if sys.platform.startswith("win"):
+            app.close()
+        lackey.sleep(1.0)
+
+    def test_launchers(self):
+        app = lackey.App("notepad.exe")
+        app.setUsing("tests\\test_cases.py")
+        app.open()
+        lackey.wait(1)
+        self.assertEqual(app.getName(), "notepad.exe")
+        self.assertTrue(app.isRunning())
+        self.assertEqual(app.getWindow(), "test_cases.py - Notepad")
+        self.assertNotEqual(app.getPID(), -1)
+        app.close()
+        lackey.wait(0.9)
+
+    def test_app_title(self):
+        """
+        App selected by title should capture existing window if open,
+        including case-insensitive matches.
+        """
+        app = lackey.App("notepad.exe")
+        app.open()
+        lackey.wait(1)
+        app2 = lackey.App("Notepad")
+        app3 = lackey.App("notepad")
+        lackey.wait(1)
+
+        self.assertTrue(app2.isRunning())
+        self.assertTrue(app3.isRunning())
+        self.assertEqual(app2.getName(), app.getName())
+        self.assertEqual(app3.getName(), app.getName())
+        app.close()
+
+class TestScreenMethods(unittest.TestCase):
+    def setUp(self):
+        self.primaryScreen = lackey.Screen(0)
+
+    def testScreenInfo(self):
+        self.assertGreater(self.primaryScreen.getNumberScreens(), 0)
+        x, y, w, h = self.primaryScreen.getBounds()
+        self.assertEqual(x, 0) # Top left corner of primary screen should be 0,0
+        self.assertEqual(y, 0) # Top left corner of primary screen should be 0,0
+        self.assertGreater(w, 0) # Primary screen should be wider than 0
+        self.assertGreater(h, 0) # Primary screen should be taller than 0
+
+    def testCapture(self):
+        tpath = self.primaryScreen.capture()
+        self.assertIsInstance(tpath, numpy.ndarray)
+
 class TestLocationMethods(unittest.TestCase):
     def setUp(self):
         self.test_loc = lackey.Location(10, 11)
@@ -85,6 +169,33 @@ class TestPatternMethods(unittest.TestCase):
             lackey.Pattern(True)
         with self.assertRaises(lackey.ImageMissing):
             lackey.Pattern("non_existent_file.png")
+
+class TestRegionMethods(unittest.TestCase):
+    def setUp(self):
+        self.r = lackey.Screen(0)
+    
+    def test_constructor(self):
+        self.assertIsInstance(lackey.Region(self.r), lackey.Region)
+        self.assertIsInstance(lackey.Region((0,0,5,5)), lackey.Region)
+        self.assertIsInstance(lackey.Region((0,0)), lackey.Region)
+        self.assertIsInstance(lackey.Region(0,0,10,10,3), lackey.Region)
+        with self.assertRaises(TypeError):
+            lackey.Region("foobar")
+        self.assertIsInstance(lackey.Region.create(lackey.Location(0,0), 5, 5), lackey.Region)
+        self.assertIsInstance(lackey.Region.create(
+            lackey.Location(0,0), 
+            lackey.Region.CREATE_X_DIRECTION_RIGHT,
+            lackey.Region.CREATE_Y_DIRECTION_BOTTOM,
+            10,
+            10
+        ), lackey.Region)
+        self.assertIsInstance(lackey.Region.create(
+            lackey.Location(10,10), 
+            lackey.Region.CREATE_X_DIRECTION_LEFT,
+            lackey.Region.CREATE_Y_DIRECTION_TOP,
+            10,
+            10
+        ), lackey.Region)
 
 class TestObserverEventMethods(unittest.TestCase):
     def setUp(self):

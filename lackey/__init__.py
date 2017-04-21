@@ -32,7 +32,7 @@ from .RegionMatching import Pattern, Region, Match, Screen, ObserveEvent
 from .Geometry import Location
 from .InputEmulation import Mouse, Keyboard
 from .App import App
-from .Exceptions import FindFailed
+from .Exceptions import FindFailed, ImageMissing
 from .SettingsDebug import Debug, Settings, DebugMaster, SettingsMaster
 from .SikuliGui import PopupInput, PopupList, PopupTextarea
 from ._version import __version__
