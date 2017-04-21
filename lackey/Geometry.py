@@ -64,11 +64,13 @@ class Location(object):
         return scr if scr is not None else Screen(0)
     def getColor(self):
         scr = self.getScreen()
+        if scr is None:
+            return None
         offset = scr.getTopLeft().getOffset(self)
         return self.getScreen().getBitmap()[offset.x, offset.y]
     def getOffset(self, loc):
         """ Returns the offset between the given point and this point """
-        return Location(loc.x - x, loc.y - y)
+        return Location(loc.x - self.x, loc.y - self.y)
     def grow(self, *args):
         """ Creates a region around the given point Valid arguments:
 

@@ -230,6 +230,7 @@ class TestRegionFeatures(unittest.TestCase):
         grow_region = center_region.grow(10, 5)
         self.assertTrue(grow_region.isRegionValid())
 
+@unittest.skip("Requires user intervention")
 class TestRasterMethods(unittest.TestCase):
     def setUp(self):
         self.r = lackey.Screen(0)

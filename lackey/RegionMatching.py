@@ -58,7 +58,7 @@ class Pattern(object):
             self.imagePattern = target.isImagePattern()
         elif isinstance(target, basestring):
             self.setFilename(target)
-        elif isinstance(target, np.ndarray):
+        elif isinstance(target, numpy.ndarray):
             self.setImage(target)
         elif target is not None:
             raise TypeError("Unrecognized argument for Pattern()")
@@ -76,7 +76,7 @@ class Pattern(object):
         pattern = Pattern(self.path)
         pattern.similarity = 1.0
         return pattern
-    def isValid():
+    def isValid(self):
         return (self.image is not None)
     def targetOffset(self, dx, dy):
         """ Returns a new Pattern with the given target offset """
@@ -110,6 +110,8 @@ class Pattern(object):
         self.image = img
         self.imagePattern = True
         return self
+    def getImage(self):
+        return self.image
     def getTargetOffset(self):
         """ Returns the target offset as a Location(dx, dy) """
         return self.offset
@@ -579,7 +581,7 @@ class Region(object):
                 if time.time() >= timeout:
                     break
             path = pattern.path if isinstance(pattern, Pattern) else pattern
-            findFailedRetry = _raiseFindFailed("Could not find pattern '{}'".format(path))
+            findFailedRetry = self._raiseFindFailed("Could not find pattern '{}'".format(path))
             if findFailedRetry:
                 time.sleep(self._repeatWaitTime)
         return None

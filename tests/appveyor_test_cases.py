@@ -1,6 +1,7 @@
 import inspect
 import subprocess
 import unittest
+import numpy
 import time
 import sys
 import os
@@ -36,6 +37,17 @@ class TestLocationMethods(unittest.TestCase):
         offset = self.test_loc.left(7)
         self.assertEqual(offset.getTuple(), (3,11))
 
+    def test_screen_methods(self):
+        outside_loc = lackey.Location(-10, -10)
+        self.assertIsNone(outside_loc.getScreen()) # Should be outside all screens and return None
+        self.assertEqual(self.test_loc.getScreen().getID(), 0) # Test location should be on screen 0
+        self.assertEqual(outside_loc.getMonitor().getID(), 0) # Outside all screens, should return default monitor (0)
+        self.assertEqual(self.test_loc.getMonitor().getID(), 0) # Outside all screens, should return default monitor (0)
+        self.assertIsNone(outside_loc.getColor()) # No color outside all screens, should return None
+        self.assertIsInstance(self.test_loc.getColor(), numpy.ndarray) # No color outside all screens, should return None
+
+
+
 class TestPatternMethods(unittest.TestCase):
     def setUp(self):
         self.pattern = lackey.Pattern("tests\\test_pattern.png")
@@ -45,6 +57,7 @@ class TestPatternMethods(unittest.TestCase):
         self.assertIsInstance(self.pattern.offset, lackey.Location)
         self.assertEqual(self.pattern.offset.getTuple(), (0,0))
         self.assertEqual(self.pattern.path[-len("tests\\test_pattern.png"):], "tests\\test_pattern.png")
+        
 
     def test_setters(self):
         test_pattern = self.pattern.similar(0.5)
@@ -56,11 +69,23 @@ class TestPatternMethods(unittest.TestCase):
         test_pattern = self.pattern.targetOffset(3, 5)
         self.assertEqual(test_pattern.similarity, 0.7)
         self.assertEqual(test_pattern.path[-len("tests\\test_pattern.png"):], "tests\\test_pattern.png")
-        self.assertEqual(test_pattern.offset.getTuple(), (3,5))
+        self.assertEqual(test_pattern.offset.getTuple(), (3, 5))
 
     def test_getters(self):
         self.assertEqual(self.pattern.getFilename()[-len("tests\\test_pattern.png"):], "tests\\test_pattern.png")
-        self.assertEqual(self.pattern.getTargetOffset().getTuple(), (0,0))
+        self.assertEqual(self.pattern.getTargetOffset().getTuple(), (0, 0))
+        self.assertEqual(self.pattern.getSimilar(), 0.7)
+
+    def test_constructor(self):
+        cloned_pattern = lackey.Pattern(self.pattern)
+        self.assertTrue(cloned_pattern.isValid())
+        pattern_from_image = lackey.Pattern(self.pattern.getImage())
+        self.assertTrue(pattern_from_image.isImagePattern())
+        with self.assertRaises(TypeError):
+            lackey.Pattern(True)
+        with self.assertRaises(lackey.ImageMissing):
+            lackey.Pattern("non_existent_file.png")
+
 class TestObserverEventMethods(unittest.TestCase):
     def setUp(self):
         self.r = lackey.Screen(0)
