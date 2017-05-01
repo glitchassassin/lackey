@@ -21,8 +21,8 @@ try:
 except NameError:
     basestring = str
 
-class PlatformManagerWindows(object):
-    """ Abstracts Windows-specific OS-level features """
+class PlatformManagerOSX(object):
+    """ Abstracts OSX-specific OS-level features """
     def __init__(self):
         #self._root = tk.Tk()
         #self._root.overrideredirect(1)
