@@ -1,15 +1,17 @@
-""" Platform-specific code for Windows is encapsulated in this module. """
+""" Platform-specific code for Darwin is encapsulated in this module. """
 
 import os
 import re
 import time
 import numpy
-import ctypes
+import AppKit
+import tempfile
+import subprocess
 try:
     import Tkinter as tk
 except ImportError:
     import tkinter as tk
-from ctypes import wintypes
+    
 from PIL import Image, ImageTk, ImageOps
 
 from .Settings import Debug
@@ -21,8 +23,8 @@ try:
 except NameError:
     basestring = str
 
-class PlatformManagerOSX(object):
-    """ Abstracts OSX-specific OS-level features """
+class PlatformManagerDarwin(object):
+    """ Abstracts Darwin-specific OS-level features """
     def __init__(self):
 
         # Mapping to `keyboard` names
@@ -228,7 +230,7 @@ class PlatformManagerOSX(object):
             fh, filepath = tempfile.mkstemp('.png')
             filenames.append(filepath)
             os.close(fh)
-        subprocess.call(['screencapture', '-x', *filenames])
+        subprocess.call(['screencapture', '-x'] + filenames)
 
         min_x, min_y, screen_w, screen_h = self._getVirtualScreenRect()
         virtual_screen = Image.new("RGB", (screen_w, screen_h))
@@ -243,7 +245,6 @@ class PlatformManagerOSX(object):
             # Paste on the virtual screen
             virtual_screen.paste(im, (x, y))
             os.unlink(filename)
-        
 
     def getScreenDetails(self):
         """ Return list of attached monitors
@@ -293,76 +294,33 @@ class PlatformManagerOSX(object):
 
     def getWindowByTitle(self, wildcard, order=0):
         """ Returns a handle for the first window that matches the provided "wildcard" regex """
-        EnumWindowsProc = ctypes.WINFUNCTYPE(
-            ctypes.c_bool,
-            ctypes.POINTER(ctypes.c_int),
-            ctypes.py_object)
-        def callback(hwnd, context):
-            if ctypes.windll.user32.IsWindowVisible(hwnd):
-                length = ctypes.windll.user32.GetWindowTextLengthW(hwnd)
-                buff = ctypes.create_unicode_buffer(length + 1)
-                ctypes.windll.user32.GetWindowTextW(hwnd, buff, length + 1)
-                if re.search(context["wildcard"], buff.value) != None and not context["handle"]:
-                    if context["order"] > 0:
-                        context["order"] -= 1
-                    else:
-                        context["handle"] = hwnd
-            return True
-        data = {"wildcard": wildcard, "handle": None, "order": order}
-        ctypes.windll.user32.EnumWindows(EnumWindowsProc(callback), ctypes.py_object(data))
-        return data["handle"]
+        # TODO
+        pass
     def getWindowByPID(self, pid, order=0):
         """ Returns a handle for the first window that matches the provided PID """
-        if pid <= 0:
-            return None
-        EnumWindowsProc = ctypes.WINFUNCTYPE(
-            ctypes.c_bool,
-            ctypes.POINTER(ctypes.c_int),
-            ctypes.py_object)
-        def callback(hwnd, context):
-            if ctypes.windll.user32.IsWindowVisible(hwnd):
-                pid = ctypes.c_long()
-                ctypes.windll.user32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
-                if context["pid"] == int(pid.value) and not context["handle"]:
-                    if context["order"] > 0:
-                        context["order"] -= 1
-                    else:
-                        context["handle"] = hwnd
-            return True
-        data = {"pid": pid, "handle": None, "order": order}
-        ctypes.windll.user32.EnumWindows(EnumWindowsProc(callback), ctypes.py_object(data))
-        return data["handle"]
+        # TODO
+        pass
     def getWindowRect(self, hwnd):
         """ Returns a rect (x,y,w,h) for the specified window's area """
-        rect = ctypes.wintypes.RECT()
-        if ctypes.windll.user32.GetWindowRect(hwnd, ctypes.byref(rect)):
-            x1 = rect.left
-            y1 = rect.top
-            x2 = rect.right
-            y2 = rect.bottom
-            return (x1, y1, x2-x1, y2-y1)
-        return None
+        # TODO
+        pass
     def focusWindow(self, hwnd):
         """ Brings specified window to the front """
         Debug.log(3, "Focusing window: " + str(hwnd))
-        SW_RESTORE = 9
-        if ctypes.windll.user32.IsIconic(hwnd):
-            ctypes.windll.user32.ShowWindow(hwnd, SW_RESTORE)
-        ctypes.windll.user32.SetForegroundWindow(hwnd)
+        # TODO
+        pass
     def getWindowTitle(self, hwnd):
         """ Gets the title for the specified window """
-        length = ctypes.windll.user32.GetWindowTextLengthW(hwnd)
-        buff = ctypes.create_unicode_buffer(length + 1)
-        ctypes.windll.user32.GetWindowTextW(hwnd, buff, length + 1)
-        return buff.value
+        # TODO
+        pass
     def getWindowPID(self, hwnd):
         """ Gets the process ID that the specified window belongs to """
-        pid = ctypes.c_long()
-        ctypes.windll.user32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
-        return int(pid.value)
+        # TODO
+        pass
     def getForegroundWindow(self):
         """ Returns a handle to the window in the foreground """
-        return self._user32.GetForegroundWindow()
+        # TODO
+        pass
 
     ## Highlighting functions
 
@@ -397,50 +355,15 @@ class PlatformManagerOSX(object):
     ## Process functions
     def isPIDValid(self, pid):
         """ Checks if a PID is associated with a running process """
-        ## Slightly copied wholesale from http://stackoverflow.com/questions/568271/how-to-check-if-there-exists-a-process-with-a-given-pid
-        ## Thanks to http://stackoverflow.com/users/1777162/ntrrgc and http://stackoverflow.com/users/234270/speedplane
-        class ExitCodeProcess(ctypes.Structure):
-            _fields_ = [('hProcess', ctypes.c_void_p),
-                        ('lpExitCode', ctypes.POINTER(ctypes.c_ulong))]
-        SYNCHRONIZE = 0x100000
-        PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
-        process = self._kernel32.OpenProcess(SYNCHRONIZE|PROCESS_QUERY_LIMITED_INFORMATION, 0, pid)
-        if not process:
-            return False
-        ec = ExitCodeProcess()
-        out = self._kernel32.GetExitCodeProcess(process, ctypes.byref(ec))
-        if not out:
-            err = self._kernel32.GetLastError()
-            if self._kernel32.GetLastError() == 5:
-                # Access is denied.
-                logging.warning("Access is denied to get pid info.")
-            self._kernel32.CloseHandle(process)
-            return False
-        elif bool(ec.lpExitCode):
-            # There is an exit code, it quit
-            self._kernel32.CloseHandle(process)
-            return False
-        # No exit code, it's running.
-        self._kernel32.CloseHandle(process)
-        return True
+        # TODO
+        pass
     def killProcess(self, pid):
         """ Kills the process with the specified PID (if possible) """
-        SYNCHRONIZE = 0x00100000
-        PROCESS_TERMINATE = 0x0001
-        hProcess = self._kernel32.OpenProcess(SYNCHRONIZE|PROCESS_TERMINATE, True, pid)
-        result = self._kernel32.TerminateProcess(hProcess, 0)
-        self._kernel32.CloseHandle(hProcess)
+        # TODO
+        pass
     def getProcessName(self, pid):
-        if pid <= 0:
-            return ""
-        MAX_PATH_LEN = 2048
-        proc_name = ctypes.create_string_buffer(MAX_PATH_LEN)
-        PROCESS_VM_READ = 0x0010
-        PROCESS_QUERY_INFORMATION = 0x0400
-        hProcess = self._kernel32.OpenProcess(PROCESS_VM_READ|PROCESS_QUERY_INFORMATION, 0, pid)
-        #self._psapi.GetProcessImageFileName.restype = ctypes.wintypes.DWORD
-        self._psapi.GetModuleFileNameExA(hProcess, 0, ctypes.byref(proc_name), MAX_PATH_LEN)
-        return os.path.basename(proc_name.value.decode("utf-8"))
+        # TODO
+        pass
 
 ## Helper class for highlighting
 

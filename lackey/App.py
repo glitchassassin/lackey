@@ -8,15 +8,18 @@ import subprocess
 
 from .RegionMatching import Region
 from .Settings import Debug
-from .PlatformManagerWindows import PlatformManagerWindows
 from .Exceptions import FindFailed
 
 if platform.system() == "Windows":
+    from .PlatformManagerWindows import PlatformManagerWindows
     PlatformManager = PlatformManagerWindows() # No other input managers built yet
+elif platform.system() == "Darwin":
+    from .PlatformManagerDarwin import PlatformManagerDarwin
+    PlatformManager = PlatformManagerDarwin()
 else:
     # Avoid throwing an error if it's just being imported for documentation purposes
     if not os.environ.get('READTHEDOCS') == 'True':
-        raise NotImplementedError("Lackey is currently only compatible with Windows.")
+        raise NotImplementedError("Lackey is currently only compatible with Windows and OSX.")
 
 # Python 3 compatibility
 try:

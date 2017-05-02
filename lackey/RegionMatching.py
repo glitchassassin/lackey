@@ -17,7 +17,7 @@ import os
 import re
 
 
-from .PlatformManagerWindows import PlatformManagerWindows
+
 from .InputEmulation import Mouse, Keyboard
 from .Location import Location
 from .Exceptions import FindFailed
@@ -25,11 +25,15 @@ from .Settings import Settings, Debug
 from .TemplateMatchers import PyramidTemplateMatcher as TemplateMatcher
 
 if platform.system() == "Windows":
+    from .PlatformManagerWindows import PlatformManagerWindows
     PlatformManager = PlatformManagerWindows() # No other input managers built yet
+elif platform.system() == "Darwin":
+    from .PlatformManagerDarwin import PlatformManagerDarwin
+    PlatformManager = PlatformManagerDarwin()
 else:
     # Avoid throwing an error if it's just being imported for documentation purposes
     if not os.environ.get('READTHEDOCS') == 'True':
-        raise NotImplementedError("Lackey is currently only compatible with Windows.")
+        raise NotImplementedError("Lackey is currently only compatible with Windows and OSX.")
 
 # Python 3 compatibility
 try:
