@@ -1,8 +1,10 @@
 from PIL import Image, ImageTk
 try:
     import Tkinter as tk
+    import tkMessageBox as tkmb
 except ImportError:
     import tkinter as tk
+    import tkinter.messagebox as tkmb
 import multiprocessing
 import subprocess
 import pyperclip
@@ -123,6 +125,9 @@ class Region(object):
         self._defaultTypeSpeed = 0.05
         self._raster = (0, 0)
         self._observer = Observer(self)
+        self._throwException = True
+        self._findFailedResponse = "ABORT"
+        self._findFailedHandler = None
 
     def setX(self, x):
         """ Set the x-coordinate of the upper left-hand corner """
@@ -256,7 +261,7 @@ class Region(object):
             location = Location(location, dy)
         r = Region(self.x+location.x, self.y+location.y, self.w, self.h).clipRegionToScreen()
         if r is None:
-            raise FindFailed("Specified region is not visible on any screen")
+            raise ValueError("Specified region is not visible on any screen")
             return None
         return r
     def grow(self, width, height=None):
@@ -396,11 +401,13 @@ class Region(object):
         Throws ``FindFailed`` exception if the image could not be found.
         Sikuli supports OCR search with a text parameter. This does not (yet).
         """
-        match = self.exists(pattern)
-        if match is None:
+        findFailedRetry = True
+        while findFailedRetry:
+            match = self.exists(pattern)
+            if match is not None:
+                break
             path = pattern.path if isinstance(pattern, Pattern) else pattern
-            raise FindFailed("Could not find pattern '{}'".format(path))
-            return None
+            findFailedRetry = self._raiseFindFailed("Could not find pattern '{}'".format(path))
         return match
     def findAll(self, pattern):
         """ Searches for an image pattern in the given region
@@ -411,7 +418,7 @@ class Region(object):
         find_time = time.time()
         r = self.clipRegionToScreen()
         if r is None:
-            raise FindFailed("Region outside all visible screens")
+            raise ValueError("Region outside all visible screens")
             return None
         seconds = self.autoWaitTimeout
         if not isinstance(pattern, Pattern):
@@ -464,16 +471,18 @@ class Region(object):
 
         if seconds is None:
             seconds = self.autoWaitTimeout
-
+        
+        findFailedRetry = True
         timeout = time.time() + seconds
-        while True:
-            match = self.exists(pattern)
-            if match:
-                return match
-            if time.time() >= timeout:
-                break
-        path = pattern.path if isinstance(pattern, Pattern) else pattern
-        raise FindFailed("Could not find pattern '{}'".format(path))
+        while findFailedRetry:
+            while True:
+                match = self.exists(pattern)
+                if match:
+                    return match
+                if time.time() >= timeout:
+                    break
+            path = pattern.path if isinstance(pattern, Pattern) else pattern
+            findFailedRetry = _raiseFindFailed("Could not find pattern '{}'".format(path))
         return None
     def waitVanish(self, pattern, seconds=None):
         """ Waits until the specified pattern is not visible on screen.
@@ -483,7 +492,7 @@ class Region(object):
         """
         r = self.clipRegionToScreen()
         if r is None:
-            raise FindFailed("Region outside all visible screens")
+            raise ValueError("Region outside all visible screens")
             return None
         if seconds is None:
             seconds = self.autoWaitTimeout
@@ -513,7 +522,7 @@ class Region(object):
         find_time = time.time()
         r = self.clipRegionToScreen()
         if r is None:
-            raise FindFailed("Region outside all visible screens")
+            raise ValueError("Region outside all visible screens")
             return None
         if seconds is None:
             seconds = self.autoWaitTimeout
@@ -564,8 +573,11 @@ class Region(object):
         self._lastMatchTime = (time.time() - find_time) * 1000 # Capture find time in milliseconds
         return self._lastMatch
 
-    def click(self, target, modifiers=""):
+    def click(self, target=None, modifiers=""):
         """ Moves the cursor to the target location and clicks the default mouse button. """
+        if target is None:
+            target = self._lastMatch or self # Whichever one is not None
+
         target_location = None
         if isinstance(target, Pattern):
             target_location = self.find(target).getTarget()
@@ -577,8 +589,6 @@ class Region(object):
             target_location = target.getCenter()
         elif isinstance(target, Location):
             target_location = target
-        elif target is None and isinstance(self._lastMatch, Match):
-            target_location = self._lastMatch.getTarget()
         else:
             raise TypeError("click expected Pattern, String, Match, Region, or Location object")
         if modifiers != "":
@@ -595,8 +605,10 @@ class Region(object):
         if modifiers != 0:
             keyboard.keyUp(modifiers)
         Debug.history("Clicked at {}".format(target_location))
-    def doubleClick(self, target, modifiers=""):
+    def doubleClick(self, target=None, modifiers=""):
         """ Moves the cursor to the target location and double-clicks the default mouse button. """
+        if target is None:
+            target = self._lastMatch or self # Whichever one is not None
         target_location = None
         if isinstance(target, Pattern):
             target_location = self.find(target).getTarget()
@@ -628,8 +640,10 @@ class Region(object):
 
         if modifiers != 0:
             keyboard.keyUp(modifiers)
-    def rightClick(self, target, modifiers=""):
+    def rightClick(self, target=None, modifiers=""):
         """ Moves the cursor to the target location and clicks the right mouse button. """
+        if target is None:
+            target = self._lastMatch or self # Whichever one is not None
         target_location = None
         if isinstance(target, Pattern):
             target_location = self.find(target).getTarget()
@@ -658,8 +672,10 @@ class Region(object):
         if modifiers != "":
             keyboard.keyUp(modifiers)
 
-    def hover(self, target):
+    def hover(self, target=None):
         """ Moves the cursor to the target location """
+        if target is None:
+            target = self._lastMatch or self # Whichever one is not None
         target_location = None
         if isinstance(target, Pattern):
             target_location = self.find(target).getTarget()
@@ -675,11 +691,13 @@ class Region(object):
             raise TypeError("hover expected Pattern, String, Match, Region, or Location object")
 
         mouse.moveSpeed(target_location, Settings.MoveMouseDelay)
-    def drag(self, dragFrom):
+    def drag(self, dragFrom=None):
         """ Starts a dragDrop operation.
 
         Moves the cursor to the target location and clicks the mouse in preparation to drag
         a screen element """
+        if dragFrom is None:
+            dragFrom = self._lastMatch or self # Whichever one is not None
         dragFromLocation = None
         if isinstance(dragFrom, Pattern):
             dragFromLocation = self.find(dragFrom).getTarget()
@@ -697,11 +715,13 @@ class Region(object):
         time.sleep(Settings.DelayBeforeMouseDown)
         mouse.buttonDown()
         Debug.history("Began drag at {}".format(dragFromLocation))
-    def dropAt(self, dragTo, delay=None):
+    def dropAt(self, dragTo=None, delay=None):
         """ Completes a dragDrop operation
 
         Moves the cursor to the target location, waits ``delay`` seconds, and releases the mouse
         button """
+        if dragTo is None:
+            dragTo = self._lastMatch or self # Whichever one is not None
         if isinstance(dragTo, Pattern):
             dragToLocation = self.find(dragTo).getTarget()
         elif isinstance(dragTo, basestring):
@@ -819,8 +839,10 @@ class Region(object):
     def mouseUp(self, button):
         """ Low-level mouse actions """
         return PlatformManager.mouseButtonUp(button)
-    def mouseMove(self, PSRML, dy=0):
+    def mouseMove(self, PSRML=None, dy=0):
         """ Low-level mouse actions """
+        if PSRML is None:
+            PSRML = self._lastMatch or self # Whichever one is not None
         if isinstance(PSRML, Pattern):
             move_location = self.find(PSRML).getTarget()
         elif isinstance(PSRML, basestring):
@@ -838,9 +860,29 @@ class Region(object):
         else:
             raise TypeError("doubleClick expected Pattern, String, Match, Region, or Location object")
         mouse.moveSpeed(move_location)
-    def wheel(self, PSRML, direction, steps):
-        """ Clicks the wheel the specified number of ticks """
-        self.mouseMove(PSRML)
+    def wheel(self, *args): # [PSRML], direction, steps
+        """ Clicks the wheel the specified number of ticks. Use the following parameters:
+
+        wheel([PSRML], direction, steps, [stepDelay])
+        """
+        if len(args) == 2:
+            PSRML = None
+            direction = int(args[0])
+            steps = int(args[1])
+            stepDelay = None
+        elif len(args) == 3:
+            PSRML = args[0]
+            direction = int(args[1])
+            steps = int(args[2])
+            stepDelay = None
+        elif len(args) == 4:
+            PSRML = args[0]
+            direction = int(args[1])
+            steps = int(args[2])
+            stepDelay = int(args[3])
+        
+        if PSRML is not None:
+            self.mouseMove(PSRML)
         mouse.wheel(direction, steps)
     def keyDown(self, keys):
         """ Concatenate multiple keys to press them all down. """
@@ -1122,7 +1164,6 @@ class Region(object):
 
         # Start observe loop
         while (not self._observer.isStopped) and (seconds is None or time.time() < timeout):
-            print(self._observer)
             # Check registered events
             self._observer.check_events()
             # Sleep for scan rate
@@ -1145,10 +1186,8 @@ class Region(object):
     def stopObserver(self):
         """ Stops this region's observer loop.
 
-        If this is running in a subprocess, exits the subprocess.
+        If this is running in a subprocess, the subprocess will end automatically.
         """
-        if not type(multiprocessing.current_process()) == multiprocessing.Process:
-            print("Running in subprocess)")
         self._observer.isStopped = True
         self._observer.isRunning = False
 
@@ -1196,6 +1235,75 @@ class Region(object):
     def setActive(self, name):
         """ Activates an inactive event type. """
         self._observer.activate_event(name)
+
+    ## FindFailed event handling ##
+
+    # Constants
+    ABORT = "ABORT"
+    SKIP = "SKIP"
+    PROMPT = "PROMPT"
+    RETRY = "RETRY"
+
+    def setFindFailedResponse(self, response):
+        """ Set the response to a FindFailed exception in this region.
+        
+        Can be ABORT, SKIP, PROMPT, or RETRY. """
+        valid_responses = ("ABORT", "SKIP", "PROMPT", "RETRY")
+        if response not in valid_responses:
+            raise ValueError("Invalid response - expected one of ({})".format(", ".join(valid_responses)))
+        self._findFailedResponse = response
+    def setFindFailedHandler(self, handler):
+        """ Set a handler to receive FindFailed events (instead of triggering
+        an exception). """
+        if not callable(handler):
+            raise ValueError("Expected FindFailed handler to be a callable")
+        self._findFailedHandler = handler
+    def getFindFailedResponse(self):
+        """ Returns the current default response to a FindFailed exception """
+        return self._findFailedResponse
+    def setThrowException(self, setting):
+        """ Defines whether an exception should be thrown for FindFailed operations.
+
+        ``setting`` should be True or False. """
+        if setting:
+            self._throwException = True
+            self._findFailedResponse = "ABORT"
+        else:
+            self._throwException = False
+            self._findFailedResponse = "SKIP"
+    def getThrowException(self):
+        """ Returns True if an exception will be thrown for FindFailed operations,
+        False otherwise. """
+        return self._throwException
+    def _raiseFindFailed(self, pattern):
+        """ Builds a FindFailed event and triggers the default handler (or the custom handler,
+        if one has been specified). Returns True if throwing method should retry, False if it
+        should skip, and throws an exception if it should abort. """
+        event = FindFailedEvent(self, pattern=pattern, event_type="FINDFAILED")
+
+        if self._findFailedHandler is not None:
+            self._findFailedHandler(event)
+        response = (event._response or self._findFailedResponse)
+        if response == "PROMPT":
+            response = _findFailedPrompt(pattern)
+
+        if response == "ABORT":
+            raise FindFailed(event)
+        elif response == "SKIP":
+            return False
+        elif response == "RETRY":
+            return True
+    def _findFailedPrompt(self, pattern):
+        ret_value = tkmb.showerror(
+            title="Sikuli Prompt", 
+            message="Could not find target '{}'. Abort, retry, or skip?".format(pattern), 
+            type=tkmb.ABORTRETRYIGNORE)
+        value_map = {
+            "abort": "ABORT",
+            "retry": "RETRY",
+            "ignore": "SKIP"
+        }
+        return value_map[ret_value]
 
 class Observer(object):
     def __init__(self, region):
@@ -1339,7 +1447,16 @@ class ObserveEvent(object):
         return self._match
     def getCount(self):
         return self._count
-
+class FindFailedEvent(ObserveEvent):
+    def __init__(self, *args, **kwargs):
+        ObserveEvent.__init__(self, *args, **kwargs)
+        self._response = None
+    def setResponse(response):
+        valid_responses = ("ABORT", "SKIP", "PROMPT", "RETRY")
+        if response not in valid_responses:
+            raise ValueError("Invalid response - expected one of ({})".format(", ".join(valid_responses)))
+        else:
+            self._response = response
 class Match(Region):
     """ Extended Region object with additional data on click target, match score """
     def __init__(self, score, target, rect):

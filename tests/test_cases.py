@@ -7,7 +7,7 @@ import os
 #sys.path.insert(0, os.path.abspath('..'))
 import lackey
 
-from .appveyor_test_cases import TestLocationMethods, TestPatternMethods, TestInterfaces, TestConvenienceFunctions
+from .appveyor_test_cases import TestLocationMethods, TestPatternMethods, TestInterfaces, TestConvenienceFunctions, TestObserverEventMethods
 
 # Python 3 compatibility
 try:
@@ -86,6 +86,25 @@ class TestAppMethods(unittest.TestCase):
         app.close()
         lackey.wait(0.9)
 
+    def test_app_title(self):
+        """
+        App selected by title should capture existing window if open,
+        including case-insensitive matches.
+        """
+        app = lackey.App("notepad.exe")
+        app.open()
+        lackey.wait(1)
+        app2 = lackey.App("Notepad")
+        app3 = lackey.App("notepad")
+        lackey.wait(1)
+
+        self.assertTrue(app2.isRunning())
+        self.assertTrue(app3.isRunning())
+        self.assertEqual(app2.getName(), app.getName())
+        self.assertEqual(app3.getName(), app.getName())
+        app.close()
+
+
 class TestScreenMethods(unittest.TestCase):
     def setUp(self):
         self.primaryScreen = lackey.Screen(0)
@@ -117,7 +136,7 @@ class TestComplexFeatures(unittest.TestCase):
             raise NotImplementedError("Platforms supported include: Windows")
         r = app.window()
 
-        r.type("This is a Test") # Type should translate "+" into shift modifier for capital first letters
+        r.type("This is a Test")
         r.type("a", lackey.Key.CONTROL) # Select all
         r.type("c", lackey.Key.CONTROL) # Copy
         self.assertEqual(r.getClipboard(), "This is a Test")
@@ -129,7 +148,7 @@ class TestComplexFeatures(unittest.TestCase):
 
         if sys.platform.startswith("win"):
             app.close()
-        
+
         lackey.Debug.setLogFile(None)
 
         self.assertTrue(os.path.exists("logfile.txt"))
@@ -168,6 +187,19 @@ class TestComplexFeatures(unittest.TestCase):
         r.dragDrop("test_file_txt.png", "notepad.png")
         self.assertTrue(r.exists("test_file_text.png"))
         r.type("{F4}", lackey.Key.ALT)
+
+    def testFindFailed(self):
+        """ Sets up a region (which should not have the target icon) """
+
+        r = lackey.Screen(0).get(lackey.Region.NORTH_EAST)
+        with self.assertRaises(lackey.FindFailed) as context:
+            r.find("notepad.png")
+        r.setFindFailedResponse(r.SKIP)
+        try:
+            r.find("notepad.png")
+        except FindFailed:
+            self.fail("Incorrectly threw FindFailed exception; should have skipped")
+
 
 class TestRegionFeatures(unittest.TestCase):
     def setUp(self):

@@ -63,12 +63,12 @@ class TestPatternMethods(unittest.TestCase):
         self.assertEqual(self.pattern.getTargetOffset().getTuple(), (0,0))
 class TestObserverEventMethods(unittest.TestCase):
     def setUp(self):
-        self.r = lackey.Region()
+        self.r = lackey.Screen(0)
         self.generic_event = lackey.ObserveEvent(self.r, event_type="GENERIC")
         self.appear_event = lackey.ObserveEvent(self.r, event_type="APPEAR")
         self.vanish_event = lackey.ObserveEvent(self.r, event_type="VANISH")
         self.change_event = lackey.ObserveEvent(self.r, event_type="CHANGE")
-    
+
     def test_validators(self):
         self.assertTrue(self.generic_event.isGeneric())
         self.assertFalse(self.generic_event.isAppear())
@@ -81,9 +81,12 @@ class TestObserverEventMethods(unittest.TestCase):
 
     def test_getters(self):
         self.assertEqual(self.generic_event.getRegion(), self.r)
-        self.assertRaises(self.generic_event.getImage())
-        self.assertRaises(self.generic_event.getMatch())
-        self.assertRaises(self.generic_event.getChanges())
+        with self.assertRaises(TypeError) as context:
+            self.generic_event.getImage()
+        with self.assertRaises(TypeError) as context:
+            self.generic_event.getMatch()
+        with self.assertRaises(TypeError) as context:
+            self.generic_event.getChanges()
 
 class TestInterfaces(unittest.TestCase):
     """ This class tests Sikuli interface compatibility on a surface level.
@@ -180,7 +183,7 @@ class TestInterfaces(unittest.TestCase):
         self.assertHasMethod(lackey.Region, "mouseDown", 2)
         self.assertHasMethod(lackey.Region, "mouseUp", 2)
         self.assertHasMethod(lackey.Region, "mouseMove", 3)
-        self.assertHasMethod(lackey.Region, "wheel", 4)
+        self.assertHasMethod(lackey.Region, "wheel", 1)     # Uses *args
         self.assertHasMethod(lackey.Region, "keyDown", 2)
         self.assertHasMethod(lackey.Region, "keyUp", 2)
         # Event Handler Methods
@@ -198,6 +201,14 @@ class TestInterfaces(unittest.TestCase):
         self.assertHasMethod(lackey.Region, "getEvent", 2)
         self.assertHasMethod(lackey.Region, "setInactive", 2)
         self.assertHasMethod(lackey.Region, "setActive", 2)
+        # FindFailed event methods
+        self.assertHasMethod(lackey.Region, "setFindFailedResponse", 2)
+        self.assertHasMethod(lackey.Region, "setFindFailedHandler", 2)
+        self.assertHasMethod(lackey.Region, "getFindFailedResponse", 1)
+        self.assertHasMethod(lackey.Region, "setThrowException", 2)
+        self.assertHasMethod(lackey.Region, "getThrowException", 1)
+        self.assertHasMethod(lackey.Region, "_raiseFindFailed", 2)
+        self.assertHasMethod(lackey.Region, "_findFailedPrompt", 2)
 
     def test_pattern_interface(self):
         """ Checking App class interface methods """

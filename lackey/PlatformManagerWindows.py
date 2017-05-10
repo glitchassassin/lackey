@@ -510,7 +510,7 @@ class PlatformManagerWindows(object):
                 length = ctypes.windll.user32.GetWindowTextLengthW(hwnd)
                 buff = ctypes.create_unicode_buffer(length + 1)
                 ctypes.windll.user32.GetWindowTextW(hwnd, buff, length + 1)
-                if re.search(context["wildcard"], buff.value) != None and not context["handle"]:
+                if re.search(context["wildcard"], buff.value, flags=re.I) != None and not context["handle"]:
                     if context["order"] > 0:
                         context["order"] -= 1
                     else:
