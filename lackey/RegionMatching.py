@@ -163,6 +163,7 @@ class Region(object):
         self._throwException = True
         self._findFailedResponse = "ABORT"
         self._findFailedHandler = None
+        self._highlighter = None
     
     CREATE_X_DIRECTION_LEFT = 0
     CREATE_X_DIRECTION_RIGHT = 1
@@ -209,6 +210,9 @@ class Region(object):
     def getH(self):
         """ Get the height of the region """
         return self.h
+    def getTuple(self):
+        """ Returns the shape of the region as (x, y, w, h) """
+        return (self.x, self.y, self.w, self.h)
 
     def setLocation(self, location):
         """ Change the upper left-hand corner to a new ``Location``
@@ -256,7 +260,7 @@ class Region(object):
         """ Change shape of this region to match the given ``Region`` object """
         if not region or not isinstance(region, Region):
             raise TypeError("morphTo expected a Region object")
-        self.setROI(region.x, region.y, region.w, region.h)
+        self.setROI(region)
         return self
     def copyTo(self, screen):
         if not isinstance(screen, Screen):
@@ -308,15 +312,13 @@ class Region(object):
     def getAutoWaitTimeout(self):
         """ Returns the time to wait for an image to appear on the screen """
         return self.autoWaitTimeout
-    def setWaitScanRate(self, seconds):
+    def setWaitScanRate(self, seconds=None):
         """Set this Region's scan rate
 
         A find op should repeat the search for the given Visual rate times per second until
         found or the maximum waiting time is reached.
         """
-        if seconds == 0:
-            seconds = 3
-        self._defaultScanRate = seconds
+        self._defaultScanRate = float(seconds)
     def getWaitScanRate(self):
         """ Get the current scan rate """
         return self._defaultScanRate if not self._defaultScanRate is None else Settings.WaitScanRate
@@ -475,19 +477,19 @@ class Region(object):
         * color (string): Hex code ("#XXXXXX") or color name ("black")
         """
         toEnable = (self._highlighter is None)
-        seconds = None
+        seconds = 3
         color = "red"
         if len(args) > 3:
             raise TypeError("Unrecognized argument(s) for highlight()")
         for arg in args:
-            if type(arg) == "boolean":
+            if type(arg) == bool:
                 toEnable = arg
             elif isinstance(arg, Number):
                 seconds = arg
             elif isinstance(arg, basestring):
                 color = arg
         if self._highlighter is not None:
-                self.highlighter.close()
+                self._highlighter.close()
         if toEnable:
             self._highlighter = PlatformManager.highlight((self.getX(), self.getY(), self.getW(), self.getH()), color, seconds)
             

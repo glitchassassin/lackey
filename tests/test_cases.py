@@ -8,7 +8,7 @@ import os
 import lackey
 import numpy
 
-from .appveyor_test_cases import TestMouseMethods, TestLocationMethods, TestPatternMethods, TestInterfaces, TestConvenienceFunctions, TestObserverEventMethods, TestRegionMethods
+from .appveyor_test_cases import *
 
 # Python 3 compatibility
 try:
@@ -81,7 +81,8 @@ class TestComplexFeatures(unittest.TestCase):
         r.onAppear(lackey.Pattern("test_text.png").similar(0.6), test_observer)
         r.observe(30)
         self.assertTrue(r.TestFlag)
-        r.rightClick(lackey.Pattern("test_text.png").similar(0.6))
+        r.rightClick(r.getLastMatch())
+        self.assertGreater(r.getTime(), 0)
         r.click("select_all.png")
         r.type("c", lackey.Key.CONTROL) # Copy
         self.assertEqual(r.getClipboard(), "This is a test")
@@ -107,37 +108,8 @@ class TestComplexFeatures(unittest.TestCase):
         r.setFindFailedResponse(r.SKIP)
         try:
             r.find("notepad.png")
-        except FindFailed:
+        except lackey.FindFailed:
             self.fail("Incorrectly threw FindFailed exception; should have skipped")
-
-
-class TestRegionFeatures(unittest.TestCase):
-    def setUp(self):
-        self.r = lackey.Screen(0)
-
-    def testValidityMethods(self):
-        self.assertTrue(self.r.isRegionValid())
-        clipped = self.r.clipRegionToScreen()
-        self.assertIsNotNone(clipped)
-        self.assertEqual(clipped.getX(), self.r.getX())
-        self.assertEqual(clipped.getY(), self.r.getY())
-        self.assertEqual(clipped.getW(), self.r.getW())
-        self.assertEqual(clipped.getH(), self.r.getH())
-
-    def testAroundMethods(self):
-        center_region = self.r.get(lackey.Region.MID_BIG)
-        below_region = center_region.below()
-        self.assertTrue(below_region.isRegionValid())
-        above_region = center_region.above()
-        self.assertTrue(center_region.isRegionValid())
-        right_region = center_region.right()
-        self.assertTrue(right_region.isRegionValid())
-        left_region = center_region.left()
-        self.assertTrue(left_region.isRegionValid())
-        nearby_region = center_region.nearby(10)
-        self.assertTrue(nearby_region.isRegionValid())
-        grow_region = center_region.grow(10, 5)
-        self.assertTrue(grow_region.isRegionValid())
 
 @unittest.skip("Requires user intervention")
 class TestRasterMethods(unittest.TestCase):

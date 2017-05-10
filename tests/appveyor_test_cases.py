@@ -135,13 +135,13 @@ class TestLocationMethods(unittest.TestCase):
 class TestPatternMethods(unittest.TestCase):
     def setUp(self):
         self.pattern = lackey.Pattern("tests\\test_pattern.png")
-    
+
     def test_defaults(self):
         self.assertEqual(self.pattern.similarity, 0.7)
         self.assertIsInstance(self.pattern.offset, lackey.Location)
-        self.assertEqual(self.pattern.offset.getTuple(), (0,0))
+        self.assertEqual(self.pattern.offset.getTuple(), (0, 0))
         self.assertEqual(self.pattern.path[-len("tests\\test_pattern.png"):], "tests\\test_pattern.png")
-        
+
 
     def test_setters(self):
         test_pattern = self.pattern.similar(0.5)
@@ -173,29 +173,122 @@ class TestPatternMethods(unittest.TestCase):
 class TestRegionMethods(unittest.TestCase):
     def setUp(self):
         self.r = lackey.Screen(0)
-    
+
     def test_constructor(self):
         self.assertIsInstance(lackey.Region(self.r), lackey.Region)
-        self.assertIsInstance(lackey.Region((0,0,5,5)), lackey.Region)
-        self.assertIsInstance(lackey.Region((0,0)), lackey.Region)
-        self.assertIsInstance(lackey.Region(0,0,10,10,3), lackey.Region)
+        self.assertIsInstance(lackey.Region((0, 0, 5, 5)), lackey.Region)
+        self.assertIsInstance(lackey.Region(0, 0), lackey.Region)
+        self.assertIsInstance(lackey.Region(0, 0, 10, 10, 3), lackey.Region)
         with self.assertRaises(TypeError):
             lackey.Region("foobar")
+        with self.assertRaises(TypeError):
+            lackey.Region()
         self.assertIsInstance(lackey.Region.create(lackey.Location(0,0), 5, 5), lackey.Region)
         self.assertIsInstance(lackey.Region.create(
-            lackey.Location(0,0), 
+            lackey.Location(0, 0), 
             lackey.Region.CREATE_X_DIRECTION_RIGHT,
             lackey.Region.CREATE_Y_DIRECTION_BOTTOM,
             10,
             10
         ), lackey.Region)
         self.assertIsInstance(lackey.Region.create(
-            lackey.Location(10,10), 
+            lackey.Location(10, 10),
             lackey.Region.CREATE_X_DIRECTION_LEFT,
             lackey.Region.CREATE_Y_DIRECTION_TOP,
             10,
             10
         ), lackey.Region)
+
+    def test_changers(self):
+        # setLocation
+        self.assertEqual(self.r.getTopLeft(), lackey.Location(0, 0))
+        self.assertEqual(self.r.setLocation(lackey.Location(10, 10)).getTopLeft(), lackey.Location(10, 10))
+        with self.assertRaises(ValueError):
+            self.r.setLocation(None)
+        # setROI
+        self.r.setROI((5, 5, 10, 10))
+        new_region = lackey.Screen(0)
+        new_region.morphTo(self.r)
+        with self.assertRaises(TypeError):
+            new_region.morphTo("werdz")
+        self.assertEqual(self.r.getTopLeft(), new_region.getTopLeft())
+        self.assertEqual(self.r.getTopRight(), new_region.getTopRight())
+        self.assertEqual(self.r.getBottomLeft(), new_region.getBottomLeft())
+        self.assertEqual(self.r.getBottomRight(), new_region.getBottomRight())
+        with self.assertRaises(TypeError):
+            new_region.setROI("hammersauce")
+        with self.assertRaises(TypeError):
+            new_region.setROI()
+        new_region.add(5, 5, 5, 5)
+        self.assertEqual(new_region.getTopLeft(), lackey.Location(0, 0))
+        # copyTo - only guaranteed one screen, so just make sure it doesn't crash
+        new_region.copyTo(0)
+        new_region.copyTo(lackey.Screen(0))
+
+    def test_info(self):
+        self.assertFalse(self.r.contains(lackey.Location(-5, -5)))
+        new_region = lackey.Region(-10, -10, 5, 5)
+        self.assertFalse(self.r.contains(new_region))
+        with self.assertRaises(TypeError):
+            self.r.contains("werdz")
+        self.r.hover()
+        self.assertTrue(self.r.containsMouse())
+
+
+    def test_validity_methods(self):
+        self.assertTrue(self.r.isRegionValid())
+        clipped = self.r.clipRegionToScreen()
+        self.assertIsNotNone(clipped)
+        self.assertEqual(clipped.getX(), self.r.getX())
+        self.assertEqual(clipped.getY(), self.r.getY())
+        self.assertEqual(clipped.getW(), self.r.getW())
+        self.assertEqual(clipped.getH(), self.r.getH())
+
+    def test_around_methods(self):
+        center_region = self.r.get(lackey.Region.MID_BIG)
+        below_region = center_region.below()
+        self.assertTrue(below_region.isRegionValid())
+        below_region = center_region.below(10)
+        self.assertTrue(below_region.isRegionValid())
+        above_region = center_region.above()
+        self.assertTrue(above_region.isRegionValid())
+        above_region = center_region.above(10)
+        self.assertTrue(above_region.isRegionValid())
+        right_region = center_region.right()
+        self.assertTrue(right_region.isRegionValid())
+        right_region = center_region.right(10)
+        self.assertTrue(right_region.isRegionValid())
+        left_region = center_region.left()
+        self.assertTrue(left_region.isRegionValid())
+        left_region = center_region.left(10)
+        self.assertTrue(left_region.isRegionValid())
+        nearby_region = center_region.nearby(10)
+        self.assertTrue(nearby_region.isRegionValid())
+        grow_region = center_region.grow(10, 5)
+        self.assertTrue(grow_region.isRegionValid())
+        grow_region = center_region.grow(10)
+        self.assertTrue(grow_region.isRegionValid())
+        inside_region = center_region.inside()
+        self.assertTrue(inside_region.isRegionValid())
+        offset_region = center_region.offset(lackey.Location(10, 10))
+        self.assertTrue(offset_region.isRegionValid())
+        with self.assertRaises(ValueError):
+            offset_region = left_region.offset(-1000, -1000)
+
+    def test_highlighter(self):
+        center_region = self.r.get(lackey.Region.MID_BIG)
+        center_region.highlight()
+        center_region.highlight(2, "blue")
+        center_region.highlight(True, 0)
+        print("Doing stuff...")
+        time.sleep(1)
+        center_region.highlight(False)
+
+    def test_settings(self):
+        self.r.setAutoWaitTimeout(10)
+        self.assertEqual(self.r.getAutoWaitTimeout(), 10.0)
+        self.r.setWaitScanRate(2)
+        self.assertEqual(self.r.getWaitScanRate(), 2.0)
 
 class TestObserverEventMethods(unittest.TestCase):
     def setUp(self):

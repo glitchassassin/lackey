@@ -5,6 +5,7 @@ import re
 import time
 import numpy
 import ctypes
+import threading
 try:
     import Tkinter as tk
 except ImportError:
@@ -593,7 +594,7 @@ class PlatformManagerWindows(object):
             root = tk._default_root
         image_to_show = self.getBitmapFromRect(*rect)
         app = highlightWindow(root, rect, color, image_to_show)
-        if seconds is None:
+        if seconds == 0:
             t = threading.Thread(target=app.do_until_timeout)
             t.start()
             return app
@@ -654,8 +655,6 @@ class highlightWindow(tk.Toplevel):
     def __init__(self, root, rect, frame_color, screen_cap):
         """ Accepts rect as (x,y,w,h) """
         self.root = root
-        self.complete = False
-        self.cleaned_up = False
         tk.Toplevel.__init__(self, self.root, bg="red", bd=0)
 
         ## Set toplevel geometry, remove borders, and push to the front
@@ -686,21 +685,9 @@ class highlightWindow(tk.Toplevel):
         self.lift()
         self.update()
     def do_until_timeout(self, seconds=None):
-        timeout = None
         if seconds is not None:
-            timeout = time.time()+seconds
-        while true:
-            self.update_idletasks()
-            self.update()
-            if (timeout is not None and time.time() < timeout) or self.complete:
-                break
+            self.root.after(seconds*1000, self.root.destroy)
+        self.root.mainloop()
 
-        if temporary_root:
-            root.destroy()
-        else:
-            self.destroy()
-        self.cleaned_up = True
     def close(self):
-        self.complete = True
-        while not self.cleaned_up:
-            time.sleep(0.1)
+        self.root.destroy()
