@@ -9,7 +9,7 @@ except ImportError:
     import tkinter as tk
     from tkinter import ttk
 
-from .Settings import Settings
+from .SettingsDebug import Settings
 
 class PopupInput(tk.Frame):
     """ A basic popup dialog with a text input """

@@ -7,8 +7,13 @@ import platform
 import subprocess
 
 from .RegionMatching import Region
+<<<<<<< HEAD
 from .Settings import Debug
 from .Exceptions import FindFailed
+=======
+from .SettingsDebug import Debug
+from .PlatformManagerWindows import PlatformManagerWindows
+>>>>>>> master
 
 if platform.system() == "Windows":
     from .PlatformManagerWindows import PlatformManagerWindows
@@ -210,14 +215,21 @@ class App(object):
     def hasWindow(self):
         """ Returns True if the process has a window associated, False otherwise """
         return PlatformManager.getWindowByPID(self.getPID()) is not None
-
+    def waitForWindow(self, seconds=5):
+        timeout = time.time() + seconds
+        while True:
+            window_region = self.window()
+            if window_region is not None or time.time() < timeout:
+                break
+            time.sleep(0.5)
+        return window_region
     def window(self, windowNum=0):
         """ Returns the region corresponding to the specified window of the app.
 
         Defaults to the first window found for the corresponding PID.
         """
         if self._pid == -1:
-            raise FindFailed("Window not found for app \"{}\"".format(self))
+            return None
         x,y,w,h = PlatformManager.getWindowRect(PlatformManager.getWindowByPID(self._pid, windowNum))
         return Region(x,y,w,h).clipRegionToScreen()
 
@@ -243,7 +255,8 @@ class App(object):
             else:
                 time.sleep(self._defaultScanRate)
         return self.getPID() > 0
-
+    def isValid(self):
+        return (os.path.isfile(self._exec) or self.getPID() > 0)
     @classmethod
     def getClipboard(cls):
         """ Gets the contents of the clipboard (as classmethod) """

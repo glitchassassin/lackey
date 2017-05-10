@@ -28,12 +28,17 @@ import requests
 
 #from .PlatformManagerWindows import PlatformManagerWindows
 from .KeyCodes import Button, Key, KeyModifier
+<<<<<<< HEAD
 from .RegionMatching import Pattern, Region, Match, Screen, ObserveEvent, PlatformManager
 from .Location import Location
+=======
+from .RegionMatching import Pattern, Region, Match, Screen, ObserveEvent
+from .Geometry import Location
+>>>>>>> master
 from .InputEmulation import Mouse, Keyboard
 from .App import App
-from .Exceptions import FindFailed
-from .Settings import Debug, Settings, DebugMaster, SettingsMaster
+from .Exceptions import FindFailed, ImageMissing
+from .SettingsDebug import Debug, Settings, DebugMaster, SettingsMaster
 from .SikuliGui import PopupInput, PopupList, PopupTextarea
 from ._version import __version__
 
