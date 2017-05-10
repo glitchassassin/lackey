@@ -6,31 +6,15 @@ import sys
 import os
 #sys.path.insert(0, os.path.abspath('..'))
 import lackey
+import numpy
 
-from .appveyor_test_cases import TestLocationMethods, TestPatternMethods, TestInterfaces, TestConvenienceFunctions, TestObserverEventMethods
+from .appveyor_test_cases import *
 
 # Python 3 compatibility
 try:
     basestring
 except NameError:
     basestring = str
-
-class TestMouseMethods(unittest.TestCase):
-    def setUp(self):
-        self.mouse = lackey.Mouse()
-
-    def test_movement(self):
-        self.mouse.move(lackey.Location(10,10))
-        self.assertEqual(self.mouse.getPos().getTuple(), (10,10))
-        self.mouse.moveSpeed(lackey.Location(100,200), 0.5)
-        self.assertEqual(self.mouse.getPos().getTuple(), (100,200))
-        lackey.wheel(self.mouse.getPos(), 0, 3) # Mostly just verifying it doesn't crash
-        
-    def test_clicks(self):
-        """
-        Not sure how to build these tests yet
-        """
-        pass
 
 class TestKeyboardMethods(unittest.TestCase):
     def setUp(self):
@@ -41,89 +25,15 @@ class TestKeyboardMethods(unittest.TestCase):
         self.kb.keyUp("{CTRL}")
         self.kb.keyUp("{SHIFT}")
         self.kb.type("{CTRL}")
-        # Really this should check to make sure these keys have all been released, but 
+        # Really this should check to make sure these keys have all been released, but
         # I'm not sure how to make that work without continuously monitoring the keyboard
         # (which is the usual scenario). Ah well... if your computer is acting weird after
         # you run this test, the SHIFT, CTRL, or ALT keys might not have been released
         # properly.
 
-class TestAppMethods(unittest.TestCase):
-    def test_getters(self):
-        if sys.platform.startswith("win"):
-            app = lackey.App("notepad.exe tests\\test_cases.py")
-            app2 = lackey.App("notepad.exe tests\\test_cases.py")
-            #app.setUsing("test_cases.py")
-            app.open()
-            app2.open()
-            lackey.sleep(1)
-            app2.close()
-        else:
-            raise NotImplementedError("Platforms supported include: Windows")
-        app.focus()
-
-        self.assertEqual(app.getName(), "notepad.exe")
-        self.assertTrue(app.isRunning())
-        self.assertEqual(app.getWindow(), "test_cases.py - Notepad")
-        self.assertNotEqual(app.getPID(), -1)
-        region = app.window()
-        self.assertIsInstance(region, lackey.Region)
-        self.assertGreater(region.getW(), 0)
-        self.assertGreater(region.getH(), 0)
-
-        if sys.platform.startswith("win"):
-            app.close()
-        lackey.sleep(1.0)
-
-    def test_launchers(self):
-        app = lackey.App("notepad.exe")
-        app.setUsing("tests\\test_cases.py")
-        app.open()
-        lackey.wait(1)
-        self.assertEqual(app.getName(), "notepad.exe")
-        self.assertTrue(app.isRunning())
-        self.assertEqual(app.getWindow(), "test_cases.py - Notepad")
-        self.assertNotEqual(app.getPID(), -1)
-        app.close()
-        lackey.wait(0.9)
-
-    def test_app_title(self):
-        """
-        App selected by title should capture existing window if open,
-        including case-insensitive matches.
-        """
-        app = lackey.App("notepad.exe")
-        app.open()
-        lackey.wait(1)
-        app2 = lackey.App("Notepad")
-        app3 = lackey.App("notepad")
-        lackey.wait(1)
-
-        self.assertTrue(app2.isRunning())
-        self.assertTrue(app3.isRunning())
-        self.assertEqual(app2.getName(), app.getName())
-        self.assertEqual(app3.getName(), app.getName())
-        app.close()
-
-
-class TestScreenMethods(unittest.TestCase):
-    def setUp(self):
-        self.primaryScreen = lackey.Screen(0)
-
-    def testScreenInfo(self):
-        self.assertGreater(self.primaryScreen.getNumberScreens(), 0)
-        x,y,w,h = self.primaryScreen.getBounds()
-        self.assertEqual(x, 0) # Top left corner of primary screen should be 0,0
-        self.assertEqual(y, 0) # Top left corner of primary screen should be 0,0
-        self.assertGreater(w, 0) # Primary screen should be wider than 0
-        self.assertGreater(h, 0) # Primary screen should be taller than 0
-
-    def testCapture(self):
-        tpath = self.primaryScreen.capture()
-        self.assertIsInstance(tpath, basestring)
-        self.assertNotEqual(tpath, "")
-
 class TestComplexFeatures(unittest.TestCase):
     def setUp(self):
+        print(os.path.dirname(__file__))
         lackey.addImagePath(os.path.dirname(__file__))
 
     def testTypeCopyPaste(self):
@@ -171,7 +81,8 @@ class TestComplexFeatures(unittest.TestCase):
         r.onAppear(lackey.Pattern("test_text.png").similar(0.6), test_observer)
         r.observe(30)
         self.assertTrue(r.TestFlag)
-        r.rightClick(lackey.Pattern("test_text.png").similar(0.6))
+        r.rightClick(r.getLastMatch())
+        self.assertGreater(r.getTime(), 0)
         r.click("select_all.png")
         r.type("c", lackey.Key.CONTROL) # Copy
         self.assertEqual(r.getClipboard(), "This is a test")
@@ -197,38 +108,10 @@ class TestComplexFeatures(unittest.TestCase):
         r.setFindFailedResponse(r.SKIP)
         try:
             r.find("notepad.png")
-        except FindFailed:
+        except lackey.FindFailed:
             self.fail("Incorrectly threw FindFailed exception; should have skipped")
 
-
-class TestRegionFeatures(unittest.TestCase):
-    def setUp(self):
-        self.r = lackey.Screen(0)
-
-    def testValidityMethods(self):
-        self.assertTrue(self.r.isRegionValid())
-        clipped = self.r.clipRegionToScreen()
-        self.assertIsNotNone(clipped)
-        self.assertEqual(clipped.getX(), self.r.getX())
-        self.assertEqual(clipped.getY(), self.r.getY())
-        self.assertEqual(clipped.getW(), self.r.getW())
-        self.assertEqual(clipped.getH(), self.r.getH())
-
-    def testAroundMethods(self):
-        center_region = self.r.get(lackey.Region.MID_BIG)
-        below_region = center_region.below()
-        self.assertTrue(below_region.isRegionValid())
-        above_region = center_region.above()
-        self.assertTrue(center_region.isRegionValid())
-        right_region = center_region.right()
-        self.assertTrue(right_region.isRegionValid())
-        left_region = center_region.left()
-        self.assertTrue(left_region.isRegionValid())
-        nearby_region = center_region.nearby(10)
-        self.assertTrue(nearby_region.isRegionValid())
-        grow_region = center_region.grow(10, 5)
-        self.assertTrue(grow_region.isRegionValid())
-
+@unittest.skip("Requires user intervention")
 class TestRasterMethods(unittest.TestCase):
     def setUp(self):
         self.r = lackey.Screen(0)

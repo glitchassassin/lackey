@@ -5,6 +5,7 @@ import re
 import time
 import numpy
 import ctypes
+import threading
 try:
     import Tkinter as tk
 except ImportError:
@@ -12,8 +13,7 @@ except ImportError:
 from ctypes import wintypes
 from PIL import Image, ImageTk, ImageOps
 
-from .Settings import Debug
-from .InputEmulation import Keyboard
+from .SettingsDebug import Debug
 
 # Python 3 compatibility
 try:
@@ -211,7 +211,6 @@ class PlatformManagerWindows(object):
         return args
 
     ## Screen functions
-
     def getBitmapFromRect(self, x, y, w, h):
         """ Capture the specified area of the (virtual) screen. """
         min_x, min_y, screen_width, screen_height = self._getVirtualScreenRect()
@@ -483,23 +482,24 @@ class PlatformManagerWindows(object):
             virt_screen.paste(img, (x, y))
         return virt_screen
 
-    ## Clipboard functions
 
+    ## Clipboard functions
     def osCopy(self):
         """ Triggers the OS "copy" keyboard shortcut """
+        from .InputEmulation import Keyboard
         k = Keyboard()
         k.keyDown("{CTRL}")
         k.type("c")
         k.keyUp("{CTRL}")
     def osPaste(self):
         """ Triggers the OS "paste" keyboard shortcut """
+        from .InputEmulation import Keyboard
         k = Keyboard()
         k.keyDown("{CTRL}")
         k.type("v")
         k.keyUp("{CTRL}")
 
     ## Window functions
-
     def getWindowByTitle(self, wildcard, order=0):
         """ Returns a handle for the first window that matches the provided "wildcard" regex """
         EnumWindowsProc = ctypes.WINFUNCTYPE(
@@ -574,8 +574,7 @@ class PlatformManagerWindows(object):
         return self._user32.GetForegroundWindow()
 
     ## Highlighting functions
-
-    def highlight(self, rect, seconds=1):
+    def highlight(self, rect, color="red", seconds=None):
         """ Simulates a transparent rectangle over the specified ``rect`` on the screen.
 
         Actually takes a screenshot of the region and displays with a
@@ -594,14 +593,13 @@ class PlatformManagerWindows(object):
             temporary_root = False
             root = tk._default_root
         image_to_show = self.getBitmapFromRect(*rect)
-        app = highlightWindow(root, rect, image_to_show)
-        timeout = time.time()+seconds
-        while time.time() < timeout:
-            app.update_idletasks()
-            app.update()
-        app.destroy()
-        if temporary_root:
-            root.destroy()
+        app = highlightWindow(root, rect, color, image_to_show)
+        if seconds == 0:
+            t = threading.Thread(target=app.do_until_timeout)
+            t.start()
+            return app
+        app.do_until_timeout(seconds)
+        
 
     ## Process functions
     def isPIDValid(self, pid):
@@ -654,7 +652,7 @@ class PlatformManagerWindows(object):
 ## Helper class for highlighting
 
 class highlightWindow(tk.Toplevel):
-    def __init__(self, root, rect, screen_cap):
+    def __init__(self, root, rect, frame_color, screen_cap):
         """ Accepts rect as (x,y,w,h) """
         self.root = root
         tk.Toplevel.__init__(self, self.root, bg="red", bd=0)
@@ -679,10 +677,17 @@ class highlightWindow(tk.Toplevel):
             2,
             rect[2]-2,
             rect[3]-2,
-            outline="red",
+            outline=frame_color,
             width=4)
         self.canvas.pack(fill=tk.BOTH, expand=tk.YES)
 
         ## Lift to front if necessary and refresh.
         self.lift()
         self.update()
+    def do_until_timeout(self, seconds=None):
+        if seconds is not None:
+            self.root.after(seconds*1000, self.root.destroy)
+        self.root.mainloop()
+
+    def close(self):
+        self.root.destroy()

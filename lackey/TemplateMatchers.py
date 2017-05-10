@@ -3,7 +3,7 @@ import itertools
 import numpy
 import cv2
 
-from .Settings import Debug
+from .SettingsDebug import Debug
 
 class NaiveTemplateMatcher(object):
     """ Python wrapper for OpenCV's TemplateMatcher 
