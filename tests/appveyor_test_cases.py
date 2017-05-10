@@ -57,24 +57,6 @@ class TestAppMethods(unittest.TestCase):
         app.close()
         lackey.wait(0.9)
 
-    def test_app_title(self):
-        """
-        App selected by title should capture existing window if open,
-        including case-insensitive matches.
-        """
-        app = lackey.App("notepad.exe")
-        app.open()
-        lackey.wait(2)
-        app2 = lackey.App("Notepad")
-        app3 = lackey.App("notepad")
-        lackey.wait(1)
-
-        self.assertTrue(app2.isRunning())
-        self.assertTrue(app3.isRunning())
-        self.assertEqual(app2.getName(), app.getName())
-        self.assertEqual(app3.getName(), app.getName())
-        app.close()
-
 class TestScreenMethods(unittest.TestCase):
     def setUp(self):
         self.primaryScreen = lackey.Screen(0)
