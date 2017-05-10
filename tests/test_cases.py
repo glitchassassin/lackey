@@ -168,8 +168,14 @@ class TestComplexFeatures(unittest.TestCase):
         if sys.platform.startswith("win"):
             app = lackey.App("notepad.exe").open()
             time.sleep(1)
+        elif sys.platform == "darwin":
+            a = lackey.App("+open -a TextEdit")
+            lackey.wait("preview_open.png")
+            lackey.type("n", lackey.KeyModifier.CMD)
+            time.sleep(1)
+            app = lackey.App("Untitled")
         else:
-            raise NotImplementedError("Platforms supported include: Windows")
+            raise NotImplementedError("Platforms supported include: Windows, OS X")
         r = app.window()
 
         r.type("This is a Test")
@@ -182,8 +188,7 @@ class TestComplexFeatures(unittest.TestCase):
         r.type("c", lackey.Key.CONTROL) # Copy
         self.assertEqual(r.getClipboard(), "This, on the other hand, is a {SHIFT}broken {SHIFT}record.")
 
-        if sys.platform.startswith("win"):
-            app.close()
+        app.close()
 
         lackey.Debug.setLogFile(None)
 

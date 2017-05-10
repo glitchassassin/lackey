@@ -127,7 +127,7 @@ class Keyboard(object):
             "INSERT":		"ins",
             "DELETE":		"del",
             "WIN":			"win",
-            "CMD":			"win",
+            "CMD":			"command",
             "META":			"win",
             "NUM0":		    "keypad 0",
             "NUM1":		    "keypad 1",

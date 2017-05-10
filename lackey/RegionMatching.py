@@ -478,7 +478,7 @@ class Region(object):
                 if time.time() >= timeout:
                     break
             path = pattern.path if isinstance(pattern, Pattern) else pattern
-            findFailedRetry = _raiseFindFailed("Could not find pattern '{}'".format(path))
+            findFailedRetry = self._raiseFindFailed("Could not find pattern '{}'".format(path))
         return None
     def waitVanish(self, pattern, seconds=None):
         """ Waits until the specified pattern is not visible on screen.
