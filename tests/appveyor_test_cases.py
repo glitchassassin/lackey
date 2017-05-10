@@ -64,7 +64,7 @@ class TestAppMethods(unittest.TestCase):
         """
         app = lackey.App("notepad.exe")
         app.open()
-        lackey.wait(1)
+        lackey.wait(2)
         app2 = lackey.App("Notepad")
         app3 = lackey.App("notepad")
         lackey.wait(1)
