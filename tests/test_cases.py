@@ -57,52 +57,88 @@ class TestAppMethods(unittest.TestCase):
             app2.open()
             lackey.sleep(1)
             app2.close()
-        else:
-            raise NotImplementedError("Platforms supported include: Windows")
-        app.focus()
-
-        self.assertEqual(app.getName(), "notepad.exe")
-        self.assertTrue(app.isRunning())
-        self.assertEqual(app.getWindow(), "test_cases.py - Notepad")
-        self.assertNotEqual(app.getPID(), -1)
-        region = app.window()
-        self.assertIsInstance(region, lackey.Region)
-        self.assertGreater(region.getW(), 0)
-        self.assertGreater(region.getH(), 0)
-
-        if sys.platform.startswith("win"):
+            app.focus()
+            self.assertEqual(app.getName(), "(open)")
+            self.assertTrue(app.isRunning())
+            self.assertEqual(app.getWindow(), "test_cases.py - Notepad")
+            self.assertNotEqual(app.getPID(), -1)
+            region = app.window()
+            self.assertIsInstance(region, lackey.Region)
+            self.assertGreater(region.getW(), 0)
+            self.assertGreater(region.getH(), 0)
             app.close()
-        lackey.sleep(1.0)
+        elif sys.platform == "darwin":
+            a = lackey.App("+open -a TextEdit tests/test_cases.py")
+            a2 = lackey.App("open -a TextEdit tests/appveyor_test_cases.py")
+            lackey.sleep(1)
+            app = lackey.App("test_cases.py")
+            app2 = lackey.App("appveyor_test_cases.py")
+            #app.setUsing("test_cases.py")
+            lackey.sleep(1)
+            app2.close()
+            app.focus()
+            print(app.getPID())
+            self.assertEqual(app.getName()[-len("TextEdit"):], "TextEdit")
+            self.assertTrue(app.isRunning())
+            #self.assertEqual(app.getWindow(), "test_cases.py") # Doesn't work on `open`-triggered apps
+            self.assertNotEqual(app.getPID(), -1)
+            region = app.window()
+            self.assertIsInstance(region, lackey.Region)
+            self.assertGreater(region.getW(), 0)
+            self.assertGreater(region.getH(), 0)
+            app.close()
+        else:
+            raise NotImplementedError("Platforms supported include: Windows, OS X")
 
     def test_launchers(self):
-        app = lackey.App("notepad.exe")
-        app.setUsing("tests\\test_cases.py")
-        app.open()
-        lackey.wait(1)
-        self.assertEqual(app.getName(), "notepad.exe")
-        self.assertTrue(app.isRunning())
-        self.assertEqual(app.getWindow(), "test_cases.py - Notepad")
-        self.assertNotEqual(app.getPID(), -1)
-        app.close()
-        lackey.wait(0.9)
+        if sys.platform.startswith("win"):
+            app = lackey.App("notepad.exe")
+            app.setUsing("tests\\test_cases.py")
+            app.open()
+            lackey.wait(1)
+            self.assertEqual(app.getName(), "(open)")
+            self.assertTrue(app.isRunning())
+            self.assertEqual(app.getWindow(), "test_cases.py")
+            self.assertNotEqual(app.getPID(), -1)
+            app.close()
+            lackey.wait(0.9)
+        elif sys.platform.startswith("darwin"):
+            a = lackey.App("open")
+            a.setUsing("-a TextEdit tests/test_cases.py")
+            a.open()
+            lackey.wait(1)
+            app = lackey.App("test_cases.py")
+            self.assertEqual(app.getName()[-len("TextEdit"):], "TextEdit")
+            self.assertTrue(app.isRunning())
+            #self.assertEqual(app.getWindow(), "test_cases.py")  # Doesn't work on `open`-triggered apps
+            self.assertNotEqual(app.getPID(), -1)
+            app.close()
+            lackey.wait(0.9)
+        else:
+            raise NotImplementedError("Platforms supported include: Windows, OS X")
 
     def test_app_title(self):
         """
         App selected by title should capture existing window if open,
         including case-insensitive matches.
         """
-        app = lackey.App("notepad.exe")
-        app.open()
-        lackey.wait(1)
-        app2 = lackey.App("Notepad")
-        app3 = lackey.App("notepad")
-        lackey.wait(1)
+        if sys.platform.startswith("win"):
+            app = lackey.App("notepad.exe")
+            app.open()
+            lackey.wait(1)
+            app2 = lackey.App("Notepad")
+            app3 = lackey.App("notepad")
+            lackey.wait(1)
 
-        self.assertTrue(app2.isRunning())
-        self.assertTrue(app3.isRunning())
-        self.assertEqual(app2.getName(), app.getName())
-        self.assertEqual(app3.getName(), app.getName())
-        app.close()
+            self.assertTrue(app2.isRunning())
+            self.assertTrue(app3.isRunning())
+            self.assertEqual(app2.getName(), app.getName())
+            self.assertEqual(app3.getName(), app.getName())
+            app.close()
+        elif sys.platform.startswith("darwin"):
+            pass # Skip this test, due to issues with `open` not being the window owner on Mac
+        else:
+            raise NotImplementedError("Platforms supported include: Windows, OS X")
 
 
 class TestScreenMethods(unittest.TestCase):

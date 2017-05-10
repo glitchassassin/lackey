@@ -94,10 +94,8 @@ class Pattern(object):
 
     def debugPreview(self, title="Debug"):
         """ Loads and displays the image at ``Pattern.path`` """
-        haystack = cv2.imread(self.path)
-        cv2.imshow(title, haystack)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
+        haystack = Image.open(self.path)
+        haystack.show()
 
 class Region(object):
     def __init__(self, *args):
@@ -385,9 +383,7 @@ class Region(object):
         if haystack.shape[0] > (Screen(0).getBounds()[2]/2) or haystack.shape[1] > (Screen(0).getBounds()[3]/2):
             # Image is bigger than half the screen; scale it down
             haystack = cv2.resize(haystack, (0, 0), fx=0.5, fy=0.5)
-        cv2.imshow(title, haystack)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
+        Image.fromarray(haystack).show()
     def highlight(self, seconds=1):
         """ Temporarily using ``debugPreview()`` to show the region instead of highlighting it
 

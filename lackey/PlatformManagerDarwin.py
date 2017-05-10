@@ -3,16 +3,17 @@
 import os
 import re
 import time
-import numpy
-import AppKit
 import tempfile
 import subprocess
 try:
     import Tkinter as tk
 except ImportError:
     import tkinter as tk
-    
-from PIL import Image, ImageTk, ImageOps
+
+import numpy
+import AppKit
+import Quartz
+from PIL import Image, ImageTk
 
 from .Settings import Debug
 from .InputEmulation import Keyboard
@@ -219,8 +220,8 @@ class PlatformManagerDarwin(object):
         monitors = self.getScreenDetails()
         x1 = min([s["rect"][0] for s in monitors])
         y1 = min([s["rect"][1] for s in monitors])
-        x2 = max([s["rect"][0]+s["rect"][3] for s in monitors])
-        y2 = max([s["rect"][1]+s["rect"][4] for s in monitors])
+        x2 = max([s["rect"][0]+s["rect"][2] for s in monitors])
+        y2 = max([s["rect"][1]+s["rect"][3] for s in monitors])
         return (x1, y1, x2-x1, y2-y1)
     def _getVirtualScreenBitmap(self):
         """ Returns a bitmap of all attached screens """
@@ -245,6 +246,7 @@ class PlatformManagerDarwin(object):
             # Paste on the virtual screen
             virtual_screen.paste(im, (x, y))
             os.unlink(filename)
+        return virtual_screen
 
     def getScreenDetails(self):
         """ Return list of attached monitors
@@ -259,10 +261,10 @@ class PlatformManagerDarwin(object):
             # Convert screen rect to Lackey-style rect (x,y,w,h) as position in virtual screen
             screen = {
                 "rect": (
-                    monitor.frame().origin.x,
-                    monitor.frame().origin.y,
-                    monitor.frame().size.width,
-                    monitor.frame().size.height
+                    int(monitor.frame().origin.x),
+                    int(monitor.frame().origin.y),
+                    int(monitor.frame().size.width),
+                    int(monitor.frame().size.height)
                 )
             }
             screens.append(screen)
@@ -294,16 +296,34 @@ class PlatformManagerDarwin(object):
 
     def getWindowByTitle(self, wildcard, order=0):
         """ Returns a handle for the first window that matches the provided "wildcard" regex """
-        # TODO
-        pass
+        for w in self._get_window_list():
+            if "kCGWindowName" in w and re.search(wildcard, w["kCGWindowName"], flags=re.I):
+                # Matches - make sure we get it in the correct order
+                if order == 0:
+                    return w["kCGWindowNumber"]
+                else:
+                    order -= 1
+        
     def getWindowByPID(self, pid, order=0):
         """ Returns a handle for the first window that matches the provided PID """
-        # TODO
-        pass
+        for w in self._get_window_list():
+            if "kCGWindowOwnerPID" in w and w["kCGWindowOwnerPID"] == pid:
+                # Matches - make sure we get it in the correct order
+                if order == 0:
+                    return w["kCGWindowNumber"]
+                else:
+                    order -= 1
+        raise OSError("Could not find window for PID {} at index {}".format(pid, order))
     def getWindowRect(self, hwnd):
         """ Returns a rect (x,y,w,h) for the specified window's area """
-        # TODO
-        pass
+        for w in self._get_window_list():
+            if "kCGWindowNumber" in w and w["kCGWindowNumber"] == hwnd:
+                x = w["kCGWindowBounds"]["X"]
+                y = w["kCGWindowBounds"]["Y"]
+                width = w["kCGWindowBounds"]["Width"]
+                height = w["kCGWindowBounds"]["Height"]
+                return (x, y, width, height)
+        raise OSError("Unrecognized window number {}".format(hwnd))
     def focusWindow(self, hwnd):
         """ Brings specified window to the front """
         Debug.log(3, "Focusing window: " + str(hwnd))
@@ -311,16 +331,25 @@ class PlatformManagerDarwin(object):
         pass
     def getWindowTitle(self, hwnd):
         """ Gets the title for the specified window """
-        # TODO
-        pass
+        for w in self._get_window_list():
+            if "kCGWindowNumber" in w and w["kCGWindowNumber"] == hwnd:
+                return w["kCGWindowName"]
     def getWindowPID(self, hwnd):
         """ Gets the process ID that the specified window belongs to """
-        # TODO
-        pass
+        for w in self._get_window_list():
+            if "kCGWindowNumber" in w and w["kCGWindowNumber"] == hwnd:
+                return w["kCGWindowOwnerPID"]
     def getForegroundWindow(self):
         """ Returns a handle to the window in the foreground """
-        # TODO
-        pass
+        active_app = NSWorkspace.sharedWorkspace().frontmostApplication().localizedName()
+        for w in self._get_window_list():
+            if "kCGWindowOwnerName" in w and w["kCGWindowOwnerName"] == active_app:
+                return w["kCGWindowNumber"]
+
+    def _get_window_list(self):
+        """ Returns a dictionary of details about open windows """
+        window_list = Quartz.CGWindowListCopyWindowInfo(Quartz.kCGWindowListExcludeDesktopElements, Quartz.kCGNullWindowID)
+        return window_list
 
     ## Highlighting functions
 
@@ -355,15 +384,26 @@ class PlatformManagerDarwin(object):
     ## Process functions
     def isPIDValid(self, pid):
         """ Checks if a PID is associated with a running process """
-        # TODO
-        pass
+        try:
+            os.kill(pid, 0) # Does nothing if valid, raises exception otherwise
+        except OSError:
+            return False
+        else:
+            return True
     def killProcess(self, pid):
         """ Kills the process with the specified PID (if possible) """
-        # TODO
-        pass
+        os.kill(pid, 15)
     def getProcessName(self, pid):
-        # TODO
-        pass
+        """ Searches all processes for the given PID, then returns the originating command """
+        ps = subprocess.check_output(["ps", "aux"]).decode("ascii")
+        processes = ps.split("\n")
+        cols = len(processes[0].split()) - 1
+        for row in processes[1:]:
+            if row != "":
+                proc = row.split(None, cols)
+                if proc[1].strip() == str(pid):
+                    print(row)
+                    return proc[-1]
 
 ## Helper class for highlighting
 

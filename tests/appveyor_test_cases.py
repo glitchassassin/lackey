@@ -38,28 +38,29 @@ class TestLocationMethods(unittest.TestCase):
 
 class TestPatternMethods(unittest.TestCase):
     def setUp(self):
-        self.pattern = lackey.Pattern("tests\\test_pattern.png")
+        self.file_path = os.path.join("tests", "test_pattern.png")
+        self.pattern = lackey.Pattern(self.file_path)
     
     def test_defaults(self):
         self.assertEqual(self.pattern.similarity, 0.7)
         self.assertIsInstance(self.pattern.offset, lackey.Location)
         self.assertEqual(self.pattern.offset.getTuple(), (0,0))
-        self.assertEqual(self.pattern.path[-len("tests\\test_pattern.png"):], "tests\\test_pattern.png")
+        self.assertEqual(self.pattern.path[-len(self.file_path):], self.file_path)
 
     def test_setters(self):
         test_pattern = self.pattern.similar(0.5)
         self.assertEqual(test_pattern.similarity, 0.5)
-        self.assertEqual(test_pattern.path[-len("tests\\test_pattern.png"):], "tests\\test_pattern.png")
+        self.assertEqual(test_pattern.path[-len(self.file_path):], self.file_path)
         test_pattern = self.pattern.exact()
         self.assertEqual(test_pattern.similarity, 1.0)
-        self.assertEqual(test_pattern.path[-len("tests\\test_pattern.png"):], "tests\\test_pattern.png")
+        self.assertEqual(test_pattern.path[-len(self.file_path):], self.file_path)
         test_pattern = self.pattern.targetOffset(3, 5)
         self.assertEqual(test_pattern.similarity, 0.7)
-        self.assertEqual(test_pattern.path[-len("tests\\test_pattern.png"):], "tests\\test_pattern.png")
+        self.assertEqual(test_pattern.path[-len(self.file_path):], self.file_path)
         self.assertEqual(test_pattern.offset.getTuple(), (3,5))
 
     def test_getters(self):
-        self.assertEqual(self.pattern.getFilename()[-len("tests\\test_pattern.png"):], "tests\\test_pattern.png")
+        self.assertEqual(self.pattern.getFilename()[-len(self.file_path):], self.file_path)
         self.assertEqual(self.pattern.getTargetOffset().getTuple(), (0,0))
 class TestObserverEventMethods(unittest.TestCase):
     def setUp(self):
@@ -225,7 +226,7 @@ class TestInterfaces(unittest.TestCase):
         self.assertHasMethod(lackey.Match, "getTarget", 1)
 
     def test_location_interface(self):
-        """ Checking Match class interface methods """
+        """ Checking Location class interface methods """
         self.assertHasMethod(lackey.Location, "__init__", 3)
         self.assertHasMethod(lackey.Location, "getX", 1)
         self.assertHasMethod(lackey.Location, "getY", 1)
@@ -237,7 +238,7 @@ class TestInterfaces(unittest.TestCase):
         self.assertHasMethod(lackey.Location, "right", 2)
 
     def test_screen_interface(self):
-        """ Checking Match class interface methods """
+        """ Checking Screen class interface methods """
         self.assertHasMethod(lackey.Screen, "__init__", 2)
         self.assertHasMethod(lackey.Screen, "getNumberScreens", 1)
         self.assertHasMethod(lackey.Screen, "getBounds", 1)
@@ -248,28 +249,28 @@ class TestInterfaces(unittest.TestCase):
         """ Checking Platform Manager interface methods """
 
         ## Screen methods
-        self.assertHasMethod(lackey.PlatformManagerWindows, "getBitmapFromRect", 5)
-        self.assertHasMethod(lackey.PlatformManagerWindows, "getScreenBounds", 2)
-        self.assertHasMethod(lackey.PlatformManagerWindows, "getScreenDetails", 1)
-        self.assertHasMethod(lackey.PlatformManagerWindows, "isPointVisible", 3)
+        self.assertHasMethod(lackey.PlatformManager, "getBitmapFromRect", 5)
+        self.assertHasMethod(lackey.PlatformManager, "getScreenBounds", 2)
+        self.assertHasMethod(lackey.PlatformManager, "getScreenDetails", 1)
+        self.assertHasMethod(lackey.PlatformManager, "isPointVisible", 3)
 
         ## Clipboard methods
-        self.assertHasMethod(lackey.PlatformManagerWindows, "osCopy", 1)
-        self.assertHasMethod(lackey.PlatformManagerWindows, "osPaste", 1)
+        self.assertHasMethod(lackey.PlatformManager, "osCopy", 1)
+        self.assertHasMethod(lackey.PlatformManager, "osPaste", 1)
 
         ## Window methods
-        self.assertHasMethod(lackey.PlatformManagerWindows, "getWindowByTitle", 3)
-        self.assertHasMethod(lackey.PlatformManagerWindows, "getWindowByPID", 3)
-        self.assertHasMethod(lackey.PlatformManagerWindows, "getWindowRect", 2)
-        self.assertHasMethod(lackey.PlatformManagerWindows, "focusWindow", 2)
-        self.assertHasMethod(lackey.PlatformManagerWindows, "getWindowTitle", 2)
-        self.assertHasMethod(lackey.PlatformManagerWindows, "getWindowPID", 2)
-        self.assertHasMethod(lackey.PlatformManagerWindows, "getForegroundWindow", 1)
+        self.assertHasMethod(lackey.PlatformManager, "getWindowByTitle", 3)
+        self.assertHasMethod(lackey.PlatformManager, "getWindowByPID", 3)
+        self.assertHasMethod(lackey.PlatformManager, "getWindowRect", 2)
+        self.assertHasMethod(lackey.PlatformManager, "focusWindow", 2)
+        self.assertHasMethod(lackey.PlatformManager, "getWindowTitle", 2)
+        self.assertHasMethod(lackey.PlatformManager, "getWindowPID", 2)
+        self.assertHasMethod(lackey.PlatformManager, "getForegroundWindow", 1)
 
         ## Process methods
-        self.assertHasMethod(lackey.PlatformManagerWindows, "isPIDValid", 2)
-        self.assertHasMethod(lackey.PlatformManagerWindows, "killProcess", 2)
-        self.assertHasMethod(lackey.PlatformManagerWindows, "getProcessName", 2)
+        self.assertHasMethod(lackey.PlatformManager, "isPIDValid", 2)
+        self.assertHasMethod(lackey.PlatformManager, "killProcess", 2)
+        self.assertHasMethod(lackey.PlatformManager, "getProcessName", 2)
 
 
     def assertHasMethod(self, cls, mthd, args=0):
