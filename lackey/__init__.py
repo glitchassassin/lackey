@@ -28,13 +28,8 @@ import requests
 
 #from .PlatformManagerWindows import PlatformManagerWindows
 from .KeyCodes import Button, Key, KeyModifier
-<<<<<<< HEAD
 from .RegionMatching import Pattern, Region, Match, Screen, ObserveEvent, PlatformManager
-from .Location import Location
-=======
-from .RegionMatching import Pattern, Region, Match, Screen, ObserveEvent
 from .Geometry import Location
->>>>>>> master
 from .InputEmulation import Mouse, Keyboard
 from .App import App
 from .Exceptions import FindFailed, ImageMissing

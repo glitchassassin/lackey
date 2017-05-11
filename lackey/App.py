@@ -7,13 +7,7 @@ import platform
 import subprocess
 
 from .RegionMatching import Region
-<<<<<<< HEAD
-from .Settings import Debug
-from .Exceptions import FindFailed
-=======
 from .SettingsDebug import Debug
-from .PlatformManagerWindows import PlatformManagerWindows
->>>>>>> master
 
 if platform.system() == "Windows":
     from .PlatformManagerWindows import PlatformManagerWindows

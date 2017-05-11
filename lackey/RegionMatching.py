@@ -19,19 +19,9 @@ import sys
 import os
 import re
 
-
-<<<<<<< HEAD
-
-from .InputEmulation import Mouse, Keyboard
-from .Location import Location
-from .Exceptions import FindFailed
-from .Settings import Settings, Debug
-=======
-from .PlatformManagerWindows import PlatformManagerWindows
 from .InputEmulation import Mouse as MouseClass, Keyboard
 from .Exceptions import FindFailed, ImageMissing
 from .SettingsDebug import Settings, Debug
->>>>>>> master
 from .TemplateMatchers import PyramidTemplateMatcher as TemplateMatcher
 from .Geometry import Location
 
@@ -474,17 +464,10 @@ class Region(object):
         if haystack.shape[0] > (Screen(0).getBounds()[2]/2) or haystack.shape[1] > (Screen(0).getBounds()[3]/2):
             # Image is bigger than half the screen; scale it down
             haystack = cv2.resize(haystack, (0, 0), fx=0.5, fy=0.5)
-<<<<<<< HEAD
         Image.fromarray(haystack).show()
-    def highlight(self, seconds=1):
-        """ Temporarily using ``debugPreview()`` to show the region instead of highlighting it
-=======
-        cv2.imshow(title, haystack)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
+
     def highlight(self, *args):
         """ Highlights the region with a colored frame. Accepts the following parameters:
->>>>>>> master
 
         highlight([toEnable], [seconds], [color])
         
@@ -600,11 +583,8 @@ class Region(object):
                     break
             path = pattern.path if isinstance(pattern, Pattern) else pattern
             findFailedRetry = self._raiseFindFailed("Could not find pattern '{}'".format(path))
-<<<<<<< HEAD
-=======
             if findFailedRetry:
                 time.sleep(self._repeatWaitTime)
->>>>>>> master
         return None
     def waitVanish(self, pattern, seconds=None):
         """ Waits until the specified pattern is not visible on screen.

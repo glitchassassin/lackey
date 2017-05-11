@@ -18,6 +18,21 @@ class TestMouseMethods(unittest.TestCase):
         self.assertEqual(self.mouse.getPos().getTuple(), (100, 200))
         lackey.wheel(self.mouse.getPos(), 0, 3) # Mostly just verifying it doesn't crash
 
+class TestKeyboardMethods(unittest.TestCase):
+    def setUp(self):
+        self.kb = lackey.Keyboard()
+
+    def test_keys(self):
+        self.kb.keyDown("{SHIFT}")
+        self.kb.keyUp("{CTRL}")
+        self.kb.keyUp("{SHIFT}")
+        self.kb.type("{CTRL}")
+        # Really this should check to make sure these keys have all been released, but
+        # I'm not sure how to make that work without continuously monitoring the keyboard
+        # (which is the usual scenario). Ah well... if your computer is acting weird after
+        # you run this test, the SHIFT, CTRL, or ALT keys might not have been released
+        # properly.
+
 class TestAppMethods(unittest.TestCase):
     def test_getters(self):
         if sys.platform.startswith("win"):
@@ -28,34 +43,65 @@ class TestAppMethods(unittest.TestCase):
             app2.open()
             lackey.sleep(1)
             app2.close()
-        else:
-            raise NotImplementedError("Platforms supported include: Windows")
-        app.focus()
-
-        self.assertEqual(app.getName(), "notepad.exe")
-        self.assertTrue(app.isRunning())
-        self.assertEqual(app.getWindow(), "test_cases.py - Notepad")
-        self.assertNotEqual(app.getPID(), -1)
-        region = app.window()
-        self.assertIsInstance(region, lackey.Region)
-        self.assertGreater(region.getW(), 0)
-        self.assertGreater(region.getH(), 0)
-
-        if sys.platform.startswith("win"):
+            app.focus()
+            self.assertEqual(app.getName(), "notepad.exe")
+            self.assertTrue(app.isRunning())
+            self.assertEqual(app.getWindow(), "test_cases.py - Notepad")
+            self.assertNotEqual(app.getPID(), -1)
+            region = app.window()
+            self.assertIsInstance(region, lackey.Region)
+            self.assertGreater(region.getW(), 0)
+            self.assertGreater(region.getH(), 0)
             app.close()
-        lackey.sleep(1.0)
+        elif sys.platform == "darwin":
+            a = lackey.App("+open -a TextEdit tests/test_cases.py")
+            a2 = lackey.App("open -a TextEdit tests/appveyor_test_cases.py")
+            lackey.sleep(1)
+            app = lackey.App("test_cases.py")
+            app2 = lackey.App("appveyor_test_cases.py")
+            #app.setUsing("test_cases.py")
+            lackey.sleep(1)
+            app2.close()
+            app.focus()
+            print(app.getPID())
+            self.assertEqual(app.getName()[-len("TextEdit"):], "TextEdit")
+            self.assertTrue(app.isRunning())
+            #self.assertEqual(app.getWindow(), "test_cases.py") # Doesn't work on `open`-triggered apps
+            self.assertNotEqual(app.getPID(), -1)
+            region = app.window()
+            self.assertIsInstance(region, lackey.Region)
+            self.assertGreater(region.getW(), 0)
+            self.assertGreater(region.getH(), 0)
+            app.close()
+        else:
+            raise NotImplementedError("Platforms supported include: Windows, OS X")
 
     def test_launchers(self):
-        app = lackey.App("notepad.exe")
-        app.setUsing("tests\\test_cases.py")
-        app.open()
-        lackey.wait(1)
-        self.assertEqual(app.getName(), "notepad.exe")
-        self.assertTrue(app.isRunning())
-        self.assertEqual(app.getWindow(), "test_cases.py - Notepad")
-        self.assertNotEqual(app.getPID(), -1)
-        app.close()
-        lackey.wait(0.9)
+        if sys.platform.startswith("win"):
+            app = lackey.App("notepad.exe")
+            app.setUsing("tests\\test_cases.py")
+            app.open()
+            lackey.wait(1)
+            self.assertEqual(app.getName(), "notepad.exe")
+            self.assertTrue(app.isRunning())
+            self.assertEqual(app.getWindow(), "test_cases.py - Notepad")
+            self.assertNotEqual(app.getPID(), -1)
+            app.close()
+            lackey.wait(0.9)
+        elif sys.platform.startswith("darwin"):
+            a = lackey.App("open")
+            a.setUsing("-a TextEdit tests/test_cases.py")
+            a.open()
+            lackey.wait(1)
+            app = lackey.App("test_cases.py")
+            self.assertEqual(app.getName()[-len("TextEdit"):], "TextEdit")
+            self.assertTrue(app.isRunning())
+            #self.assertEqual(app.getWindow(), "test_cases.py")  # Doesn't work on `open`-triggered apps
+            self.assertNotEqual(app.getPID(), -1)
+            app.close()
+            lackey.wait(0.9)
+        else:
+            raise NotImplementedError("Platforms supported include: Windows, OS X")
 
 class TestScreenMethods(unittest.TestCase):
     def setUp(self):
@@ -116,7 +162,6 @@ class TestLocationMethods(unittest.TestCase):
 
 class TestPatternMethods(unittest.TestCase):
     def setUp(self):
-<<<<<<< HEAD
         self.file_path = os.path.join("tests", "test_pattern.png")
         self.pattern = lackey.Pattern(self.file_path)
     
@@ -125,16 +170,6 @@ class TestPatternMethods(unittest.TestCase):
         self.assertIsInstance(self.pattern.offset, lackey.Location)
         self.assertEqual(self.pattern.offset.getTuple(), (0,0))
         self.assertEqual(self.pattern.path[-len(self.file_path):], self.file_path)
-=======
-        self.pattern = lackey.Pattern("tests\\test_pattern.png")
-
-    def test_defaults(self):
-        self.assertEqual(self.pattern.similarity, 0.7)
-        self.assertIsInstance(self.pattern.offset, lackey.Location)
-        self.assertEqual(self.pattern.offset.getTuple(), (0, 0))
-        self.assertEqual(self.pattern.path[-len("tests\\test_pattern.png"):], "tests\\test_pattern.png")
->>>>>>> master
-
 
     def test_setters(self):
         test_pattern = self.pattern.similar(0.5)
@@ -145,20 +180,12 @@ class TestPatternMethods(unittest.TestCase):
         self.assertEqual(test_pattern.path[-len(self.file_path):], self.file_path)
         test_pattern = self.pattern.targetOffset(3, 5)
         self.assertEqual(test_pattern.similarity, 0.7)
-<<<<<<< HEAD
         self.assertEqual(test_pattern.path[-len(self.file_path):], self.file_path)
         self.assertEqual(test_pattern.offset.getTuple(), (3,5))
 
     def test_getters(self):
         self.assertEqual(self.pattern.getFilename()[-len(self.file_path):], self.file_path)
         self.assertEqual(self.pattern.getTargetOffset().getTuple(), (0,0))
-=======
-        self.assertEqual(test_pattern.path[-len("tests\\test_pattern.png"):], "tests\\test_pattern.png")
-        self.assertEqual(test_pattern.offset.getTuple(), (3, 5))
-
-    def test_getters(self):
-        self.assertEqual(self.pattern.getFilename()[-len("tests\\test_pattern.png"):], "tests\\test_pattern.png")
-        self.assertEqual(self.pattern.getTargetOffset().getTuple(), (0, 0))
         self.assertEqual(self.pattern.getSimilar(), 0.7)
 
     def test_constructor(self):
@@ -291,7 +318,6 @@ class TestRegionMethods(unittest.TestCase):
         self.r.setWaitScanRate(2)
         self.assertEqual(self.r.getWaitScanRate(), 2.0)
 
->>>>>>> master
 class TestObserverEventMethods(unittest.TestCase):
     def setUp(self):
         self.r = lackey.Screen(0)
