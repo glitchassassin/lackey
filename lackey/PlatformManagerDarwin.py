@@ -7,8 +7,10 @@ import threading
 import subprocess
 try:
     import Tkinter as tk
+    import Queue as queue
 except ImportError:
     import tkinter as tk
+    import queue
 
 import numpy
 import AppKit
@@ -238,6 +240,7 @@ class PlatformManagerDarwin(object):
         for filename, screen in zip(filenames, screen_details):
             im = Image.open(filename)
             im.load()
+            im = im.resize((int(im.size[0]/2), int(im.size[1]/2)), Image.ANTIALIAS)
             # Capture virtscreen coordinates of monitor
             x, y, w, h = screen["rect"]
             # Convert to image-local coordinates
@@ -362,6 +365,18 @@ class PlatformManagerDarwin(object):
         If a Tkinter root window has already been created somewhere else,
         uses that instead of creating a new one.
         """
+        self.queue = queue.Queue()
+        if seconds == 0:
+            t = threading.Thread(target=self._do_until_timeout, args=(self.queue,(rect,color,seconds)))
+            t.start()
+            q = self.queue
+            control_obj = lambda: None
+            control_obj.close = lambda: q.put(True)
+            return control_obj
+        self._do_until_timeout(self.queue, (rect,color,seconds))
+    
+    def _do_until_timeout(self, queue, args):
+        rect, color, seconds = args
         if tk._default_root is None:
             Debug.log(3, "Creating new temporary Tkinter root")
             temporary_root = True
@@ -372,11 +387,7 @@ class PlatformManagerDarwin(object):
             temporary_root = False
             root = tk._default_root
         image_to_show = self.getBitmapFromRect(*rect)
-        app = highlightWindow(root, rect, color, image_to_show)
-        if seconds == 0:
-            t = threading.Thread(target=app.do_until_timeout)
-            t.start()
-            return app
+        app = highlightWindow(root, rect, color, image_to_show, queue)
         app.do_until_timeout(seconds)
 
     ## Process functions
@@ -405,10 +416,14 @@ class PlatformManagerDarwin(object):
 ## Helper class for highlighting
 
 class highlightWindow(tk.Toplevel):
-    def __init__(self, root, rect, frame_color, screen_cap):
+    def __init__(self, root, rect, frame_color, screen_cap, queue):
         """ Accepts rect as (x,y,w,h) """
         self.root = root
+        self.root.tk.call('tk', 'scaling', 0.5)
         tk.Toplevel.__init__(self, self.root, bg="red", bd=0)
+
+        self.queue = queue
+        self.check_close_after = None
 
         ## Set toplevel geometry, remove borders, and push to the front
         self.geometry("{2}x{3}+{0}+{1}".format(*rect))
@@ -423,7 +438,7 @@ class highlightWindow(tk.Toplevel):
             bd=0,
             bg="blue",
             highlightthickness=0)
-        self.tk_image = ImageTk.PhotoImage(Image.fromarray(screen_cap[..., [2, 1, 0]]))
+        self.tk_image = ImageTk.PhotoImage(Image.fromarray(screen_cap))
         self.canvas.create_image(0, 0, image=self.tk_image, anchor=tk.NW)
         self.canvas.create_rectangle(
             2,
@@ -438,9 +453,22 @@ class highlightWindow(tk.Toplevel):
         self.lift()
         self.update()
     def do_until_timeout(self, seconds=None):
+        self.check_close()
         if seconds is not None:
-            self.root.after(seconds*1000, self.root.destroy)
+            self.root.after(seconds*1000, self.close)
         self.root.mainloop()
 
+    def check_close(self):
+        try:
+            kill = self.queue.get_nowait()
+            if kill == True:
+                self.close()
+                return
+        except queue.Empty:
+            pass
+
+        self.check_close_after = self.root.after(500, self.check_close)
     def close(self):
+        if self.check_close_after is not None:
+            self.root.after_cancel(self.check_close_after)
         self.root.destroy()
