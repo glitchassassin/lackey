@@ -47,13 +47,13 @@ class TestComplexFeatures(unittest.TestCase):
         r = app.window()
 
         r.type("This is a Test")
-        r.type("a", lackey.Key.CONTROL) # Select all
-        r.type("c", lackey.Key.CONTROL) # Copy
+        r.type("a", lackey.Key.CTRL) # Select all
+        r.type("c", lackey.Key.CTRL) # Copy
         self.assertEqual(r.getClipboard(), "This is a Test")
         r.type("{DELETE}") # Clear the selected text
         r.paste("This, on the other hand, is a {SHIFT}broken {SHIFT}record.") # Paste should ignore special characters and insert the string as is
-        r.type("a", lackey.Key.CONTROL) # Select all
-        r.type("c", lackey.Key.CONTROL) # Copy
+        r.type("a", lackey.Key.CTRL) # Select all
+        r.type("c", lackey.Key.CTRL) # Copy
         self.assertEqual(r.getClipboard(), "This, on the other hand, is a {SHIFT}broken {SHIFT}record.")
 
         if sys.platform.startswith("win"):
@@ -84,7 +84,7 @@ class TestComplexFeatures(unittest.TestCase):
         r.rightClick(r.getLastMatch())
         self.assertGreater(r.getTime(), 0)
         r.click("select_all.png")
-        r.type("c", lackey.Key.CONTROL) # Copy
+        r.type("c", lackey.Key.CTRL) # Copy
         self.assertEqual(r.getClipboard(), "This is a test")
         r.type("{DELETE}")
         r.type("{F4}", lackey.Key.ALT)

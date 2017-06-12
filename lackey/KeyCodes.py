@@ -44,7 +44,7 @@ class Key():
     PRINTSCREEN = "{PRINTSCREEN}"
     ALT 		= "{ALT}"
     CMD 		= "{CMD}"
-    CONTROL 	= "{CTRL}"
+    CTRL 	= "{CTRL}"
     META 		= "{META}"
     SHIFT 		= "{SHIFT}"
     WIN 		= "{WIN}"
