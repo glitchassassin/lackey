@@ -376,6 +376,6 @@ class Keyboard(object):
                 keyboard.press(self._SPECIAL_KEYCODES["SHIFT"])
                 keyboard.press_and_release(self._UPPERCASE_KEYCODES[text[i]])
                 keyboard.release(self._SPECIAL_KEYCODES["SHIFT"])
-            if delay:
+            if delay and not in_special_code:
                 time.sleep(delay)
 
