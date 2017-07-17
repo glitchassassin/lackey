@@ -39,7 +39,7 @@ class TestComplexFeatures(unittest.TestCase):
             r.type("c", lackey.Key.CONTROL) # Copy
             self.assertEqual(r.getClipboard(), "This, on the other hand, is a {SHIFT}broken {SHIFT}record.")
         elif sys.platform == "darwin":
-            app = lackey.App("+/Applications/TextEdit.app/Contents/MacOS/TextEdit")
+            app = lackey.App("+open -e")
             lackey.sleep(2)
             #r.debugPreview()
             r.wait(lackey.Pattern("preview_open.png"))

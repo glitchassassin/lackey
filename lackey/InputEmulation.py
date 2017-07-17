@@ -29,7 +29,7 @@ class Mouse(object):
 
     def move(self, loc, yoff=None):
         """ Moves cursor to specified location. Accepts the following arguments:
-        
+
         * ``move(loc)`` - Move cursor to ``Location``
         * ``move(xoff, yoff) - Move cursor to offset from current location
         """
@@ -37,8 +37,11 @@ class Mouse(object):
         self._lock.acquire()
         if isinstance(loc, Location):
             mouse.move(loc.x, loc.y)
+        elif yoff is not None:
+            xoff = loc
+            mouse.move(xoff, yoff)
         else:
-            mouse.move(loc, yoff)
+            raise ValueError("Invalid argument. Expected either move(loc) or move(xoff, yoff).")
         self._last_position = loc
         self._lock.release()
 
