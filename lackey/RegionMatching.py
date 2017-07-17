@@ -41,6 +41,11 @@ try:
     basestring
 except NameError:
     basestring = str
+try:
+    FOREVER = float("inf")
+except:
+    import math
+    FOREVER = math.inf
 
 # Instantiate input emulation objects
 Mouse = MouseClass()
@@ -566,6 +571,9 @@ class Region(object):
         Sikuli supports OCR search with a text parameter. This does not (yet).
         """
         if isinstance(pattern, (int, float)):
+            if pattern == FOREVER:
+                while True:
+                    time.sleep(1) # Infinite loop
             time.sleep(pattern)
             return None
 

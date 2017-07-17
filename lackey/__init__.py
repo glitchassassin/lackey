@@ -28,7 +28,7 @@ import requests
 
 #from .PlatformManagerWindows import PlatformManagerWindows
 from .KeyCodes import Button, Key, KeyModifier
-from .RegionMatching import Pattern, Region, Match, Screen, ObserveEvent, PlatformManager
+from .RegionMatching import Pattern, Region, Match, Screen, ObserveEvent, PlatformManager, FOREVER
 from .Geometry import Location
 from .InputEmulation import Mouse, Keyboard
 from .App import App

@@ -90,7 +90,7 @@ class TestComplexFeatures(unittest.TestCase):
             app = lackey.App("+open -e")
             lackey.sleep(2)
             #r.debugPreview()
-            r.wait(lackey.Pattern("preview_open.png"))
+            r.wait(lackey.Pattern("preview_open.png"), lackey.FOREVER)
             r.click(lackey.Pattern("preview_open.png"))
             lackey.type("n", lackey.KeyModifier.CMD)
             time.sleep(1)
