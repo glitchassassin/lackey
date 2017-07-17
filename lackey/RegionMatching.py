@@ -19,8 +19,6 @@ import sys
 import os
 import re
 
-
-from .PlatformManagerWindows import PlatformManagerWindows
 from .InputEmulation import Mouse as MouseClass, Keyboard
 from .Exceptions import FindFailed, ImageMissing
 from .SettingsDebug import Settings, Debug
@@ -28,11 +26,15 @@ from .TemplateMatchers import PyramidTemplateMatcher as TemplateMatcher
 from .Geometry import Location
 
 if platform.system() == "Windows":
+    from .PlatformManagerWindows import PlatformManagerWindows
     PlatformManager = PlatformManagerWindows() # No other input managers built yet
+elif platform.system() == "Darwin":
+    from .PlatformManagerDarwin import PlatformManagerDarwin
+    PlatformManager = PlatformManagerDarwin()
 else:
     # Avoid throwing an error if it's just being imported for documentation purposes
     if not os.environ.get('READTHEDOCS') == 'True':
-        raise NotImplementedError("Lackey is currently only compatible with Windows.")
+        raise NotImplementedError("Lackey is currently only compatible with Windows and OSX.")
 
 # Python 3 compatibility
 try:
@@ -119,10 +121,8 @@ class Pattern(object):
         return self.imagePattern
     def debugPreview(self, title="Debug"):
         """ Loads and displays the image at ``Pattern.path`` """
-        haystack = cv2.imread(self.path)
-        cv2.imshow(title, haystack)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
+        haystack = Image.open(self.path)
+        haystack.show()
 
 class Region(object):
     def __init__(self, *args):
@@ -464,9 +464,8 @@ class Region(object):
         if haystack.shape[0] > (Screen(0).getBounds()[2]/2) or haystack.shape[1] > (Screen(0).getBounds()[3]/2):
             # Image is bigger than half the screen; scale it down
             haystack = cv2.resize(haystack, (0, 0), fx=0.5, fy=0.5)
-        cv2.imshow(title, haystack)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
+        Image.fromarray(haystack).show()
+
     def highlight(self, *args):
         """ Highlights the region with a colored frame. Accepts the following parameters:
 

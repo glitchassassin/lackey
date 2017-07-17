@@ -26,9 +26,9 @@ import requests
 
 ## Lackey sub-files
 
-from .PlatformManagerWindows import PlatformManagerWindows
+#from .PlatformManagerWindows import PlatformManagerWindows
 from .KeyCodes import Button, Key, KeyModifier
-from .RegionMatching import Pattern, Region, Match, Screen, ObserveEvent
+from .RegionMatching import Pattern, Region, Match, Screen, ObserveEvent, PlatformManager
 from .Geometry import Location
 from .InputEmulation import Mouse, Keyboard
 from .App import App
@@ -37,7 +37,7 @@ from .SettingsDebug import Debug, Settings, DebugMaster, SettingsMaster
 from .SikuliGui import PopupInput, PopupList, PopupTextarea
 from ._version import __version__
 
-VALID_PLATFORMS = ["Windows"]
+VALID_PLATFORMS = ["Windows", "Darwin"]
 
 ## Define script abort hotkey (Alt+Shift+C)
 

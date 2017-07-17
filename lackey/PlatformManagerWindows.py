@@ -22,7 +22,7 @@ except NameError:
     basestring = str
 
 class PlatformManagerWindows(object):
-    """ Abstracts Windows-specific OS-level features like mouse/keyboard control """
+    """ Abstracts Windows-specific OS-level features """
     def __init__(self):
         #self._root = tk.Tk()
         #self._root.overrideredirect(1)
@@ -230,8 +230,7 @@ class PlatformManagerWindows(object):
             raise ValueError("Invalid screen ID")
         if screenId == -1:
             # -1 represents the entire virtual screen
-            x1, y1, x2, y2 = self._getVirtualScreenRect()
-            return (x1, y1, x2-x1, y2-y1)
+            return self._getVirtualScreenRect()
         return screen_details[screenId]["rect"]
     def getScreenDetails(self):
         """ Return list of attached monitors
@@ -451,7 +450,7 @@ class PlatformManagerWindows(object):
         SM_XVIRTUALSCREEN = 76  # Left of virtual screen
         SM_YVIRTUALSCREEN = 77  # Top of virtual screen
         SM_CXVIRTUALSCREEN = 78 # Width of virtual screen
-        SM_CYVIRTUALSCREEN = 79 # Heigiht of virtual screen
+        SM_CYVIRTUALSCREEN = 79 # Height of virtual screen
 
         return (self._user32.GetSystemMetrics(SM_XVIRTUALSCREEN), \
                 self._user32.GetSystemMetrics(SM_YVIRTUALSCREEN), \
