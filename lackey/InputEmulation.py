@@ -367,6 +367,7 @@ class Keyboard(object):
                     # Release the rest of the keys normally
                     self.type(special_code)
                     self.type(text[i])
+                special_code = ""
             elif in_special_code:
                 special_code += text[i]
             elif text[i] in self._REGULAR_KEYCODES.keys():

@@ -16,9 +16,24 @@ try:
 except NameError:
     basestring = str
 
+@unittest.skipUnless(sys.platform.startswith("win"), "Platforms supported include: Windows")
 class TestKeyboardMethods(unittest.TestCase):
     def setUp(self):
         self.kb = lackey.Keyboard()
+        self.app = lackey.App("notepad.exe")
+        self.app.open()
+        time.sleep(1)
+
+    def tearDown(self):
+        self.app.close()
+
+    def type_and_check_equals(self, typed, expected):
+        self.kb.type(typed)
+        time.sleep(0.2)
+        lackey.type("a", lackey.Key.CTRL)
+        lackey.type("c", lackey.Key.CTRL)
+
+        self.assertEqual(lackey.getClipboard(), expected)
 
     def test_keys(self):
         self.kb.keyDown("{SHIFT}")
@@ -30,6 +45,24 @@ class TestKeyboardMethods(unittest.TestCase):
         # (which is the usual scenario). Ah well... if your computer is acting weird after
         # you run this test, the SHIFT, CTRL, or ALT keys might not have been released
         # properly.
+
+    def test_parsed_special_codes(self):
+        OUTPUTS = {
+            # Special codes should output the text below.
+            # Multiple special codes should be parsed correctly.
+            # False special codes should be typed out normally.
+            "{SPACE}": " ",
+            "{TAB}": "\t",
+            "{SPACE}{SPACE}": "  ",
+            "{TAB}{TAB}": "\t\t",
+            "{ENTER}{ENTER}": "\r\n\r\n",
+            "{TEST}": "{TEST}",
+            "{TEST}{TEST}": "{TEST}{TEST}"
+        }
+
+        for code in OUTPUTS:
+            self.type_and_check_equals(code, OUTPUTS[code])
+
 
 class TestComplexFeatures(unittest.TestCase):
     def setUp(self):
