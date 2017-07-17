@@ -7,6 +7,12 @@ import sys
 import os
 import lackey
 
+# Python 2/3 compatibility
+try:
+    unittest.TestCase.assertRegex
+except AttributeError:
+    unittest.TestCase.assertRegex =  unittest.TestCase.assertRegexpMatches
+
 class TestMouseMethods(unittest.TestCase):
     def setUp(self):
         self.mouse = lackey.Mouse()
@@ -47,7 +53,7 @@ class TestAppMethods(unittest.TestCase):
             app.focus()
             self.assertEqual(app.getName(), "notepad.exe")
             self.assertTrue(app.isRunning())
-            self.assertEqual(app.getWindow(), "test_cases.py - Notepad")
+            self.assertEqual(app.getWindow(), "test_cases(.py)? - Notepad")
             self.assertNotEqual(app.getPID(), -1)
             region = app.window()
             self.assertIsInstance(region, lackey.Region)
@@ -85,7 +91,7 @@ class TestAppMethods(unittest.TestCase):
             lackey.wait(1)
             self.assertEqual(app.getName(), "notepad.exe")
             self.assertTrue(app.isRunning())
-            self.assertEqual(app.getWindow(), "test_cases.py - Notepad")
+            self.assertEqual(app.getWindow(), "test_cases(.py)? - Notepad")
             self.assertNotEqual(app.getPID(), -1)
             app.close()
             lackey.wait(0.9)

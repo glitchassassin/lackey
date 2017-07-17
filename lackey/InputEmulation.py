@@ -370,6 +370,7 @@ class Keyboard(object):
                     # Release the rest of the keys normally
                     self.type(special_code)
                     self.type(text[i])
+                special_code = ""
             elif in_special_code:
                 special_code += text[i]
             elif text[i] in self._REGULAR_KEYCODES.keys():
@@ -379,6 +380,6 @@ class Keyboard(object):
                 keyboard.press(self._SPECIAL_KEYCODES["SHIFT"])
                 keyboard.press_and_release(self._UPPERCASE_KEYCODES[text[i]])
                 keyboard.release(self._SPECIAL_KEYCODES["SHIFT"])
-            if delay:
+            if delay and not in_special_code:
                 time.sleep(delay)
 
