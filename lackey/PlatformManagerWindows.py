@@ -303,8 +303,8 @@ class PlatformManagerWindows(object):
         DIB_RGB_COLORS = 0
 
         ## Begin logic
-        self._gdi32.CreateDCA.restype = ctypes.c_void_p
-        hdc = self._gdi32.CreateDCA(ctypes.c_char_p(device_name.encode("utf-8")), 0, 0, 0) # Convert to bytestring for c_char_p type
+        self._gdi32.CreateDCW.restype = ctypes.c_void_p
+        hdc = self._gdi32.CreateDCW(ctypes.c_wchar_p(unicode(device_name)), 0, 0, 0) # Convert to bytestring for c_char_p type
         if hdc == 0:
             raise ValueError("Empty hdc provided")
 
