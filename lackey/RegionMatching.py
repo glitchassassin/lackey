@@ -1903,7 +1903,7 @@ class Screen(Region):
         Debug.info("*** monitor configuration [ {} Screen(s)] ***".format(cls.getNumberScreens()))
         Debug.info("*** Primary is Screen {}".format(cls.primaryScreen))
         for index, screen in enumerate(PlatformManager.getScreenDetails()):
-            Debug.info("Screen {}: ({}, {}, {}, {})".format(index, *screen[rect]))
+            Debug.info("Screen {}: ({}, {}, {}, {})".format(index, *screen["rect"]))
         Debug.info("*** end monitor configuration ***")
     def resetMonitors(self):
         """ Recalculates screen based on changed monitor setup """
