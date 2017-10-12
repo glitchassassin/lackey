@@ -19,7 +19,7 @@ class BinaryDistribution(Distribution):
 
 install_requires = ['requests', 'pillow', 'numpy', 'opencv-python', 'keyboard', 'pyperclip']
 if platform.system() == "Darwin":
-    install_requires += ['pyobjc']
+    install_requires += ['pyobjc', 'pyobjc-core']
 
 setup(
     name="Lackey",
