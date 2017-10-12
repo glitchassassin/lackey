@@ -5,13 +5,10 @@ matrix:
     env: PYTHON=2.7
   - os: osx
     language: generic
-    env: PYTHON=3.5
+    env: PYTHON=3.5.4
   - os: osx
     language: generic
-    env: PYTHON=3.6
-  - os: osx
-    language: generic
-    env: PYTHON=3.7
+    env: PYTHON=3.6.3
 
 before_install: |
   if [ "$TRAVIS_OS_NAME" == "osx" ]; then
@@ -32,28 +29,22 @@ before_install: |
     export PATH="/Users/travis/.pyenv/shims:${PATH}"
     pyenv-virtualenv venv
     source venv/bin/activate
-    # A manual check that the correct version of Python is running.
-    python --version
   fi
 
 install:
+    # A manual check that the correct version of Python is running.
+  - python --version
   - python -m pip install --disable-pip-version-check --user --upgrade pip
   - python -m easy_install -U setuptools
 
-build_script:
+script:
   # Build the compiled extension
   - python setup.py install
-
-test_script:
   # Run the project tests
   - python tests/appveyor_test_cases.py
 
-after_test:
+after_success:
   # If tests are successful, create binary packages for the project.
   - python setup.py bdist_wheel
   - python setup.py sdist
   - ls dist
-
-artifacts:
-  # Archive the generated packages in the ci.appveyor.com build report.
-  - path: dist\*
