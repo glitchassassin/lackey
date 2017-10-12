@@ -26,7 +26,7 @@ before_install: |
     pyenv global $PYTHON
     
     pyenv rehash
-    python -m pip install --user virtualenv
+    python -m pip install virtualenv
     python -m virtualenv ~/.venv
     source ~/.venv/bin/activate
   fi
@@ -34,7 +34,7 @@ before_install: |
 install:
     # A manual check that the correct version of Python is running.
   - python --version
-  - python -m pip install --disable-pip-version-check --user --upgrade pip
+  - python -m pip install --disable-pip-version-check --upgrade pip
   - python -m easy_install -U setuptools
 
 script:
