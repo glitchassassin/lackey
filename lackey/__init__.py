@@ -22,6 +22,7 @@ except ImportError:
 import sys
 import time
 import os
+import warnings
 import requests
 
 ## Lackey sub-files
@@ -55,6 +56,22 @@ type_ = type
 input_ = input
 exit_ = sys.exit
 #zip_ = zip
+
+
+# Deprecated underscore functions
+
+def _exit(code):
+    warnings.warn("Please use exit_ instead.", DeprecationWarning)
+    return exit_(code)
+
+def _input(prompt):
+    warnings.warn("Please use input_ instead.", DeprecationWarning)
+    return input_(prompt)
+
+def _type(obj):
+    warnings.warn("Please use type_ instead.", DeprecationWarning)
+    return type_(obj)
+
 
 ## Sikuli Convenience Functions
 
