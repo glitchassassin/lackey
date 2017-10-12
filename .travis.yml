@@ -1,0 +1,59 @@
+matrix:
+  include:
+  - os: osx
+    language: generic
+    env: PYTHON=2.7
+  - os: osx
+    language: generic
+    env: PYTHON=3.5
+  - os: osx
+    language: generic
+    env: PYTHON=3.6
+  - os: osx
+    language: generic
+    env: PYTHON=3.7
+
+before_install: |
+  if [ "$TRAVIS_OS_NAME" == "osx" ]; then
+    brew update
+    # Per the `pyenv homebrew recommendations <https://github.com/yyuu/pyenv/wiki#suggested-build-environment>`_.
+    brew install openssl readline
+    # See https://docs.travis-ci.com/user/osx-ci-environment/#A-note-on-upgrading-packages.
+    # I didn't do this above because it works and I'm lazy.
+    brew outdated pyenv || brew upgrade pyenv
+    # virtualenv doesn't work without pyenv knowledge. venv in Python 3.3
+    # doesn't provide Pip by default. So, use `pyenv-virtualenv <https://github.com/yyuu/pyenv-virtualenv/blob/master/README.md>`_.
+    brew install pyenv-virtualenv
+    pyenv install $PYTHON
+    # I would expect something like ``pyenv init; pyenv local $PYTHON`` or
+    # ``pyenv shell $PYTHON`` would work, but ``pyenv init`` doesn't seem to
+    # modify the Bash environment. ??? So, I hand-set the variables instead.
+    export PYENV_VERSION=$PYTHON
+    export PATH="/Users/travis/.pyenv/shims:${PATH}"
+    pyenv-virtualenv venv
+    source venv/bin/activate
+    # A manual check that the correct version of Python is running.
+    python --version
+  fi
+
+install:
+  - python -m pip install --disable-pip-version-check --user --upgrade pip
+  - python -m easy_install -U setuptools
+
+build_script:
+  # Build the compiled extension
+  - python setup.py install
+
+test_script:
+  # Run the project tests
+  - python tests/appveyor_test_cases.py
+
+after_test:
+  # If tests are successful, create binary packages for the project.
+  - python setup.py bdist_wheel
+  - python setup.py sdist
+  - ls dist
+
+artifacts:
+  # Archive the generated packages in the ci.appveyor.com build report.
+  - path: dist\*
