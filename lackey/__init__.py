@@ -53,10 +53,7 @@ keyboard.add_hotkey("alt+shift+c", _abort_script, suppress=True)
 
 type_ = type
 input_ = input
-try:
-    exit_ = exit
-except NameError:
-    pass # `exit` is not always defined, as when building to executable.
+exit_ = sys.exit
 #zip_ = zip
 
 ## Sikuli Convenience Functions
