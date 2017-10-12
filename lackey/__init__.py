@@ -50,7 +50,7 @@ keyboard.add_hotkey("alt+shift+c", _abort_script, suppress=True)
 ## Sikuli patching: Functions that map to the global Screen region
 ## Don't try this at home, kids!
 
-# First, save the native functions by remapping them with a prefixed underscore:
+# First, save the native functions by remapping them with a trailing underscore:
 
 type_ = type
 input_ = input
