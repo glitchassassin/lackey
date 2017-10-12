@@ -51,13 +51,13 @@ keyboard.add_hotkey("alt+shift+c", _abort_script, suppress=True)
 
 # First, save the native functions by remapping them with a prefixed underscore:
 
-_type = type
-_input = input
+type_ = type
+input_ = input
 try:
-    _exit = exit
+    exit_ = exit
 except NameError:
     pass # `exit` is not always defined, as when building to executable.
-#_zip = zip
+#zip_ = zip
 
 ## Sikuli Convenience Functions
 
