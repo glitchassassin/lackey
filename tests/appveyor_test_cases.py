@@ -61,6 +61,8 @@ class TestAppMethods(unittest.TestCase):
             self.assertGreater(region.getH(), 0)
             app.close()
         elif sys.platform == "darwin":
+            if "TRAVIS" in os.environ:
+                return # Skip these tests in travis build environment
             a = lackey.App("+open -a TextEdit tests/test_cases.py")
             a2 = lackey.App("open -a TextEdit tests/appveyor_test_cases.py")
             lackey.sleep(1)
@@ -71,8 +73,8 @@ class TestAppMethods(unittest.TestCase):
             app2.close()
             app.focus()
             print(app.getPID())
-            self.assertEqual(app.getName()[-len("TextEdit"):], "TextEdit")
             self.assertTrue(app.isRunning())
+            self.assertEqual(app.getName()[-len("TextEdit"):], "TextEdit")
             #self.assertEqual(app.getWindow(), "test_cases.py") # Doesn't work on `open`-triggered apps
             self.assertNotEqual(app.getPID(), -1)
             region = app.window()
@@ -96,13 +98,15 @@ class TestAppMethods(unittest.TestCase):
             app.close()
             lackey.wait(0.9)
         elif sys.platform.startswith("darwin"):
+            if "TRAVIS" in os.environ:
+                return # Skip these tests in travis build environment
             a = lackey.App("open")
             a.setUsing("-a TextEdit tests/test_cases.py")
             a.open()
             lackey.wait(1)
             app = lackey.App("test_cases.py")
-            self.assertEqual(app.getName()[-len("TextEdit"):], "TextEdit")
             self.assertTrue(app.isRunning())
+            self.assertEqual(app.getName()[-len("TextEdit"):], "TextEdit")
             #self.assertEqual(app.getWindow(), "test_cases.py")  # Doesn't work on `open`-triggered apps
             self.assertNotEqual(app.getPID(), -1)
             app.close()
