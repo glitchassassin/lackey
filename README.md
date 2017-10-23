@@ -67,11 +67,11 @@ My goal with this project is to be able to reuse my existing library of Sikuli s
 
 Note that I *have* had to adjust some of my image search similarity settings in a couple cases. Your mileage may vary. Please report any issues that you encounter and I'll try to get them patched.
 
-Be aware that **some Sikuli-script methods actually overwrite Python-native functions**, namely `type()` and `input()`. Where this is the case, I've remapped the native functions by prefixing them with an underscore. They can be accessed as follows:
+Be aware that **some Sikuli-script methods actually overwrite Python-native functions**, namely `type()` and `input()`. Where this is the case, I've remapped the native functions by adding a trailing underscore. They can be accessed as follows:
 
     from lackey import *
 
-    username = _input("Enter your username: ")
+    username = input_("Enter your username: ")
 
 ## Structure ##
 

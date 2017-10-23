@@ -567,6 +567,11 @@ class TestConvenienceFunctions(unittest.TestCase):
         self.assertHasMethod(lackey, "select", 4)
         self.assertHasMethod(lackey, "popFile", 1)
 
+    def test_renamed_builtin_functions(self):
+        self.assertEqual(lackey.exit_, sys.exit)
+        self.assertEqual(lackey.input_, input)
+        self.assertEqual(lackey.type_, type)
+
     def assertHasMethod(self, cls, mthd, args=0):
         """ Custom test to make sure a class has the specified method (and that it takes `args` parameters) """
         self.assertTrue(callable(getattr(cls, mthd, None)))
