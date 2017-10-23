@@ -6,6 +6,7 @@ import time
 import numpy
 import ctypes
 import threading
+from builtins import str # Python 2/3 compatibility
 try:
     import Tkinter as tk
 except ImportError:
@@ -304,7 +305,7 @@ class PlatformManagerWindows(object):
 
         ## Begin logic
         self._gdi32.CreateDCW.restype = ctypes.c_void_p
-        hdc = self._gdi32.CreateDCW(ctypes.c_wchar_p(unicode(device_name)), 0, 0, 0) # Convert to bytestring for c_wchar_p type
+        hdc = self._gdi32.CreateDCW(ctypes.c_wchar_p(str(device_name)), 0, 0, 0) # Convert to bytestring for c_wchar_p type
         if hdc == 0:
             raise ValueError("Empty hdc provided")
 
