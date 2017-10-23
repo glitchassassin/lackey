@@ -6,7 +6,6 @@ import time
 import numpy
 import ctypes
 import threading
-from builtins import str # Python 2/3 compatibility
 try:
     import Tkinter as tk
 except ImportError:
@@ -21,6 +20,10 @@ try:
     basestring
 except NameError:
     basestring = str
+try:
+    unicode
+except:
+    unicode = str
 
 class PlatformManagerWindows(object):
     """ Abstracts Windows-specific OS-level features """
