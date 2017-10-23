@@ -35,7 +35,7 @@ install:
     # A manual check that the correct version of Python is running.
   - python --version
   - python -m pip install --disable-pip-version-check --upgrade pip
-  - pip install --user -r osx_requirements.txt
+  - pip install -r osx_requirements.txt
   - python -m easy_install -U setuptools
 
 script:
