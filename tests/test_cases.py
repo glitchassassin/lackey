@@ -16,9 +16,24 @@ try:
 except NameError:
     basestring = str
 
+@unittest.skipUnless(sys.platform.startswith("win"), "Platforms supported include: Windows")
 class TestKeyboardMethods(unittest.TestCase):
     def setUp(self):
         self.kb = lackey.Keyboard()
+        self.app = lackey.App("notepad.exe")
+        self.app.open()
+        time.sleep(1)
+
+    def tearDown(self):
+        self.app.close()
+
+    def type_and_check_equals(self, typed, expected):
+        self.kb.type(typed)
+        time.sleep(0.2)
+        lackey.type("a", lackey.Key.CTRL)
+        lackey.type("c", lackey.Key.CTRL)
+
+        self.assertEqual(lackey.getClipboard(), expected)
 
     def test_keys(self):
         self.kb.keyDown("{SHIFT}")
@@ -31,33 +46,68 @@ class TestKeyboardMethods(unittest.TestCase):
         # you run this test, the SHIFT, CTRL, or ALT keys might not have been released
         # properly.
 
+    def test_parsed_special_codes(self):
+        OUTPUTS = {
+            # Special codes should output the text below.
+            # Multiple special codes should be parsed correctly.
+            # False special codes should be typed out normally.
+            "{SPACE}": " ",
+            "{TAB}": "\t",
+            "{SPACE}{SPACE}": "  ",
+            "{TAB}{TAB}": "\t\t",
+            "{ENTER}{ENTER}": "\r\n\r\n",
+            "{TEST}": "{TEST}",
+            "{TEST}{TEST}": "{TEST}{TEST}"
+        }
+
+        for code in OUTPUTS:
+            self.type_and_check_equals(code, OUTPUTS[code])
+
+
 class TestComplexFeatures(unittest.TestCase):
     def setUp(self):
-        print(os.path.dirname(__file__))
         lackey.addImagePath(os.path.dirname(__file__))
+        lackey.Screen(0).hover()
+        lackey.Screen(0).click()
 
     def testTypeCopyPaste(self):
         """ Also tests the log file """
         lackey.Debug.setLogFile("logfile.txt")
+        r = lackey.Screen(0)
         if sys.platform.startswith("win"):
             app = lackey.App("notepad.exe").open()
             time.sleep(1)
+            r.type("This is a Test")
+            r.type("a", lackey.Key.CTRL) # Select all
+            r.type("c", lackey.Key.CTRL) # Copy
+            self.assertEqual(r.getClipboard(), "This is a Test")
+            r.type("{DELETE}") # Clear the selected text
+            r.paste("This, on the other hand, is a {SHIFT}broken {SHIFT}record.") # Paste should ignore special characters and insert the string as is
+            r.type("a", lackey.Key.CTRL) # Select all
+            r.type("c", lackey.Key.CTRL) # Copy
+            self.assertEqual(r.getClipboard(), "This, on the other hand, is a {SHIFT}broken {SHIFT}record.")
+        elif sys.platform == "darwin":
+            app = lackey.App("+open -e")
+            lackey.sleep(2)
+            #r.debugPreview()
+            r.wait(lackey.Pattern("preview_open.png"), lackey.FOREVER)
+            r.click(lackey.Pattern("preview_open.png"))
+            lackey.type("n", lackey.KeyModifier.CMD)
+            time.sleep(1)
+            app = lackey.App("Untitled")
+            r.type("This is a Test")
+            r.type("a", lackey.KeyModifier.CMD) # Select all
+            r.type("c", lackey.KeyModifier.CMD) # Copy
+            self.assertEqual(r.getClipboard(), "This is a Test")
+            r.type("{DELETE}") # Clear the selected text
+            r.paste("This, on the other hand, is a {SHIFT}broken {SHIFT}record.") # Paste should ignore special characters and insert the string as is
+            r.type("a", lackey.KeyModifier.CMD) # Select all
+            r.type("c", lackey.KeyModifier.CMD) # Copy
+            self.assertEqual(r.getClipboard(), "This, on the other hand, is a {SHIFT}broken {SHIFT}record.")
         else:
-            raise NotImplementedError("Platforms supported include: Windows")
-        r = app.window()
+            raise NotImplementedError("Platforms supported include: Windows, OS X")
 
-        r.type("This is a Test")
-        r.type("a", lackey.Key.CONTROL) # Select all
-        r.type("c", lackey.Key.CONTROL) # Copy
-        self.assertEqual(r.getClipboard(), "This is a Test")
-        r.type("{DELETE}") # Clear the selected text
-        r.paste("This, on the other hand, is a {SHIFT}broken {SHIFT}record.") # Paste should ignore special characters and insert the string as is
-        r.type("a", lackey.Key.CONTROL) # Select all
-        r.type("c", lackey.Key.CONTROL) # Copy
-        self.assertEqual(r.getClipboard(), "This, on the other hand, is a {SHIFT}broken {SHIFT}record.")
-
-        if sys.platform.startswith("win"):
-            app.close()
+        app.close()
 
         lackey.Debug.setLogFile(None)
 
@@ -75,19 +125,37 @@ class TestComplexFeatures(unittest.TestCase):
             region.TestFlag = True
             region.stopObserver()
         r = lackey.Screen(0)
-        r.doubleClick("notepad.png")
+        if sys.platform.startswith("win"):
+            r.doubleClick("notepad.png")
+        elif sys.platform == "darwin":
+            r.doubleClick("textedit.png")
+            r.wait("preview_open.png")
+            r.type("n", lackey.KeyModifier.CMD)
         time.sleep(2)
         r.type("This is a test")
-        r.onAppear(lackey.Pattern("test_text.png").similar(0.6), test_observer)
+        if sys.platform.startswith("win"):
+            r.onAppear(lackey.Pattern("test_text.png").similar(0.6), test_observer)
+        elif sys.platform == "darwin":
+            r.onAppear(lackey.Pattern("mac_test_text.png").similar(0.6), test_observer)
         r.observe(30)
         self.assertTrue(r.TestFlag)
-        r.rightClick(r.getLastMatch())
         self.assertGreater(r.getTime(), 0)
-        r.click("select_all.png")
-        r.type("c", lackey.Key.CONTROL) # Copy
+        if sys.platform.startswith("win"):
+            r.rightClick(r.getLastMatch())
+            r.click("select_all.png")
+            r.type("c", lackey.Key.CTRL) # Copy
+        elif sys.platform == "darwin":
+            r.type("a", lackey.KeyModifier.CMD)
+            r.type("c", lackey.KeyModifier.CMD)
         self.assertEqual(r.getClipboard(), "This is a test")
         r.type("{DELETE}")
-        r.type("{F4}", lackey.Key.ALT)
+        if sys.platform.startswith("win"):
+            r.type("{F4}", lackey.Key.ALT)
+        elif sys.platform == "darwin":
+            r.type("w", lackey.KeyModifier.CMD)
+            r.click(lackey.Pattern("textedit_save.png").targetOffset(-86, 41))
+            lackey.sleep(0.5)
+            r.type("q", lackey.KeyModifier.CMD)
 
     def testDragDrop(self):
         """ This relies on two specific icons on the desktop.
@@ -95,9 +163,15 @@ class TestComplexFeatures(unittest.TestCase):
         This test will probably fail if you don't have the same setup I do.
         """
         r = lackey.Screen(0)
-        r.dragDrop("test_file_txt.png", "notepad.png")
-        self.assertTrue(r.exists("test_file_text.png"))
-        r.type("{F4}", lackey.Key.ALT)
+        if sys.platform.startswith("win"):
+            r.dragDrop("test_file_txt.png", "notepad.png")
+            self.assertTrue(r.exists("test_file_txt.png"))
+            r.type("{F4}", lackey.Key.ALT)
+        elif sys.platform == "darwin":
+            r.dragDrop("test_file_rtf.png", "textedit.png")
+            self.assertTrue(r.exists("test_file_rtf.png"))
+            r.type("w", lackey.KeyModifier.CMD)
+            r.type("q", lackey.KeyModifier.CMD)
 
     def testFindFailed(self):
         """ Sets up a region (which should not have the target icon) """

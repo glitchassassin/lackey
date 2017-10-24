@@ -57,7 +57,7 @@ In my line of work, I have a lot of tasks walking through line-of-business appli
 
 There are some existing libraries for this purpose, like `pywinauto` and `autopy`, but they didn't work for me for one reason or another. I wasn't doing a lot of Windows GUI interaction with these particular applications, so `pywinauto`'s approach wouldn't help. I needed something that could search for and use images on screen. `autopy` was closer, but it had quite a few outstanding issues and hadn't been updated in a while.
 
-Most of my automation is in Windows, so I've begun this library with only Windows support. However, it's designed to eventually be extended with support for Mac OS X and Linux by implementing additional "PlatformManager" classes. I'll get around to these at some point, but if you'd like to contribute one sooner, please feel free!
+Most of my automation is in Windows, so I've begun this library with only Windows support. As of version 0.7.0, it also includes Mac OS X support,and it's designed to eventually be extended with support for Linux by implementing an additional "PlatformManager" class. I'll get around to this at some point, but if you'd like to contribute one sooner, please feel free!
 
 ### Sikuli Patching ###
 
@@ -67,11 +67,11 @@ My goal with this project is to be able to reuse my existing library of Sikuli s
 
 Note that I *have* had to adjust some of my image search similarity settings in a couple cases. Your mileage may vary. Please report any issues that you encounter and I'll try to get them patched.
 
-Be aware that **some Sikuli-script methods actually overwrite Python-native functions**, namely `type()` and `input()`. Where this is the case, I've remapped the native functions by prefixing them with an underscore. They can be accessed as follows:
+Be aware that **some Sikuli-script methods actually overwrite Python-native functions**, namely `type()` and `input()`. Where this is the case, I've remapped the native functions by adding a trailing underscore. They can be accessed as follows:
 
     from lackey import *
 
-    username = _input("Enter your username: ")
+    username = input_("Enter your username: ")
 
 ## Structure ##
 

@@ -29,7 +29,7 @@ class Mouse(object):
 
     def move(self, loc, yoff=None):
         """ Moves cursor to specified location. Accepts the following arguments:
-        
+
         * ``move(loc)`` - Move cursor to ``Location``
         * ``move(xoff, yoff) - Move cursor to offset from current location
         """
@@ -37,8 +37,11 @@ class Mouse(object):
         self._lock.acquire()
         if isinstance(loc, Location):
             mouse.move(loc.x, loc.y)
+        elif yoff is not None:
+            xoff = loc
+            mouse.move(xoff, yoff)
         else:
-            mouse.move(loc, yoff)
+            raise ValueError("Invalid argument. Expected either move(loc) or move(xoff, yoff).")
         self._last_position = loc
         self._lock.release()
 
@@ -143,7 +146,7 @@ class Keyboard(object):
             "INSERT":		"ins",
             "DELETE":		"del",
             "WIN":			"win",
-            "CMD":			"win",
+            "CMD":			"command",
             "META":			"win",
             "NUM0":		    "keypad 0",
             "NUM1":		    "keypad 1",
@@ -367,6 +370,7 @@ class Keyboard(object):
                     # Release the rest of the keys normally
                     self.type(special_code)
                     self.type(text[i])
+                special_code = ""
             elif in_special_code:
                 special_code += text[i]
             elif text[i] in self._REGULAR_KEYCODES.keys():
@@ -376,6 +380,6 @@ class Keyboard(object):
                 keyboard.press(self._SPECIAL_KEYCODES["SHIFT"])
                 keyboard.press_and_release(self._UPPERCASE_KEYCODES[text[i]])
                 keyboard.release(self._SPECIAL_KEYCODES["SHIFT"])
-            if delay:
+            if delay and not in_special_code:
                 time.sleep(delay)
 

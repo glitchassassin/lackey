@@ -23,7 +23,7 @@ def main():
     time.sleep(7)
     r.rightClick(lackey.Pattern("test_text.png").similar(0.6))
     r.click("select_all.png")
-    r.type("c", lackey.Key.CONTROL) # Copy
+    r.type("c", lackey.Key.CTRL) # Copy
     assert r.getClipboard() == "This is a test"
     r.type("{DELETE}")
     r.type("{F4}", lackey.Key.ALT)
