@@ -31,7 +31,8 @@ class Mouse(object):
         """ Moves cursor to specified location. Accepts the following arguments:
 
         * ``move(loc)`` - Move cursor to ``Location``
-        * ``move(xoff, yoff) - Move cursor to offset from current location
+        * ``move(xoff, yoff)`` - Move cursor to offset from current location
+
         """
         from .Geometry import Location
         self._lock.acquire()
