@@ -25,16 +25,16 @@ from .SettingsDebug import Settings, Debug
 from .TemplateMatchers import PyramidTemplateMatcher as TemplateMatcher
 from .Geometry import Location
 
-if platform.system() == "Windows":
+if platform.system() == "Windows" or os.environ.get('READTHEDOCS') == 'True':
+    # Avoid throwing an error if it's just being imported for documentation purposes
     from .PlatformManagerWindows import PlatformManagerWindows
-    PlatformManager = PlatformManagerWindows() # No other input managers built yet
+    PlatformManager = PlatformManagerWindows()
 elif platform.system() == "Darwin":
     from .PlatformManagerDarwin import PlatformManagerDarwin
     PlatformManager = PlatformManagerDarwin()
 else:
-    # Avoid throwing an error if it's just being imported for documentation purposes
-    if not os.environ.get('READTHEDOCS') == 'True':
-        raise NotImplementedError("Lackey is currently only compatible with Windows and OSX.")
+    raise NotImplementedError("Lackey is currently only compatible with Windows and OSX.")
+    
 
 # Python 3 compatibility
 try:

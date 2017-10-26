@@ -76,9 +76,10 @@ class Location(object):
 
         * ``grow(wh)`` - Creates a region centered on this point with a width and height of ``wh``.
         * ``grow(w, h)`` - Creates a region centered on this point with a width of ``w`` and height
-        of ``h``.
+          of ``h``.
         * ``grow(Region.CREATE_X_DIRECTION, Region.CREATE_Y_DIRECTION, w, h)`` - Creates a region
-        with this point as one corner, expanding in the specified direction
+          with this point as one corner, expanding in the specified direction
+        
         """
         if len(args) == 1:
             return Region.grow(self.x, self.y, args[0], args[0])
