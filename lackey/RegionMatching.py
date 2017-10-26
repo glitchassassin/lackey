@@ -33,8 +33,11 @@ elif platform.system() == "Darwin":
     PlatformManager = PlatformManagerDarwin()
 else:
     # Avoid throwing an error if it's just being imported for documentation purposes
-    if not os.environ.get('READTHEDOCS') == 'True':
+    if os.environ.get('READTHEDOCS') == 'True':
+        PlatformManager = PlatformManagerDarwin()
+    else:
         raise NotImplementedError("Lackey is currently only compatible with Windows and OSX.")
+    
 
 # Python 3 compatibility
 try:
