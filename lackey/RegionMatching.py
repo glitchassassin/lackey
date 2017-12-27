@@ -1015,33 +1015,38 @@ class Region(object):
     def delayType(millisecs):
         Settings.TypeDelay = millisecs
     def isRegionValid(self):
-        """ Returns false if the whole region is outside any screen, otherwise true """
+        """ Returns false if the whole region is not even partially inside any screen, otherwise true """
         screens = PlatformManager.getScreenDetails()
         for screen in screens:
             s_x, s_y, s_w, s_h = screen["rect"]
-            if (self.x+self.w < s_x or s_x+s_w < self.x or self.y+self.h < s_y or s_y+s_h < self.y):
+            if self.x+self.w >= s_x and s_x+s_w >= self.x and self.y+self.h >= s_y and s_y+s_h >= self.y:
                 # Rects overlap
-                return False
-            return True
+                return True
+        return False
 
     def clipRegionToScreen(self):
         """ Returns the part of the region that is visible on a screen
 
+        If the region equals to all visible screens, returns Screen(-1).
         If the region is visible on multiple screens, returns the screen with the smallest ID.
         Returns None if the region is outside the screen.
         """
         if not self.isRegionValid():
             return None
         screens = PlatformManager.getScreenDetails()
+        total_x, total_y, total_w, total_h = Screen(-1).getBounds()
         containing_screen = None
         for screen in screens:
             s_x, s_y, s_w, s_h = screen["rect"]
             if self.x >= s_x and self.x+self.w <= s_x+s_w and self.y >= s_y and self.y+self.h <= s_y+s_h:
                 # Region completely inside screen
                 return self
-            elif self.x+self.w < s_x or s_x+s_w < self.x or self.y+self.h < s_y or s_y+s_h < self.y:
+            elif self.x+self.w <= s_x or s_x+s_w <= self.x or self.y+self.h <= s_y or s_y+s_h <= self.y:
                 # Region completely outside screen
                 continue
+            elif self.x == total_x and self.y == total_y and self.w == total_w and self.h == total_h:
+                # Region equals all screens, Screen(-1)
+                return self
             else:
                 # Region partially inside screen
                 x = max(self.x, s_x)
@@ -1903,7 +1908,7 @@ class Screen(Region):
         Debug.info("*** monitor configuration [ {} Screen(s)] ***".format(cls.getNumberScreens()))
         Debug.info("*** Primary is Screen {}".format(cls.primaryScreen))
         for index, screen in enumerate(PlatformManager.getScreenDetails()):
-            Debug.info("Screen {}: ({}, {}, {}, {})".format(index, *screen[rect]))
+            Debug.info("Screen {}: ({}, {}, {}, {})".format(index, *screen["rect"]))
         Debug.info("*** end monitor configuration ***")
     def resetMonitors(self):
         """ Recalculates screen based on changed monitor setup """
