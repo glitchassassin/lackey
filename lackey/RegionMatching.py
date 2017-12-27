@@ -99,7 +99,7 @@ class Pattern(object):
         """ Set the filename of the pattern's image (and load it) """
         ## Loop through image paths to find the image
         found = False
-        for image_path in [Settings.BundlePath, os.getcwd()] + Settings.ImagePaths:
+        for image_path in sys.path + [Settings.BundlePath, os.getcwd()] + Settings.ImagePaths:
             full_path = os.path.join(image_path, filename)
             if os.path.exists(full_path):
                 # Image file not found
