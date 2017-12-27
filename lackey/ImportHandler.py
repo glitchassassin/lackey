@@ -29,7 +29,7 @@ if sys.version_info[0] == 3:
             return None # we don't know how to import this
     sys.meta_path.append(SikuliFinder())
 elif sys.version_info[0] == 2:
-    import importlib
+    import imp
 
     class SikuliFinder(object):
         def __init__(self, path):
@@ -45,8 +45,12 @@ elif sys.version_info[0] == 2:
             
                 # Found what we're looking for. Add to path.
                 sys.path.append(sikuli_path)
-                return cls(sikuli_path)
+                return cls(filename)
         
-        def load_module(self, fullname):
-            return importlib.import_module(fullname, self.path)
+        def load_module(self, name):
+            if name in sys.modules:
+                return sys.modules[name]
+            with open(self.path, "r") as project:
+                mod = imp.load_module(name, project, self.path, (".py", "r", imp.PY_SOURCE))
+            return mod
     sys.meta_path.append(SikuliFinder)
