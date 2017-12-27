@@ -38,8 +38,7 @@ from .SettingsDebug import Debug, Settings, DebugMaster, SettingsMaster
 from .SikuliGui import PopupInput, PopupList, PopupTextarea
 from ._version import __version__
 
-from .ImportHandler import SikuliFinder
-sys.meta_path.append(SikuliFinder())
+from . import ImportHandler
 
 VALID_PLATFORMS = ["Windows", "Darwin"]
 
