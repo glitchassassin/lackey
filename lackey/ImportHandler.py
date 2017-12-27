@@ -8,7 +8,7 @@ from importlib.machinery import SourceFileLoader
 class SikuliFinder(MetaPathFinder):
     def find_spec(self, fullname, path, target=None):
         if "." in fullname:
-            *parents, name = fullname.split(".")
+            name = fullname.split(".")[-1]
         else:
             name = fullname
         for entry in sys.path:
