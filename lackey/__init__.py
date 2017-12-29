@@ -38,6 +38,8 @@ from .SettingsDebug import Debug, Settings, DebugMaster, SettingsMaster
 from .SikuliGui import PopupInput, PopupList, PopupTextarea
 from ._version import __version__
 
+from . import ImportHandler
+
 VALID_PLATFORMS = ["Windows", "Darwin"]
 
 ## Define script abort hotkey (Alt+Shift+C)
