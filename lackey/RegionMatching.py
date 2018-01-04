@@ -950,9 +950,9 @@ class Region(object):
         """ OCR method. Todo. """
         raise NotImplementedError("OCR not yet supported")
 
-    def mouseDown(self, button):
+    def mouseDown(self, button=Mouse.LEFT):
         """ Low-level mouse actions. """
-        return PlatformManager.mouseButtonDown(button)
+        return Mouse.buttonDown(button)
     def mouseUp(self, button=Mouse.LEFT):
         """ Low-level mouse actions """
         return Mouse.buttonUp(button)
