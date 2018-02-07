@@ -67,7 +67,7 @@ class Location(object):
         if scr is None:
             return None
         offset = scr.getTopLeft().getOffset(self)
-        return self.getScreen().getBitmap()[offset.x, offset.y]
+        return self.getScreen().getBitmap()[offset.y, offset.x]
     def getOffset(self, loc):
         """ Returns the offset between the given point and this point """
         return Location(loc.x - self.x, loc.y - self.y)
