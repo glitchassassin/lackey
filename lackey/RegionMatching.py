@@ -1311,11 +1311,11 @@ class Region(object):
     def aboveAt(self, offset=0):
         """ Returns point in the center of the region's top side (offset to the top
         by negative ``offset``) """
-        return Location(self.getX() + (getW() / 2), self.getY() + offset)
+        return Location(self.getX() + (self.getW() / 2), self.getY() + offset)
     def bottomAt(self, offset=0):
         """ Returns point in the center of the region's bottom side (offset to the bottom
         by ``offset``) """
-        return Location(self.getX() + (getW() / 2), self.getY() + self.getH() + offset)
+        return Location(self.getX() + (self.getW() / 2), self.getY() + self.getH() + offset)
 
     def union(ur):
         """ Returns a new region that contains both this region and the specified region """
