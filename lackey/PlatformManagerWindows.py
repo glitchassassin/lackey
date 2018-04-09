@@ -533,7 +533,7 @@ class PlatformManagerWindows(object):
             ctypes.py_object)
         def callback(hwnd, context):
             if ctypes.windll.user32.IsWindowVisible(hwnd):
-                pid = ctypes.c_long()
+                pid = ctypes.c_ulong()
                 ctypes.windll.user32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
                 if context["pid"] == int(pid.value) and not context["handle"]:
                     if context["order"] > 0:
@@ -569,7 +569,7 @@ class PlatformManagerWindows(object):
         return buff.value
     def getWindowPID(self, hwnd):
         """ Gets the process ID that the specified window belongs to """
-        pid = ctypes.c_long()
+        pid = ctypes.c_ulong()
         ctypes.windll.user32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
         return int(pid.value)
     def getForegroundWindow(self):
