@@ -1655,8 +1655,10 @@ class Observer(object):
         """
         if event_type not in self._supported_events:
             raise ValueError("Unsupported event type {}".format(event_type))
-        if not isinstance(pattern, Pattern) and not isinstance(pattern, basestring):
+        if event_type != "CHANGE" and not isinstance(pattern, Pattern) and not isinstance(pattern, basestring):
             raise ValueError("Expected pattern to be a Pattern or string")
+        if event_type == "CHANGE" and not (len(pattern)==2 and isinstance(pattern[0], int) and isinstance(pattern[1], numpy.ndarray)):
+            raise ValueError("For \"CHANGE\" events, ``pattern`` should be a tuple of ``min_changed_pixels`` and the base screen state.")
 
         # Create event object
         event = {
