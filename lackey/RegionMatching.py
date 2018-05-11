@@ -25,22 +25,27 @@ from .SettingsDebug import Settings, Debug
 from .TemplateMatchers import PyramidTemplateMatcher as TemplateMatcher
 from .Geometry import Location
 
-if platform.system() == "Windows":
+if platform.system() == "Windows" or os.environ.get('READTHEDOCS') == 'True':
+    # Avoid throwing an error if it's just being imported for documentation purposes
     from .PlatformManagerWindows import PlatformManagerWindows
-    PlatformManager = PlatformManagerWindows() # No other input managers built yet
+    PlatformManager = PlatformManagerWindows()
 elif platform.system() == "Darwin":
     from .PlatformManagerDarwin import PlatformManagerDarwin
     PlatformManager = PlatformManagerDarwin()
 else:
-    # Avoid throwing an error if it's just being imported for documentation purposes
-    if not os.environ.get('READTHEDOCS') == 'True':
-        raise NotImplementedError("Lackey is currently only compatible with Windows and OSX.")
+    raise NotImplementedError("Lackey is currently only compatible with Windows and OSX.")
+    
 
 # Python 3 compatibility
 try:
     basestring
 except NameError:
     basestring = str
+try:
+    FOREVER = float("inf")
+except:
+    import math
+    FOREVER = math.inf
 
 # Instantiate input emulation objects
 Mouse = MouseClass()
@@ -94,7 +99,7 @@ class Pattern(object):
         """ Set the filename of the pattern's image (and load it) """
         ## Loop through image paths to find the image
         found = False
-        for image_path in [Settings.BundlePath, os.getcwd()] + Settings.ImagePaths:
+        for image_path in sys.path + [Settings.BundlePath, os.getcwd()] + Settings.ImagePaths:
             full_path = os.path.join(image_path, filename)
             if os.path.exists(full_path):
                 # Image file not found
@@ -566,6 +571,9 @@ class Region(object):
         Sikuli supports OCR search with a text parameter. This does not (yet).
         """
         if isinstance(pattern, (int, float)):
+            if pattern == FOREVER:
+                while True:
+                    time.sleep(1) # Infinite loop
             time.sleep(pattern)
             return None
 
@@ -942,9 +950,9 @@ class Region(object):
         """ OCR method. Todo. """
         raise NotImplementedError("OCR not yet supported")
 
-    def mouseDown(self, button):
+    def mouseDown(self, button=Mouse.LEFT):
         """ Low-level mouse actions. """
-        return PlatformManager.mouseButtonDown(button)
+        return Mouse.buttonDown(button)
     def mouseUp(self, button=Mouse.LEFT):
         """ Low-level mouse actions """
         return Mouse.buttonUp(button)
@@ -1007,33 +1015,38 @@ class Region(object):
     def delayType(millisecs):
         Settings.TypeDelay = millisecs
     def isRegionValid(self):
-        """ Returns false if the whole region is outside any screen, otherwise true """
+        """ Returns false if the whole region is not even partially inside any screen, otherwise true """
         screens = PlatformManager.getScreenDetails()
         for screen in screens:
             s_x, s_y, s_w, s_h = screen["rect"]
-            if (self.x+self.w < s_x or s_x+s_w < self.x or self.y+self.h < s_y or s_y+s_h < self.y):
+            if self.x+self.w >= s_x and s_x+s_w >= self.x and self.y+self.h >= s_y and s_y+s_h >= self.y:
                 # Rects overlap
-                return False
-            return True
+                return True
+        return False
 
     def clipRegionToScreen(self):
         """ Returns the part of the region that is visible on a screen
 
+        If the region equals to all visible screens, returns Screen(-1).
         If the region is visible on multiple screens, returns the screen with the smallest ID.
         Returns None if the region is outside the screen.
         """
         if not self.isRegionValid():
             return None
         screens = PlatformManager.getScreenDetails()
+        total_x, total_y, total_w, total_h = Screen(-1).getBounds()
         containing_screen = None
         for screen in screens:
             s_x, s_y, s_w, s_h = screen["rect"]
             if self.x >= s_x and self.x+self.w <= s_x+s_w and self.y >= s_y and self.y+self.h <= s_y+s_h:
                 # Region completely inside screen
                 return self
-            elif self.x+self.w < s_x or s_x+s_w < self.x or self.y+self.h < s_y or s_y+s_h < self.y:
+            elif self.x+self.w <= s_x or s_x+s_w <= self.x or self.y+self.h <= s_y or s_y+s_h <= self.y:
                 # Region completely outside screen
                 continue
+            elif self.x == total_x and self.y == total_y and self.w == total_w and self.h == total_h:
+                # Region equals all screens, Screen(-1)
+                return self
             else:
                 # Region partially inside screen
                 x = max(self.x, s_x)
@@ -1298,11 +1311,11 @@ class Region(object):
     def aboveAt(self, offset=0):
         """ Returns point in the center of the region's top side (offset to the top
         by negative ``offset``) """
-        return Location(self.getX() + (getW() / 2), self.getY() + offset)
+        return Location(self.getX() + (self.getW() / 2), self.getY() + offset)
     def bottomAt(self, offset=0):
         """ Returns point in the center of the region's bottom side (offset to the bottom
         by ``offset``) """
-        return Location(self.getX() + (getW() / 2), self.getY() + self.getH() + offset)
+        return Location(self.getX() + (self.getW() / 2), self.getY() + self.getH() + offset)
 
     def union(ur):
         """ Returns a new region that contains both this region and the specified region """
@@ -1642,8 +1655,10 @@ class Observer(object):
         """
         if event_type not in self._supported_events:
             raise ValueError("Unsupported event type {}".format(event_type))
-        if not isinstance(pattern, Pattern) and not isinstance(pattern, basestring):
+        if event_type != "CHANGE" and not isinstance(pattern, Pattern) and not isinstance(pattern, basestring):
             raise ValueError("Expected pattern to be a Pattern or string")
+        if event_type == "CHANGE" and not (len(pattern)==2 and isinstance(pattern[0], int) and isinstance(pattern[1], numpy.ndarray)):
+            raise ValueError("For \"CHANGE\" events, ``pattern`` should be a tuple of ``min_changed_pixels`` and the base screen state.")
 
         # Create event object
         event = {
@@ -1895,7 +1910,7 @@ class Screen(Region):
         Debug.info("*** monitor configuration [ {} Screen(s)] ***".format(cls.getNumberScreens()))
         Debug.info("*** Primary is Screen {}".format(cls.primaryScreen))
         for index, screen in enumerate(PlatformManager.getScreenDetails()):
-            Debug.info("Screen {}: ({}, {}, {}, {})".format(index, *screen[rect]))
+            Debug.info("Screen {}: ({}, {}, {}, {})".format(index, *screen["rect"]))
         Debug.info("*** end monitor configuration ***")
     def resetMonitors(self):
         """ Recalculates screen based on changed monitor setup """

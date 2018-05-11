@@ -53,7 +53,7 @@ class TestAppMethods(unittest.TestCase):
             app.focus()
             self.assertEqual(app.getName(), "notepad.exe")
             self.assertTrue(app.isRunning())
-            self.assertEqual(app.getWindow(), "test_cases(.py)? - Notepad")
+            self.assertRegex(app.getWindow(), "test_cases(.py)? - Notepad")
             self.assertNotEqual(app.getPID(), -1)
             region = app.window()
             self.assertIsInstance(region, lackey.Region)
@@ -61,6 +61,8 @@ class TestAppMethods(unittest.TestCase):
             self.assertGreater(region.getH(), 0)
             app.close()
         elif sys.platform == "darwin":
+            if "TRAVIS" in os.environ:
+                return # Skip these tests in travis build environment
             a = lackey.App("+open -a TextEdit tests/test_cases.py")
             a2 = lackey.App("open -a TextEdit tests/appveyor_test_cases.py")
             lackey.sleep(1)
@@ -71,8 +73,8 @@ class TestAppMethods(unittest.TestCase):
             app2.close()
             app.focus()
             print(app.getPID())
-            self.assertEqual(app.getName()[-len("TextEdit"):], "TextEdit")
             self.assertTrue(app.isRunning())
+            self.assertEqual(app.getName()[-len("TextEdit"):], "TextEdit")
             #self.assertEqual(app.getWindow(), "test_cases.py") # Doesn't work on `open`-triggered apps
             self.assertNotEqual(app.getPID(), -1)
             region = app.window()
@@ -91,18 +93,20 @@ class TestAppMethods(unittest.TestCase):
             lackey.wait(1)
             self.assertEqual(app.getName(), "notepad.exe")
             self.assertTrue(app.isRunning())
-            self.assertEqual(app.getWindow(), "test_cases(.py)? - Notepad")
+            self.assertRegex(app.getWindow(), "test_cases(.py)? - Notepad")
             self.assertNotEqual(app.getPID(), -1)
             app.close()
             lackey.wait(0.9)
         elif sys.platform.startswith("darwin"):
+            if "TRAVIS" in os.environ:
+                return # Skip these tests in travis build environment
             a = lackey.App("open")
             a.setUsing("-a TextEdit tests/test_cases.py")
             a.open()
             lackey.wait(1)
             app = lackey.App("test_cases.py")
-            self.assertEqual(app.getName()[-len("TextEdit"):], "TextEdit")
             self.assertTrue(app.isRunning())
+            self.assertEqual(app.getName()[-len("TextEdit"):], "TextEdit")
             #self.assertEqual(app.getWindow(), "test_cases.py")  # Doesn't work on `open`-triggered apps
             self.assertNotEqual(app.getPID(), -1)
             app.close()
@@ -566,6 +570,11 @@ class TestConvenienceFunctions(unittest.TestCase):
         self.assertHasMethod(lackey, "inputText", 5)
         self.assertHasMethod(lackey, "select", 4)
         self.assertHasMethod(lackey, "popFile", 1)
+
+    def test_renamed_builtin_functions(self):
+        self.assertEqual(lackey.exit_, sys.exit)
+        self.assertEqual(lackey.input_, input)
+        self.assertEqual(lackey.type_, type)
 
     def assertHasMethod(self, cls, mthd, args=0):
         """ Custom test to make sure a class has the specified method (and that it takes `args` parameters) """

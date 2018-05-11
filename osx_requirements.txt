@@ -1,0 +1,13 @@
+#
+####### requirements.txt #######
+#
+###### Requirements without Version Specifiers ######
+pyobjc
+requests
+numpy
+pillow
+opencv-python
+wheel
+pyperclip
+keyboard>=v0.9.13
+twine

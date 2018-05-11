@@ -70,6 +70,15 @@ class TestComplexFeatures(unittest.TestCase):
         lackey.Screen(0).hover()
         lackey.Screen(0).click()
 
+    def testImporter(self):
+        """ Tries to import the test_cases project file 
+        (ignores FindFailed exception thrown by project) """
+        try:
+            sys.path.append(os.path.join(os.getcwd(), "tests"))
+            import test_import
+        except lackey.FindFailed:
+            pass
+
     def testTypeCopyPaste(self):
         """ Also tests the log file """
         lackey.Debug.setLogFile("logfile.txt")
@@ -90,8 +99,8 @@ class TestComplexFeatures(unittest.TestCase):
             app = lackey.App("+open -e")
             lackey.sleep(2)
             #r.debugPreview()
-            r.wait(lackey.Pattern("preview_open.png"))
-            r.click(lackey.Pattern("preview_open.png"))
+            r.wait(lackey.Pattern("preview_open_2.png"))
+            r.click(lackey.Pattern("preview_open_2.png"))
             lackey.type("n", lackey.KeyModifier.CMD)
             time.sleep(1)
             app = lackey.App("Untitled")
@@ -129,7 +138,7 @@ class TestComplexFeatures(unittest.TestCase):
             r.doubleClick("notepad.png")
         elif sys.platform == "darwin":
             r.doubleClick("textedit.png")
-            r.wait("preview_open.png")
+            r.wait("preview_open_2.png")
             r.type("n", lackey.KeyModifier.CMD)
         time.sleep(2)
         r.type("This is a test")
@@ -153,7 +162,7 @@ class TestComplexFeatures(unittest.TestCase):
             r.type("{F4}", lackey.Key.ALT)
         elif sys.platform == "darwin":
             r.type("w", lackey.KeyModifier.CMD)
-            r.click(lackey.Pattern("textedit_save.png").targetOffset(-86, 41))
+            r.click(lackey.Pattern("textedit_save_2.png").targetOffset(-86, 25))
             lackey.sleep(0.5)
             r.type("q", lackey.KeyModifier.CMD)
 

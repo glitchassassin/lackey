@@ -2,6 +2,7 @@
 
 """
 import re
+import platform
 from setuptools import setup, find_packages
 from setuptools.dist import Distribution
 
@@ -15,6 +16,10 @@ class BinaryDistribution(Distribution):
     """
     def is_pure(self):
         return False
+
+install_requires = ['requests', 'pillow', 'numpy', 'opencv-python', 'keyboard', 'pyperclip']
+if platform.system() == "Darwin":
+    install_requires += ['pyobjc']
 
 setup(
     name="Lackey",
@@ -35,14 +40,14 @@ setup(
         "Intended Audience :: System Administrators",
         "License :: OSI Approved :: MIT License",
         "Operating System :: Microsoft :: Windows",
-        "Operating System :: Microsoft :: Windows",
+        "Operating System :: MacOS :: MacOS X",
         "Topic :: Software Development :: Testing",
         "Topic :: Utilities",
         "Topic :: Desktop Environment"
     ],
     keywords="automation testing sikuli",
     packages=find_packages(exclude=['docs', 'tests']),
-    install_requires=['requests', 'pillow', 'numpy', 'opencv-python', 'keyboard', 'pyperclip'],
+    install_requires=install_requires,
     include_package_data=True,
     distclass=BinaryDistribution
 )

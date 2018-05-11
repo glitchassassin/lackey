@@ -31,7 +31,8 @@ class Mouse(object):
         """ Moves cursor to specified location. Accepts the following arguments:
 
         * ``move(loc)`` - Move cursor to ``Location``
-        * ``move(xoff, yoff) - Move cursor to offset from current location
+        * ``move(xoff, yoff)`` - Move cursor to offset from current location
+
         """
         from .Geometry import Location
         self._lock.acquire()
@@ -78,9 +79,9 @@ class Mouse(object):
 
         Use button constants Mouse.LEFT, Mouse.MIDDLE, Mouse.RIGHT
         """
-        self._lock.acquire()
         if loc is not None:
             self.moveSpeed(loc)
+        self._lock.acquire()
         mouse.click(button)
         self._lock.release()
     def buttonDown(self, button=mouse.LEFT):

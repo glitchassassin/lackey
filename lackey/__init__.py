@@ -22,13 +22,14 @@ except ImportError:
 import sys
 import time
 import os
+import warnings
 import requests
 
 ## Lackey sub-files
 
 #from .PlatformManagerWindows import PlatformManagerWindows
 from .KeyCodes import Button, Key, KeyModifier
-from .RegionMatching import Pattern, Region, Match, Screen, ObserveEvent, PlatformManager
+from .RegionMatching import Pattern, Region, Match, Screen, ObserveEvent, PlatformManager, FOREVER
 from .Geometry import Location
 from .InputEmulation import Mouse, Keyboard
 from .App import App
@@ -36,6 +37,8 @@ from .Exceptions import FindFailed, ImageMissing
 from .SettingsDebug import Debug, Settings, DebugMaster, SettingsMaster
 from .SikuliGui import PopupInput, PopupList, PopupTextarea
 from ._version import __version__
+
+from . import ImportHandler
 
 VALID_PLATFORMS = ["Windows", "Darwin"]
 
@@ -49,15 +52,28 @@ keyboard.add_hotkey("alt+shift+c", _abort_script, suppress=True)
 ## Sikuli patching: Functions that map to the global Screen region
 ## Don't try this at home, kids!
 
-# First, save the native functions by remapping them with a prefixed underscore:
+# First, save the native functions by remapping them with a trailing underscore:
 
-_type = type
-_input = input
-try:
-    _exit = exit
-except NameError:
-    pass # `exit` is not always defined, as when building to executable.
-#_zip = zip
+type_ = type
+input_ = input
+exit_ = sys.exit
+#zip_ = zip
+
+
+# Deprecated underscore functions
+
+def _exit(code):
+    warnings.warn("Please use exit_ instead.", DeprecationWarning)
+    return exit_(code)
+
+def _input(prompt):
+    warnings.warn("Please use input_ instead.", DeprecationWarning)
+    return input_(prompt)
+
+def _type(obj):
+    warnings.warn("Please use type_ instead.", DeprecationWarning)
+    return type_(obj)
+
 
 ## Sikuli Convenience Functions
 

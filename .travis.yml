@@ -1,0 +1,33 @@
+matrix:
+  include:
+  - os: osx
+    language: generic
+    env: PYTHON=2.7
+  - os: osx
+    language: generic
+    env: PYTHON=3.5.4
+  - os: osx
+    language: generic
+    env: PYTHON=3.6.3
+
+before_install: "if [ \"$TRAVIS_OS_NAME\" == \"osx\" ]; then\n  brew update\n  brew
+  install openssl readline\n\n  # install pyenv\n  git clone --depth 1 https://github.com/pyenv/pyenv
+  ~/.pyenv\n  PYENV_ROOT=\"$HOME/.pyenv\"\n  PATH=\"$PYENV_ROOT/bin:$PATH\"\n  eval
+  \"$(pyenv init -)\"\n\n  # set up Python environment\n  pyenv install $PYTHON\n
+  \ pyenv global $PYTHON\n  \n  pyenv rehash\n  python -m pip install virtualenv\n
+  \ python -m virtualenv ~/.venv\n  source ~/.venv/bin/activate\nfi\n"
+
+install:
+- python --version
+- python -m pip install --disable-pip-version-check --upgrade pip
+- pip install -r osx_requirements.txt
+- python -m easy_install -U setuptools
+
+script:
+- python setup.py install
+- python tests/appveyor_test_cases.py
+
+after_success:
+- python setup.py bdist_wheel
+- python setup.py sdist
+- ls dist
