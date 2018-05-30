@@ -79,9 +79,9 @@ class Mouse(object):
 
         Use button constants Mouse.LEFT, Mouse.MIDDLE, Mouse.RIGHT
         """
-        self._lock.acquire()
         if loc is not None:
             self.moveSpeed(loc)
+        self._lock.acquire()
         mouse.click(button)
         self._lock.release()
     def buttonDown(self, button=mouse.LEFT):
