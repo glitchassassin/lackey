@@ -238,11 +238,13 @@ class PlatformManagerDarwin(object):
         min_x, min_y, screen_w, screen_h = self._getVirtualScreenRect()
         virtual_screen = Image.new("RGB", (screen_w, screen_h))
         for filename, screen in zip(filenames, screen_details):
-            im = Image.open(filename)
-            im.load()
-            im = im.resize((int(im.size[0]/2), int(im.size[1]/2)), Image.ANTIALIAS)
             # Capture virtscreen coordinates of monitor
             x, y, w, h = screen["rect"]
+            # Convert image size if needed
+            im = Image.open(filename)
+            im.load()
+            if im.size[0] != w or im.size[1] != h:
+                im = im.resize((int(w), int(h)), Image.ANTIALIAS)
             # Convert to image-local coordinates
             x = x - min_x
             y = y - min_y
