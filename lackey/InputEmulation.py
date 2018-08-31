@@ -5,7 +5,7 @@ import multiprocessing
 import time
 
 import keyboard
-from keyboard import mouse
+import mouse
 
 # Python 3 compatibility
 try:
