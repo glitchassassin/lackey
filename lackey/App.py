@@ -190,9 +190,11 @@ class App(object):
         Returns an empty string if no match could be found.
         """
         if self.getPID() != -1:
+            if not self.hasWindow():
+                return ""
             return PlatformManager.getWindowTitle(PlatformManager.getWindowByPID(self.getPID()))
         else:
-            return ""
+            return None
     def getName(self):
         """ Returns the short name of the app as shown in the process list """
         return PlatformManager.getProcessName(self.getPID())
@@ -213,7 +215,7 @@ class App(object):
         timeout = time.time() + seconds
         while True:
             window_region = self.window()
-            if window_region is not None or time.time() < timeout:
+            if window_region is not None or time.time() > timeout:
                 break
             time.sleep(0.5)
         return window_region
@@ -223,6 +225,8 @@ class App(object):
         Defaults to the first window found for the corresponding PID.
         """
         if self._pid == -1:
+            return None
+        if not self.hasWindow():
             return None
         x,y,w,h = PlatformManager.getWindowRect(PlatformManager.getWindowByPID(self._pid, windowNum))
         return Region(x,y,w,h).clipRegionToScreen()
