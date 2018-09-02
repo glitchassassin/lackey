@@ -194,7 +194,7 @@ class App(object):
                 return ""
             return PlatformManager.getWindowTitle(PlatformManager.getWindowByPID(self.getPID()))
         else:
-            return None
+            return ""
     def getName(self):
         """ Returns the short name of the app as shown in the process list """
         return PlatformManager.getProcessName(self.getPID())
