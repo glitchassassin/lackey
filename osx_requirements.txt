@@ -11,3 +11,4 @@ wheel
 pyperclip
 keyboard>=v0.9.13
 twine
+pytesseract
