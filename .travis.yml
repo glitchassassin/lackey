@@ -9,6 +9,9 @@ matrix:
   - os: osx
     language: generic
     env: PYTHON=3.6.3
+  - os: osx
+    language: generic
+    env: PYTHON=3.7
 
 before_install: "if [ \"$TRAVIS_OS_NAME\" == \"osx\" ]; then\n  brew update\n  brew
   install openssl readline\n\n  # install pyenv\n  git clone --depth 1 https://github.com/pyenv/pyenv
