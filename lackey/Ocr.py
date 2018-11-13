@@ -1,5 +1,4 @@
 import pytesseract
-from pprint import pprint
 import csv
 import re
 
@@ -16,7 +15,50 @@ class OCR():
         Returns the text found in the given image.
         """
         return pytesseract.image_to_string(image)
-    
+    def find_word(self, image, text, confidence=0.6):
+        """
+        Finds the first word in `image` that matches `text`.
+        Currently ignores confidence
+        """
+        data = pytesseract.image_to_data(image)
+        reader = csv.DictReader(data.split("\n"), delimiter="\t", quoting=csv.QUOTE_NONE)
+        for rect in reader:
+            if re.search(text, rect["text"]):
+                return (
+                    (
+                        rect["left"],
+                        rect["top"],
+                        rect["width"],
+                        rect["height"]
+                    ),
+                    rect["conf"]
+                )
+        return None
+    def find_line(self, image, text, confidence=0.6):
+        """
+        Finds all lines in `image` that match `text`.
+        Currently ignores confidence
+        """
+        data = pytesseract.image_to_data(image)
+        reader = csv.DictReader(data.split("\n"), delimiter="\t", quoting=csv.QUOTE_NONE)
+        lines = {}
+        for rect in reader:
+            key = (int(rect["page_num"]), int(rect["block_num"]), int(rect["par_num"]), int(rect["line_num"]))
+            if key not in lines:
+                lines[key] = ""
+            lines[key] += " " + rect["text"]
+        for line in lines:
+            if re.search(text, line):
+                return (
+                    (
+                        rect["left"],
+                        rect["top"],
+                        rect["width"],
+                        rect["height"]
+                    ),
+                    rect["conf"]
+                )
+        return None
     def find_all_in_image(self, image, text, confidence=0.6):
         """
         Finds all blocks of text in `image` that match `text`.
@@ -35,7 +77,7 @@ class OCR():
                 # This rect is on the same line
                 line.append(rect)
             else:
-                Debug.info("Line: " + " ".join(e["text"] for e in line if e["text"] is not None)) # int(e["conf"]) > confidence and 
+                # Debug.info("Line: " + " ".join(e["text"] for e in line if e["text"] is not None)) # int(e["conf"]) > confidence and 
                 line = [rect]
             
             if self._check_if_line_matches(line, text, confidence):
@@ -52,7 +94,7 @@ class OCR():
         Currently ignores confidence
         """
         matches = self.find_all_in_image(image, text, confidence)
-        Debug.info("Matches: " + repr(matches))
+        # Debug.info("Matches: " + repr(matches))
         if matches:
             return matches[0]
         return None
@@ -66,7 +108,7 @@ class OCR():
             last_element = line.pop(0)
         # If not, replace the element, and calculate the bounding box of the remaining elements
         line = [last_element] + line
-        print("Matched line: " + repr(line)) # DEBUG
+        #print("Matched line: " + repr(line)) # DEBUG
         corners = []
         for e in line:
             corners.append((int(e["left"]), int(e["top"])))
@@ -80,7 +122,3 @@ class OCR():
         return (bbox, confidence)
 
 TextOCR = OCR()
-
-if __name__ == "__main__":
-    ocr = TextOCR.start()
-    pprint(ocr.find_all_in_image("/Users/jwinsley/Downloads/tesseract/homemeds.png", "Ibuprofen"))

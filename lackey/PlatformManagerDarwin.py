@@ -273,6 +273,16 @@ class PlatformManagerDarwin(object):
                 )
             }
             screens.append(screen)
+        # Convert y-coordinates
+        y1 = min([s["rect"][1] for s in screens])
+        y2 = max([s["rect"][1]+s["rect"][3] for s in screens])
+        for screen in screens:
+            screen["rect"] = (
+                screen["rect"][0],
+                (y2 - screen["rect"][3]) - screen["rect"][1],
+                screen["rect"][2],
+                screen["rect"][3]
+            )
         return screens
     def isPointVisible(self, x, y):
         """ Checks if a point is visible on any monitor. """
@@ -313,6 +323,7 @@ class PlatformManagerDarwin(object):
         """ Returns a handle for the first window that matches the provided PID """
         for w in self._get_window_list():
             if "kCGWindowOwnerPID" in w and w["kCGWindowOwnerPID"] == pid:
+                print(self.getWindowRect(w["kCGWindowNumber"]))
                 # Matches - make sure we get it in the correct order
                 if order == 0:
                     return w["kCGWindowNumber"]

@@ -70,6 +70,8 @@ class Pattern(object):
             self.setImage(target)
         elif target is not None:
             raise TypeError("Unrecognized argument for Pattern()")
+    def __repr__(self):
+        return f"<Pattern [{'image' if self.imagePattern else 'ocr'}] \"{self.path}\" ({self.similarity}) >"
 
     def similar(self, similarity):
         """ Returns a new Pattern with the specified similarity threshold """
@@ -105,14 +107,13 @@ class Pattern(object):
             if os.path.exists(full_path):
                 found = True
                 self.path = full_path
-                self.image = cv2.imread(self.path)
+                self.setImage(cv2.imread(self.path))
                 break
         ## Check if path is valid
         if not found:
             self.path = filename
             Debug.info("Pattern not found in image paths: " + repr(Settings.ImagePaths))
             if Settings.SwitchToText:
-                self.imagePattern = False
                 Debug.info("Assuming pattern is OCR text")
             else:
                 raise ImageMissing(ImageMissingEvent(pattern=self, event_type="IMAGEMISSING"))
@@ -650,6 +651,7 @@ class Region(object):
         if match:
             return False
             #self._findFailedHandler(FindFailed("Pattern '{}' did not vanish".format(pattern.path)))
+        return True
     def has(self, pattern):
         """Checks whether the given `pattern` is visible in the region. Does not throw FindFailed.
 
@@ -685,6 +687,7 @@ class Region(object):
             timeout = time.time() + seconds
 
             # Consult TextOCR to find needle text
+            match = None
             while not match:
                 match = TextOCR.find_in_image(r.getBitmap(), pattern.path, pattern.similarity)
                 time.sleep(1/self._defaultScanRate if self._defaultScanRate is not None else 1/Settings.WaitScanRate)
@@ -705,6 +708,7 @@ class Region(object):
                     break
 
         if match is None:
+            print(pattern)
             Debug.info("Couldn't find '{}' with enough similarity.".format(pattern.path))
             return None
 
@@ -1415,7 +1419,7 @@ class Region(object):
 
     # OCR Functions
     def findText(self, text):
-        """ OCR function """
+        """ Finds the first block of text in the region that matches `text`. Can be a regex. """
         findFailedRetry = True
         while findFailedRetry:
             match = self.existsText(text)
@@ -1426,11 +1430,27 @@ class Region(object):
                 time.sleep(self._repeatWaitTime)
         return match
     def findWord(self, text):
-        """ OCR function """
-        raise NotImplementedError()
+        """ Finds the first word in the region that matches `text`. Can be a regex. """
+        search = TextOCR.find_word(self.getBitmap(), text)
+        if search:
+            bbox, conf = search
+            return Match(
+                conf,
+                Location(0,0),
+                ((bbox[0], bbox[1]), (bbox[2], bbox[3]))
+            )
+        return None
     def findLine(self, text):
-        """ OCR function """
-        raise NotImplementedError()
+        """ Finds the first line in the region that matches `text`. Can be a regex. """
+        search = TextOCR.find_line(self.getBitmap(), text)
+        if search:
+            bbox, conf = search
+            return Match(
+                conf,
+                Location(0,0),
+                ((bbox[0], bbox[1]), (bbox[2], bbox[3]))
+            )
+        return None
     def waitText(self, text, seconds=None):
         """ Searches for an image pattern in the given region, given a specified timeout period
 
@@ -1532,18 +1552,20 @@ class Region(object):
             return None
         if seconds is None:
             seconds = self.autoWaitTimeout
-        if not isinstance(pattern, basestring):
+        if not isinstance(text, basestring):
             raise TypeError("waitVanishText expected a string")
         
         timeout = time.time() + seconds
 
         # Consult TextOCR to find needle text
+        match = TextOCR.find_in_image(r.getBitmap(), text)
         while match and time.time() < timeout:
             match = TextOCR.find_in_image(r.getBitmap(), text)
             time.sleep(1/self._defaultScanRate if self._defaultScanRate is not None else 1/Settings.WaitScanRate)
         
         if match:
             return False
+        return True
 
     def findAllText(self, text):
         """ Searches for all matching text regions in the given region
@@ -1558,7 +1580,7 @@ class Region(object):
             return None
         seconds = self.autoWaitTimeout
         
-        if not isinstance(pattern, basestring):
+        if not isinstance(text, basestring):
             raise TypeError("findAllText expected a string")
 
         # Consult TextOCR to find needle text
@@ -1575,13 +1597,15 @@ class Region(object):
             lastMatches.append(
                 Match(
                     confidence,
-                    pattern.offset,
-                    position)
+                    Location(0,0),
+                    ((position[0], position[1]), (position[2], position[3]))
+                )
             )
         self._lastMatches = iter(lastMatches)
-        Debug.info("Found match(es) for pattern '{}'".format(text))
+        Debug.info("Found match(es) for text '{}'".format(text))
         self._lastMatchTime = (time.time() - find_time) * 1000 # Capture find time in milliseconds
         return self._lastMatches
+
     # Event Handlers
 
     def onAppear(self, pattern, handler=None):

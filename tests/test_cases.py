@@ -104,10 +104,10 @@ class TestComplexFeatures(unittest.TestCase):
             lackey.type("n", lackey.KeyModifier.CMD)
             time.sleep(1)
             app = lackey.App("Untitled")
-            r.type("This is a Test")
+            r.type("This is a test")
             r.type("a", lackey.KeyModifier.CMD) # Select all
             r.type("c", lackey.KeyModifier.CMD) # Copy
-            self.assertEqual(r.getClipboard(), "This is a Test")
+            self.assertEqual(r.getClipboard(), "This is a test")
             r.type("{DELETE}") # Clear the selected text
             r.paste("This, on the other hand, is a {SHIFT}broken {SHIFT}record.") # Paste should ignore special characters and insert the string as is
             r.type("a", lackey.KeyModifier.CMD) # Select all
@@ -149,6 +149,13 @@ class TestComplexFeatures(unittest.TestCase):
         r.observe(30)
         self.assertTrue(r.TestFlag)
         self.assertGreater(r.getTime(), 0)
+        # OCR
+        a = r.find("textedit_header.png").below(400)
+        #a.highlight()
+        self.assertIsNotNone(a.findText("This is a test"))
+        self.assertGreater(len([a.findAllText("This is a test")]), 0)
+        
+        # 
         if sys.platform.startswith("win"):
             r.rightClick(r.getLastMatch())
             r.click("select_all.png")
@@ -158,11 +165,13 @@ class TestComplexFeatures(unittest.TestCase):
             r.type("c", lackey.KeyModifier.CMD)
         self.assertEqual(r.getClipboard(), "This is a test")
         r.type("{DELETE}")
+        self.assertTrue(r.waitVanishText("This is a test"))
         if sys.platform.startswith("win"):
             r.type("{F4}", lackey.Key.ALT)
         elif sys.platform == "darwin":
             r.type("w", lackey.KeyModifier.CMD)
-            r.click(lackey.Pattern("textedit_save_2.png").targetOffset(-86, 25))
+            r.wait(lackey.Pattern("textedit_save_2.png"))
+            r.click(lackey.Pattern("textedit_save_2.png").targetOffset(-126, 20))
             lackey.sleep(0.5)
             r.type("q", lackey.KeyModifier.CMD)
 
