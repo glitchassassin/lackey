@@ -29,6 +29,10 @@ Then you can just import Lackey at the head of your Sikuli-script python file:
 
 **WARNING** Be aware that this will create global methods that will *overwrite certain Python functions*, such as `type()`. For more information, see the **Sikuli Patching** section below.
 
+#### Installing Tesseract OCR ####
+
+OCR features are dependent upon a third-party utility, Tesseract OCR. Installation instructions for your platform [can be found here](https://github.com/tesseract-ocr/tesseract/wiki). As long as the tesseract executable is in your path, the OCR features should work.
+
 ### General ###
 
 The Lackey library is divided up into classes for finding and interacting with particular regions of the screen. Patterns are provided as bitmap files (supported formats include `.bmp`, `.pbm`, `.ras`, `.jpg`, `.tiff`, and `.png`). These patterns are compared to a Region of the screen, and, if they exist, can target a mouse move/click action.
