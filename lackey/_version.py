@@ -2,5 +2,5 @@
 
 """
 
-__version__ = "0.7.2"
+__version__ = "0.7.3"
 __sikuli_version__ = "1.1.0"
