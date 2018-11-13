@@ -150,7 +150,10 @@ class TestComplexFeatures(unittest.TestCase):
         self.assertTrue(r.TestFlag)
         self.assertGreater(r.getTime(), 0)
         # OCR
-        a = r.find("textedit_header.png").below(400)
+        if sys.platform.startswith("win"):
+            a = r.find("notepad_header.png").below(400)
+        elif sys.platform == "darwin":
+            a = r.find("textedit_header.png").below(400)
         #a.highlight()
         self.assertIsNotNone(a.findText("This is a test"))
         self.assertGreater(len([a.findAllText("This is a test")]), 0)
