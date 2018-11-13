@@ -2100,7 +2100,9 @@ class Screen(Region):
             # Capture region defined by provided x,y,w,h
             region = Region(*args)
         self.lastScreenImage = region.getBitmap()
-        return self.lastScreenImage
+        png = tempfile.NamedTemporaryFile(mode="wb", suffix=".png", delete=False)
+        Image.fromarray(self.lastScreenImage).save(png.name)
+        return png.name
     captureForHighlight = capture
     def selectRegion(self, text=""):
         """ Not yet implemented """
