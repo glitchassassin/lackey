@@ -273,9 +273,10 @@ class PlatformManagerDarwin(object):
                 )
             }
             screens.append(screen)
+
         # Convert y-coordinates
-        y1 = min([s["rect"][1] for s in screens])
-        y2 = max([s["rect"][1]+s["rect"][3] for s in screens])
+        y1 = screens[0]["rect"][1] # min([s["rect"][1] for s in screens])
+        y2 = screens[0]["rect"][1]+screens[0]["rect"][3] # max([s["rect"][1]+s["rect"][3] for s in screens])
         for screen in screens:
             screen["rect"] = (
                 screen["rect"][0],
@@ -297,15 +298,15 @@ class PlatformManagerDarwin(object):
     def osCopy(self):
         """ Triggers the OS "copy" keyboard shortcut """
         k = Keyboard()
-        k.keyDown("{CTRL}")
+        k.keyDown("{CMD}")
         k.type("c")
-        k.keyUp("{CTRL}")
+        k.keyUp("{CMD}")
     def osPaste(self):
         """ Triggers the OS "paste" keyboard shortcut """
         k = Keyboard()
-        k.keyDown("{CTRL}")
+        k.keyDown("{CMD}")
         k.type("v")
-        k.keyUp("{CTRL}")
+        k.keyUp("{CMD}")
 
     ## Window functions
 

@@ -161,7 +161,7 @@ class TestLocationMethods(unittest.TestCase):
         self.assertEqual(offset.getTuple(), (3,11))
 
     def test_screen_methods(self):
-        outside_loc = lackey.Location(-10, -10)
+        outside_loc = lackey.Location(-9000, -9000)
         self.assertIsNone(outside_loc.getScreen()) # Should be outside all screens and return None
         self.assertEqual(self.test_loc.getScreen().getID(), 0) # Test location should be on screen 0
         self.assertEqual(outside_loc.getMonitor().getID(), 0) # Outside all screens, should return default monitor (0)
@@ -436,6 +436,7 @@ class TestInterfaces(unittest.TestCase):
         self.assertHasMethod(lackey.Region, "findAll", 2)
         self.assertHasMethod(lackey.Region, "wait", 3)
         self.assertHasMethod(lackey.Region, "waitVanish", 3)
+        self.assertHasMethod(lackey.Region, "has", 2)
         self.assertHasMethod(lackey.Region, "exists", 3)
         self.assertHasMethod(lackey.Region, "click", 3)
         self.assertHasMethod(lackey.Region, "doubleClick", 3)
@@ -454,6 +455,15 @@ class TestInterfaces(unittest.TestCase):
         self.assertHasMethod(lackey.Region, "wheel", 1)     # Uses *args
         self.assertHasMethod(lackey.Region, "keyDown", 2)
         self.assertHasMethod(lackey.Region, "keyUp", 2)
+        # OCR Methods
+        self.assertHasMethod(lackey.Region, "findText", 2)
+        self.assertHasMethod(lackey.Region, "findWord", 2)
+        self.assertHasMethod(lackey.Region, "findLine", 2)
+        self.assertHasMethod(lackey.Region, "waitText", 3)
+        self.assertHasMethod(lackey.Region, "hasText", 2)
+        self.assertHasMethod(lackey.Region, "existsText", 3)
+        self.assertHasMethod(lackey.Region, "waitVanishText", 3)
+        self.assertHasMethod(lackey.Region, "findAllText", 2)
         # Event Handler Methods
         self.assertHasMethod(lackey.Region, "onAppear", 3)
         self.assertHasMethod(lackey.Region, "onVanish", 3)
