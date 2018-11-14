@@ -71,7 +71,7 @@ class Pattern(object):
         elif target is not None:
             raise TypeError("Unrecognized argument for Pattern()")
     def __repr__(self):
-        return f"<Pattern [{'image' if self.imagePattern else 'ocr'}] \"{self.path}\" ({self.similarity}) >"
+        return "<Pattern [" + ('image' if self.imagePattern else 'ocr') + "] \"" + self.path + "\" (" + self.similarity + ") >"
 
     def similar(self, similarity):
         """ Returns a new Pattern with the specified similarity threshold """
