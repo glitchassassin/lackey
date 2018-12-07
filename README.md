@@ -31,7 +31,7 @@ Then you can just import Lackey at the head of your Sikuli-script python file:
 
 #### Installing Tesseract OCR ####
 
-OCR features are dependent upon a third-party utility, Tesseract OCR. Installation instructions for your platform [can be found here](https://github.com/tesseract-ocr/tesseract/wiki). On some platforms, you may need to manually add the Tesseract folder to your PATH.
+OCR features are dependent upon a third-party utility, Tesseract OCR (v3.05+). Installation instructions for your platform [can be found here](https://github.com/tesseract-ocr/tesseract/wiki). On some platforms, you may need to manually add the Tesseract folder to your PATH.
 
 ### General ###
 
