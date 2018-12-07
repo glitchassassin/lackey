@@ -2099,7 +2099,7 @@ class Screen(Region):
         elif isinstance(args[0], int):
             # Capture region defined by provided x,y,w,h
             region = Region(*args)
-        self.lastScreenImage = region.getBitmap()
+        self.lastScreenImage = numpy.roll(region.getBitmap(), 1, axis=-1)
         png = tempfile.NamedTemporaryFile(mode="wb", suffix=".png", delete=False)
         Image.fromarray(self.lastScreenImage).save(png.name)
         return png.name
