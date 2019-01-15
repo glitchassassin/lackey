@@ -231,10 +231,7 @@ class PyramidTemplateMatcher(object):
 
             # Erase the found match from the haystack.
             # Repeat this process until no other matches are found
-            x, y = best_match[0]
-            w = needle.shape[1]
-            h = needle.shape[0]
-            roi = (x, y, w, h)
+            roi = best_match[0]
             # numpy 2D slice
             roi_slice = (slice(roi[1], roi[1]+roi[3]), slice(roi[0], roi[0]+roi[2]))
             self.haystack[roi_slice] = 0

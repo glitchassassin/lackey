@@ -570,6 +570,7 @@ class Region(object):
         lastMatches = []
         for match in matches:
             position, confidence = match
+            position = ((position[0] + self.x, position[1] + self.y), (position[2], position[3]))
             lastMatches.append(
                 Match(
                     confidence,
