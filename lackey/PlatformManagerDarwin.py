@@ -330,7 +330,7 @@ class PlatformManagerDarwin(object):
                     return w["kCGWindowNumber"]
                 else:
                     order -= 1
-        raise OSError("Could not find window for PID {} at index {}".format(pid, order))
+        return None
     def getWindowRect(self, hwnd):
         """ Returns a rect (x,y,w,h) for the specified window's area """
         for w in self._get_window_list():
@@ -340,7 +340,7 @@ class PlatformManagerDarwin(object):
                 width = w["kCGWindowBounds"]["Width"]
                 height = w["kCGWindowBounds"]["Height"]
                 return (x, y, width, height)
-        raise OSError("Unrecognized window number {}".format(hwnd))
+        return None
     def focusWindow(self, hwnd):
         """ Brings specified window to the front """
         Debug.log(3, "Focusing window: " + str(hwnd))
