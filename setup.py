@@ -40,6 +40,7 @@ setup(
         "Intended Audience :: System Administrators",
         "License :: OSI Approved :: MIT License",
         "Operating System :: Microsoft :: Windows",
+        "Operating System :: Linux :: Linux",
         "Operating System :: MacOS :: MacOS X",
         "Topic :: Software Development :: Testing",
         "Topic :: Utilities",

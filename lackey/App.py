@@ -11,14 +11,15 @@ from .SettingsDebug import Debug
 
 if platform.system() == "Windows":
     from .PlatformManagerWindows import PlatformManagerWindows
-    PlatformManager = PlatformManagerWindows() # No other input managers built yet
+    PlatformManager = PlatformManagerWindows()
 elif platform.system() == "Darwin":
     from .PlatformManagerDarwin import PlatformManagerDarwin
     PlatformManager = PlatformManagerDarwin()
+elif platform.system() == "Linux":
+    from .PlatformManagerLinux import PlatformManagerLinux
+    PlatformManager = PlatformManagerLinux()
 else:
-    # Avoid throwing an error if it's just being imported for documentation purposes
-    if not os.environ.get('READTHEDOCS') == 'True':
-        raise NotImplementedError("Lackey is currently only compatible with Windows and OSX.")
+    raise NotImplementedError("Lackey is currently only compatible with Windows, Linux, and OSX.")
 
 # Python 3 compatibility
 try:
