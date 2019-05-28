@@ -71,7 +71,7 @@ Be aware that **some Sikuli-script methods actually overwrite Python-native func
 
     from lackey import *
 
-    username = input_("Enter your username: ")
+    username = input_("Enter your username: ") # built-in Python input
 
 ## Structure ##
 

@@ -1356,7 +1356,7 @@ class Region(object):
         findFailedRetry = True
         while findFailedRetry:
             best_match = None
-            all_matches = self.findAll(*args)
+            all_matches = self.findAll(pattern)
             for match in all_matches:
                 if best_match is None or best_match.getScore() < match.getScore():
                     best_match = match
