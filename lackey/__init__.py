@@ -40,7 +40,7 @@ from ._version import __version__
 
 from . import ImportHandler
 
-VALID_PLATFORMS = ["Windows", "Darwin"]
+VALID_PLATFORMS = ["Windows", "Darwin", "Linux"]
 
 ## Define script abort hotkey (Alt+Shift+C)
 
