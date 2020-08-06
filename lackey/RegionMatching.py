@@ -695,7 +695,7 @@ class Region(object):
                 if time.time() > timeout:
                     break
         else:
-            needle = cv2.imread(pattern.path)
+            needle = pattern.getImage()
             needle_height, needle_width, needle_channels = needle.shape
             match = None
             timeout = time.time() + seconds
