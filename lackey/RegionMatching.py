@@ -1368,7 +1368,7 @@ class Region(object):
         return best_match
     def compare(self, image):
         """ Compares the region to the specified image """
-        return exists(Pattern(image), 0)
+        return self.exists(Pattern(image), 0)
     def findText(self, text, timeout=None):
         """ OCR function """
         raise NotImplementedError()
