@@ -87,6 +87,8 @@ Don't forget to update the unit tests and verify that they still run.
 
 This library is currently under development, and may have some bugs. Check the Issues list to find features/bugs you can help with!
 
+As of version 0.7.4, Python 2 has been deprecated, so support is not an active priority. 
+
 ## Build Instructions ##
 
 To build the wheel from source, `cd` to the project directory and run:
