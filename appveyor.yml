@@ -14,16 +14,14 @@ environment:
     secure: 1+JDFvadY94ojZGhbEeZ/G0of7zzFWwXaj4Mx0Th0Lo=
   matrix:
 
-    # Python 2.7.12 is the latest version and is not pre-installed.
-
-    - PYTHON: "C:\\Python27"
-    - PYTHON: "C:\\Python27-x64"
-
     - PYTHON: "C:\\Python36"
     - PYTHON: "C:\\Python36-x64"
 
     - PYTHON: "C:\\Python37"
     - PYTHON: "C:\\Python37-x64"
+
+    - PYTHON: "C:\\Python38"
+    - PYTHON: "C:\\Python38-x64"
 
 install:
   # If there is a newer build queued for the same PR, cancel this one.

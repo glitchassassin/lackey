@@ -7,12 +7,6 @@ import sys
 import os
 import lackey
 
-# Python 2/3 compatibility
-try:
-    unittest.TestCase.assertRegex
-except AttributeError:
-    unittest.TestCase.assertRegex =  unittest.TestCase.assertRegexpMatches
-
 class TestMouseMethods(unittest.TestCase):
     def setUp(self):
         self.mouse = lackey.Mouse()
@@ -56,7 +50,7 @@ class TestScreenMethods(unittest.TestCase):
 
     def testCapture(self):
         tpath = self.primaryScreen.capture()
-        self.assertIsInstance(tpath, numpy.ndarray)
+        self.assertIsInstance(tpath, str)
 
 
 class TestLocationMethods(unittest.TestCase):
