@@ -273,6 +273,17 @@ class PlatformManagerDarwin(object):
                 )
             }
             screens.append(screen)
+
+        # Convert y-coordinates
+        y1 = screens[0]["rect"][1] # min([s["rect"][1] for s in screens])
+        y2 = screens[0]["rect"][1]+screens[0]["rect"][3] # max([s["rect"][1]+s["rect"][3] for s in screens])
+        for screen in screens:
+            screen["rect"] = (
+                screen["rect"][0],
+                (y2 - screen["rect"][3]) - screen["rect"][1],
+                screen["rect"][2],
+                screen["rect"][3]
+            )
         return screens
     def isPointVisible(self, x, y):
         """ Checks if a point is visible on any monitor. """
@@ -287,15 +298,15 @@ class PlatformManagerDarwin(object):
     def osCopy(self):
         """ Triggers the OS "copy" keyboard shortcut """
         k = Keyboard()
-        k.keyDown("{CTRL}")
+        k.keyDown("{CMD}")
         k.type("c")
-        k.keyUp("{CTRL}")
+        k.keyUp("{CMD}")
     def osPaste(self):
         """ Triggers the OS "paste" keyboard shortcut """
         k = Keyboard()
-        k.keyDown("{CTRL}")
+        k.keyDown("{CMD}")
         k.type("v")
-        k.keyUp("{CTRL}")
+        k.keyUp("{CMD}")
 
     ## Window functions
 
@@ -313,12 +324,13 @@ class PlatformManagerDarwin(object):
         """ Returns a handle for the first window that matches the provided PID """
         for w in self._get_window_list():
             if "kCGWindowOwnerPID" in w and w["kCGWindowOwnerPID"] == pid:
+                print(self.getWindowRect(w["kCGWindowNumber"]))
                 # Matches - make sure we get it in the correct order
                 if order == 0:
                     return w["kCGWindowNumber"]
                 else:
                     order -= 1
-        raise OSError("Could not find window for PID {} at index {}".format(pid, order))
+        return None
     def getWindowRect(self, hwnd):
         """ Returns a rect (x,y,w,h) for the specified window's area """
         for w in self._get_window_list():
@@ -328,7 +340,7 @@ class PlatformManagerDarwin(object):
                 width = w["kCGWindowBounds"]["Width"]
                 height = w["kCGWindowBounds"]["Height"]
                 return (x, y, width, height)
-        raise OSError("Unrecognized window number {}".format(hwnd))
+        return None
     def focusWindow(self, hwnd):
         """ Brings specified window to the front """
         Debug.log(3, "Focusing window: " + str(hwnd))
