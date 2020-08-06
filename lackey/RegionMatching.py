@@ -617,7 +617,7 @@ class Region(object):
     def waitVanish(self, pattern, seconds=None):
         """ Waits until the specified pattern is not visible on screen.
 
-        If ``seconds`` pass and the pattern is still visible, raises FindFailed exception.
+        If ``seconds`` pass and the pattern is still visible, returns false.
         If Settings.SwitchToText is True, this uses OCR to search for the text in
         `pattern` if `pattern` does not correspond to an existing image path.
         """
