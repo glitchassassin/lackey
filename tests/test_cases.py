@@ -160,7 +160,7 @@ class TestComplexFeatures(unittest.TestCase):
         
         # 
         if sys.platform.startswith("win"):
-            r.rightClick(r.getLastMatch())
+            r.rightClick(a.getLastMatch())
             r.click("select_all.png")
             r.type("c", lackey.Key.CTRL) # Copy
         elif sys.platform == "darwin":
