@@ -179,9 +179,6 @@ class SettingsMaster(object):
     ## Popup settings
     PopupLocation = None
 
-    ## OCR Settings
-    SwitchToText = False
-
     # Environment methods
 
     def getSikuliVersion(self):

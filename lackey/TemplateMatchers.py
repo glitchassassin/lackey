@@ -40,7 +40,7 @@ class NaiveTemplateMatcher(object):
         if not position:
             return None
 
-        return ((*position, needle.shape[1], needle.shape[0]), confidence)
+        return (position, confidence)
 
     def findAllMatches(self, needle, similarity):
         """ Find all matches for ``needle`` with confidence better than or equal to ``similarity``.
@@ -51,7 +51,7 @@ class NaiveTemplateMatcher(object):
         positions = []
         method = cv2.TM_CCOEFF_NORMED
 
-        match = cv2.matchTemplate(self.haystack, needle, method)
+        match = cv2.matchTemplate(self.haystack, self.needle, method)
 
         indices = (-match).argpartition(100, axis=None)[:100] # Review the 100 top matches
         unraveled_indices = numpy.array(numpy.unravel_index(indices, match.shape)).T
@@ -60,10 +60,10 @@ class NaiveTemplateMatcher(object):
             confidence = match[y][x]
             if method == cv2.TM_SQDIFF_NORMED or method == cv2.TM_SQDIFF:
                 if confidence <= 1-similarity:
-                    positions.append(((x, y, needle.shape[1], needle.shape[0]), confidence))
+                    positions.append(((x, y), confidence))
             else:
                 if confidence >= similarity:
-                    positions.append(((x, y, needle.shape[1], needle.shape[0]), confidence))
+                    positions.append(((x, y), confidence))
 
         positions.sort(key=lambda x: (x[0][1], x[0][0]))
         return positions
@@ -213,7 +213,7 @@ class PyramidTemplateMatcher(object):
         # There was a match!
         if method == cv2.TM_SQDIFF_NORMED:
             confidence = 1 - confidence # Invert confidence if we used the SQDIFF method
-        return ((*position, needle.shape[1], needle.shape[0]), confidence)
+        return (position, confidence)
 
     def findAllMatches(self, needle, similarity):
         """ Finds all matches above ``similarity`` using a search pyramid to improve efficiency
@@ -231,7 +231,10 @@ class PyramidTemplateMatcher(object):
 
             # Erase the found match from the haystack.
             # Repeat this process until no other matches are found
-            roi = best_match[0]
+            x, y = best_match[0]
+            w = needle.shape[1]
+            h = needle.shape[0]
+            roi = (x, y, w, h)
             # numpy 2D slice
             roi_slice = (slice(roi[1], roi[1]+roi[3]), slice(roi[0], roi[0]+roi[2]))
             self.haystack[roi_slice] = 0
