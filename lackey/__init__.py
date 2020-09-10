@@ -40,20 +40,14 @@ from ._version import __version__
 
 from . import ImportHandler
 
-VALID_PLATFORMS = ["Windows", "Darwin"]
+VALID_PLATFORMS = ["Windows", "Darwin", "Linux"]
 
 ## Define script abort hotkey (Alt+Shift+C)
 
 def _abort_script():
     thread.interrupt_main()
 
-# If we are not on Unix, or if we are on Unix and have root privileges, start the
-# alt+shift+c hotkey listener to abort the script
-if (not hasattr(os, "geteuid") or os.geteuid() == 0):
-    keyboard.add_hotkey("alt+shift+c", _abort_script, suppress=True)
-    print("Use Alt+Shift+C to abort script manually")
-else:
-    print("No root privileges: Unable to set Alt+Shift+C listener to abort script.")
+keyboard.add_hotkey("alt+shift+c", _abort_script, suppress=True)
 
 ## Sikuli patching: Functions that map to the global Screen region
 ## Don't try this at home, kids!
