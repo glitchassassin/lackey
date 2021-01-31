@@ -285,7 +285,7 @@ class PlatformManagerLinux(object):
         h = screen.height_in_pixels
         root = screen.root
         raw = root.get_image(0,0,w,h, Xlib.X.ZPixmap, 0xffffffff)
-        image = Image.frombytes("RGB", (w, h), raw.data, "raw", "BGRX")
+        image = Image.frombytes("RGB", (w, h), raw.data, "raw", "RGBX")
         return image
 
 
