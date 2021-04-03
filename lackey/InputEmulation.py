@@ -13,6 +13,8 @@ try:
 except NameError:
     basestring = str
 
+from .SettingsDebug import Debug, Settings
+
 class Mouse(object):
     """ Mid-level mouse routines. """
     def __init__(self):
@@ -66,10 +68,12 @@ class Mouse(object):
         original_location = mouse.get_position()
         mouse.move(location.x, location.y, duration=seconds)
         if mouse.get_position() == original_location and original_location != location.getTuple():
-            raise IOError("""
-                Unable to move mouse cursor. This may happen if you're trying to automate a 
-                program running as Administrator with a script running as a non-elevated user.
-            """)
+            if Settings.CheckElevatedUser:
+                raise IOError( """
+                    Unable to move mouse cursor. This may happen if you're trying to automate a
+                    program running as Administrator with a script running as a non-elevated user.
+                """)
+            Debug.error('Unable to move mouse cursor.')
         self._lock.release()
 
     def click(self, loc=None, button=mouse.LEFT):

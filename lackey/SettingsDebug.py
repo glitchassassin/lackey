@@ -163,6 +163,7 @@ class SettingsMaster(object):
     DelayBeforeDrop = 0.3
     ClickDelay = 0.0 # Resets to 0 after next click
     TypeDelay = 0.0 # Resets to 0 after next keypress
+    CheckElevatedUser = True  # False don't check elevated user
 
     ## Action Settings
     ShowActions = False
