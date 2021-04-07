@@ -66,6 +66,7 @@ class Mouse(object):
         original_location = mouse.get_position()
         mouse.move(location.x, location.y, duration=seconds)
         if mouse.get_position() == original_location and original_location != location.getTuple():
+            self._lock.release()
             raise IOError("""
                 Unable to move mouse cursor. This may happen if you're trying to automate a 
                 program running as Administrator with a script running as a non-elevated user.
