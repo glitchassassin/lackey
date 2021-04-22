@@ -65,12 +65,12 @@ class Mouse(object):
         self._lock.acquire()
         original_location = mouse.get_position()
         mouse.move(location.x, location.y, duration=seconds)
+        self._lock.release()
         if mouse.get_position() == original_location and original_location != location.getTuple():
             raise IOError("""
-                Unable to move mouse cursor. This may happen if you're trying to automate a 
+                Unable to move mouse cursor. This may happen if you're trying to automate a
                 program running as Administrator with a script running as a non-elevated user.
             """)
-        self._lock.release()
 
     def click(self, loc=None, button=mouse.LEFT):
         """ Clicks the specified mouse button.
