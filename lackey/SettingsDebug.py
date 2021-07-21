@@ -23,7 +23,7 @@ class DebugMaster(object):
     def user(self, message):
         """ Creates a user log (if user logging is turned on)
 
-        Uses the log path defined by ``Debug.setUserLogFile()``. If no log file is
+        Uses the log path defined by ``Debug.setLogFile()``. If no log file is
         defined, sends to STDOUT
 
         Note: Does *not* use Java string formatting like Sikuli.
@@ -34,7 +34,7 @@ class DebugMaster(object):
     def history(self, message):
         """ Records an Action-level log message
 
-        Uses the log path defined by ``Debug.setUserLogFile()``. If no log file is
+        Uses the log path defined by ``Debug.setLogFile()``. If no log file is
         defined, sends to STDOUT
         """
         if Settings.ActionLogs:
@@ -42,7 +42,7 @@ class DebugMaster(object):
     def error(self, message):
         """ Records an Error-level log message
 
-        Uses the log path defined by ``Debug.setUserLogFile()``. If no log file is
+        Uses the log path defined by ``Debug.setLogFile()``. If no log file is
         defined, sends to STDOUT
         """
         if Settings.ErrorLogs:
@@ -50,7 +50,7 @@ class DebugMaster(object):
     def info(self, message):
         """ Records an Info-level log message
 
-        Uses the log path defined by ``Debug.setUserLogFile()``. If no log file is
+        Uses the log path defined by ``Debug.setLogFile()``. If no log file is
         defined, sends to STDOUT
         """
         if Settings.InfoLogs:
