@@ -1330,6 +1330,7 @@ class Region(object):
             _, target_file = tempfile.mkstemp(".png")
         elif name is None:
             _, tpath = tempfile.mkstemp(".png")
+            tfile = os.path.basename(tpath)
             target_file = os.path.join(path, tfile)
         else:
             target_file = os.path.join(path, name+".png")
