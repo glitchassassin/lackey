@@ -1142,9 +1142,9 @@ class Region(object):
         If numberRows is provided, uses that instead of the raster
         """
         row = int(row)
-        if self._raster[0] == 0 or self._raster[1] == 0:
-            return self
         if numberRows is None or numberRows < 1 or numberRows > 9:
+            if self._raster[0] == 0 or self._raster[1] == 0:
+                return self
             numberRows = self._raster[0]
         rowHeight = self.h / numberRows
         if row < 0:
@@ -1163,9 +1163,9 @@ class Region(object):
         If numberColumns is provided, uses that instead of the raster
         """
         column = int(column)
-        if self._raster[0] == 0 or self._raster[1] == 0:
-            return self
         if numberColumns is None or numberColumns < 1 or numberColumns > 9:
+            if self._raster[0] == 0 or self._raster[1] == 0:
+                return self
             numberColumns = self._raster[1]
         columnWidth = self.w / numberColumns
         if column < 0:
